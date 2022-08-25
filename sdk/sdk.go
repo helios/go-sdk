@@ -2,8 +2,10 @@ package sdk
 
 import (
 	"context"
+	"os"
 
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
 	"go.opentelemetry.io/otel/propagation"
@@ -15,6 +17,7 @@ import (
 const sdkName = "helios-opentelemetry-sdk"
 const collectorEndpoint = "collector.heliosphere.io:443"
 const collectorPath = "traces"
+const environmentEnvVar = "HS_ENVIRONMENT"
 
 func Initialize(serviceName string, apiToken string) (*trace.TracerProvider, error) {
 	endpoint := otlptracehttp.WithEndpoint(collectorEndpoint)
@@ -26,9 +29,16 @@ func Initialize(serviceName string, apiToken string) (*trace.TracerProvider, err
 		return nil, error
 	}
 
+	serviceAttributes := []attribute.KeyValue{semconv.ServiceNameKey.String(serviceName), semconv.TelemetrySDKVersionKey.String(version), semconv.TelemetrySDKNameKey.String(sdkName), semconv.TelemetrySDKLanguageGo}
+	if os.Getenv(environmentEnvVar) != "" {
+		serviceAttributes = append(serviceAttributes, semconv.DeploymentEnvironmentKey.String(os.Getenv(environmentEnvVar)))
+	}
+
+	serviceResource := resource.NewWithAttributes(semconv.SchemaURL, serviceAttributes...)
+
 	tracerProvider := trace.NewTracerProvider(
 		trace.WithBatcher(exporter),
-		trace.WithResource(resource.NewWithAttributes(semconv.SchemaURL, semconv.ServiceNameKey.String(serviceName), semconv.TelemetrySDKVersionKey.String(version), semconv.TelemetrySDKNameKey.String(sdkName), semconv.TelemetrySDKLanguageGo)),
+		trace.WithResource(serviceResource),
 		trace.WithSampler(trace.AlwaysSample()),
 	)
 
