@@ -3,6 +3,7 @@ package sdk
 import (
 	"context"
 	"os"
+	"strconv"
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
@@ -15,14 +16,57 @@ import (
 )
 
 const sdkName = "helios-opentelemetry-sdk"
-const collectorEndpoint = "collector.heliosphere.io:443"
-const collectorPath = "traces"
+const defaultCollectorEndpoint = "collector.heliosphere.io:443"
+const defaultCollectorPath = "traces"
 const environmentEnvVar = "HS_ENVIRONMENT"
+const samplingRatioEnvVar = "HS_SAMPLING_RATIO"
+const collectorEndpointEnvVar = "HS_COLLECTOR_ENDPOINT"
+const collectorPathEnvVar = "HS_COLLECTOR_PATH"
+
+var providerSingelton *trace.TracerProvider
+
+func getSampler() trace.Sampler {
+	samplingRatio := os.Getenv(samplingRatioEnvVar)
+	if samplingRatio == "" {
+		return trace.AlwaysSample()
+	}
+
+	res, err := strconv.ParseFloat(samplingRatio, 64)
+	if err != nil {
+		return trace.AlwaysSample()
+	}
+
+	return trace.TraceIDRatioBased(res)
+}
+
+func getCollectorEndpoint() string {
+	collectorEndpoint := os.Getenv(collectorEndpointEnvVar)
+	if collectorEndpoint == "" {
+		return defaultCollectorEndpoint
+	}
+
+	return collectorEndpoint
+}
+
+func getCollectorPath() string {
+	collectorPath := os.Getenv(collectorPathEnvVar)
+	if collectorPath == "" {
+		return defaultCollectorPath
+	}
+
+	return collectorPath
+}
 
 func Initialize(serviceName string, apiToken string) (*trace.TracerProvider, error) {
+	if providerSingelton != nil {
+		return providerSingelton, nil
+	}
+
+	collectorEndpoint := getCollectorEndpoint()
+	collectorPath := getCollectorPath()
 	endpoint := otlptracehttp.WithEndpoint(collectorEndpoint)
-	headers := otlptracehttp.WithHeaders(map[string]string{"Authorization": apiToken})
 	urlPath := otlptracehttp.WithURLPath(collectorPath)
+	headers := otlptracehttp.WithHeaders(map[string]string{"Authorization": apiToken})
 	exporter, error := otlptrace.New(context.Background(), otlptracehttp.NewClient(endpoint, headers, urlPath))
 
 	if error != nil {
@@ -35,15 +79,19 @@ func Initialize(serviceName string, apiToken string) (*trace.TracerProvider, err
 	}
 
 	serviceResource := resource.NewWithAttributes(semconv.SchemaURL, serviceAttributes...)
+	sampler := getSampler()
 
 	tracerProvider := trace.NewTracerProvider(
 		trace.WithBatcher(exporter),
 		trace.WithResource(serviceResource),
-		trace.WithSampler(trace.AlwaysSample()),
+		trace.WithSampler(sampler),
 	)
 
 	otel.SetTracerProvider(tracerProvider)
 	propagator := propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{})
 	otel.SetTextMapPropagator(propagator)
+
+	// Set singleton
+	providerSingelton = tracerProvider
 	return tracerProvider, nil
 }
