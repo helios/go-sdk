@@ -44,7 +44,8 @@ func getConfigByKey(key string, attrs []attribute.KeyValue) attribute.KeyValue {
 	return attribute.KeyValue{Key: "", Value: attribute.Value{}}
 }
 
-func getSampler(samplerConfig attribute.KeyValue) trace.Sampler {
+func getSampler(attrs []attribute.KeyValue) trace.Sampler {
+	samplerConfig := getConfigByKey(samplingRatioKey, attrs)
 	samplingRatio := os.Getenv(samplingRatioEnvVar)
 	if samplingRatio != "" {
 		res, err := strconv.ParseFloat(samplingRatio, 64)
@@ -96,7 +97,7 @@ func getCommitHash(attrs []attribute.KeyValue) string {
 }
 
 func getHeliosConfig(serviceName string, apiToken string, attrs ...attribute.KeyValue) HeliosConfig {
-	sampler := getSampler(getConfigByKey(samplingRatioKey, attrs))
+	sampler := getSampler(attrs)
 	collectorEndpoint := getCollectorEndpoint(attrs)
 	collectorPath := getCollectorPath(attrs)
 	environment := getEnvironment(attrs)
