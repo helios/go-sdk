@@ -1,0 +1,42 @@
+name: Test
+
+on:
+    push:
+        branches: [main]
+
+    pull_request:
+        branches: [main]
+
+    workflow_dispatch:
+
+jobs:
+    test:
+        runs-on: ubuntu-latest
+        steps:
+          - name: Checkout Repo
+            uses: actions/checkout@v3
+
+          - name: Setup Go
+            uses: actions/setup-go@v3
+            with:
+                go-version: 1.17
+
+          - name: Setup Go Environment
+            run: |
+              echo "GOPATH=$(go env GOPATH)" >> $GITHUB_ENV
+              echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
+
+          - name: Cache Go
+            id: module-cache
+            uses: actions/cache@v2
+            with:
+              path: |
+                /home/runner/go/pkg/mod
+              key: v1-go-pkg-mod-${{ runner.os }}-${{ hashFiles('**/go.mod', '**/go.sum') }}
+
+          - name: Install dependencies
+            if: steps.module-cache.outputs.hit != 'true'
+            run: go mod download && go mod verify
+
+          - name: Test
+            run: go test ./sdk
