@@ -2,8 +2,6 @@ package sdk
 
 import (
 	"context"
-	"os"
-	"strconv"
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
@@ -16,57 +14,53 @@ import (
 )
 
 const sdkName = "helios-opentelemetry-sdk"
-const defaultCollectorEndpoint = "collector.heliosphere.io:443"
-const defaultCollectorPath = "traces"
-const environmentEnvVar = "HS_ENVIRONMENT"
-const samplingRatioEnvVar = "HS_SAMPLING_RATIO"
-const collectorEndpointEnvVar = "HS_COLLECTOR_ENDPOINT"
-const collectorPathEnvVar = "HS_COLLECTOR_PATH"
 
 var providerSingelton *trace.TracerProvider
 
-func getSampler() trace.Sampler {
-	samplingRatio := os.Getenv(samplingRatioEnvVar)
-	if samplingRatio == "" {
-		return trace.AlwaysSample()
+func WithSamplingRatio(samplingRatio float64) attribute.KeyValue {
+	return attribute.KeyValue{
+		Key:   samplingRatioKey,
+		Value: attribute.Float64Value(samplingRatio),
 	}
-
-	res, err := strconv.ParseFloat(samplingRatio, 64)
-	if err != nil {
-		return trace.AlwaysSample()
-	}
-
-	return trace.TraceIDRatioBased(res)
 }
 
-func getCollectorEndpoint() string {
-	collectorEndpoint := os.Getenv(collectorEndpointEnvVar)
-	if collectorEndpoint == "" {
-		return defaultCollectorEndpoint
+func WithEnvironment(environment string) attribute.KeyValue {
+	return attribute.KeyValue{
+		Key:   environmentKey,
+		Value: attribute.StringValue(environment),
 	}
-
-	return collectorEndpoint
 }
 
-func getCollectorPath() string {
-	collectorPath := os.Getenv(collectorPathEnvVar)
-	if collectorPath == "" {
-		return defaultCollectorPath
+func WithCollectorEndpoint(collectorEndpoint string) attribute.KeyValue {
+	return attribute.KeyValue{
+		Key:   collectorEndpointKey,
+		Value: attribute.StringValue(collectorEndpoint),
 	}
-
-	return collectorPath
 }
 
-func Initialize(serviceName string, apiToken string) (*trace.TracerProvider, error) {
+func WithCollectorPath(collectorPath string) attribute.KeyValue {
+	return attribute.KeyValue{
+		Key:   collectorPathKey,
+		Value: attribute.StringValue(collectorPath),
+	}
+}
+
+func WithCommitHash(commitHash string) attribute.KeyValue {
+	return attribute.KeyValue{
+		Key:   commitHashKey,
+		Value: attribute.StringValue(commitHash),
+	}
+}
+
+func Initialize(serviceName string, apiToken string, attrs ...attribute.KeyValue) (*trace.TracerProvider, error) {
 	if providerSingelton != nil {
 		return providerSingelton, nil
 	}
 
-	collectorEndpoint := getCollectorEndpoint()
-	collectorPath := getCollectorPath()
-	endpoint := otlptracehttp.WithEndpoint(collectorEndpoint)
-	urlPath := otlptracehttp.WithURLPath(collectorPath)
-	headers := otlptracehttp.WithHeaders(map[string]string{"Authorization": apiToken})
+	heliosConfig := getHeliosConfig(serviceName, apiToken, attrs...)
+	endpoint := otlptracehttp.WithEndpoint(heliosConfig.collectorEndpoint)
+	urlPath := otlptracehttp.WithURLPath(heliosConfig.collectorPath)
+	headers := otlptracehttp.WithHeaders(map[string]string{"Authorization": heliosConfig.apiToken})
 	exporter, error := otlptrace.New(context.Background(), otlptracehttp.NewClient(endpoint, headers, urlPath))
 
 	if error != nil {
@@ -74,17 +68,19 @@ func Initialize(serviceName string, apiToken string) (*trace.TracerProvider, err
 	}
 
 	serviceAttributes := []attribute.KeyValue{semconv.ServiceNameKey.String(serviceName), semconv.TelemetrySDKVersionKey.String(version), semconv.TelemetrySDKNameKey.String(sdkName), semconv.TelemetrySDKLanguageGo}
-	if os.Getenv(environmentEnvVar) != "" {
-		serviceAttributes = append(serviceAttributes, semconv.DeploymentEnvironmentKey.String(os.Getenv(environmentEnvVar)))
+	if heliosConfig.environment != "" {
+		serviceAttributes = append(serviceAttributes, semconv.DeploymentEnvironmentKey.String(heliosConfig.environment))
+	}
+	if heliosConfig.commitHash != "" {
+		serviceAttributes = append(serviceAttributes, semconv.ServiceVersionKey.String(heliosConfig.commitHash))
 	}
 
 	serviceResource := resource.NewWithAttributes(semconv.SchemaURL, serviceAttributes...)
-	sampler := getSampler()
 
 	tracerProvider := trace.NewTracerProvider(
 		trace.WithBatcher(exporter),
 		trace.WithResource(serviceResource),
-		trace.WithSampler(sampler),
+		trace.WithSampler(heliosConfig.sampler),
 	)
 
 	otel.SetTracerProvider(tracerProvider)
