@@ -62,63 +62,44 @@ func getSampler(samplerConfig attribute.KeyValue) trace.Sampler {
 	return trace.TraceIDRatioBased(samplerConfig.Value.AsFloat64())
 }
 
-func getCollectorEndpoint(collectorEndpointConfig attribute.KeyValue) string {
-	collectorEndpoint := os.Getenv(collectorEndpointEnvVar)
-	if collectorEndpoint != "" {
-		return collectorEndpoint
+func getStringConfig(envVar string, defaultValue string, config attribute.KeyValue) string {
+	envVarValue := os.Getenv(envVar)
+	if envVarValue != "" {
+		return envVarValue
 	}
 
-	if collectorEndpointConfig.Key == "" {
-		return defaultCollectorEndpoint
+	if config.Key == "" {
+		return defaultValue
 	}
 
-	return collectorEndpointConfig.Value.AsString()
+	return config.Value.AsString()
 }
 
-func getCollectorPath(collectorPathConfig attribute.KeyValue) string {
-	collectorPath := os.Getenv(collectorPathEnvVar)
-	if collectorPath != "" {
-		return collectorPath
-	}
-
-	if collectorPathConfig.Key == "" {
-		return defaultCollectorPath
-	}
-
-	return collectorPathConfig.Value.AsString()
+func getCollectorEndpoint(attrs []attribute.KeyValue) string {
+	collectorEndpointConfig := getConfigByKey(collectorEndpointKey, attrs)
+	return getStringConfig(collectorEndpointEnvVar, defaultCollectorEndpoint, collectorEndpointConfig)
 }
 
-func getEnvironment(environmentConfig attribute.KeyValue) string {
-	environment := os.Getenv(environmentEnvVar)
-	if environment != "" {
-		return environment
-	}
-
-	if environmentConfig.Key == "" {
-		return ""
-	}
-
-	return environmentConfig.Value.AsString()
+func getCollectorPath(attrs []attribute.KeyValue) string {
+	collectorPathConfig := getConfigByKey(collectorPathKey, attrs)
+	return getStringConfig(collectorPathEnvVar, defaultCollectorPath, collectorPathConfig)
 }
 
-func getCommitHash(commitHashConfig attribute.KeyValue) string {
-	commitHash := os.Getenv(commitHashEnvVar)
-	if commitHash != "" {
-		return commitHash
-	}
+func getEnvironment(attrs []attribute.KeyValue) string {
+	environmentConfig := getConfigByKey(environmentKey, attrs)
+	return getStringConfig(environmentEnvVar, "", environmentConfig)
+}
 
-	if commitHashConfig.Key == "" {
-		return ""
-	}
-
-	return commitHashConfig.Value.AsString()
+func getCommitHash(attrs []attribute.KeyValue) string {
+	commitHashConfig := getConfigByKey(commitHashKey, attrs)
+	return getStringConfig(commitHashEnvVar, "", commitHashConfig)
 }
 
 func getHeliosConfig(serviceName string, apiToken string, attrs ...attribute.KeyValue) HeliosConfig {
 	sampler := getSampler(getConfigByKey(samplingRatioKey, attrs))
-	collectorEndpoint := getCollectorEndpoint(getConfigByKey(collectorEndpointKey, attrs))
-	collectorPath := getCollectorPath(getConfigByKey(collectorPathKey, attrs))
-	environment := getEnvironment(getConfigByKey(environmentKey, attrs))
-	commitHash := getCommitHash(getConfigByKey(commitHashKey, attrs))
+	collectorEndpoint := getCollectorEndpoint(attrs)
+	collectorPath := getCollectorPath(attrs)
+	environment := getEnvironment(attrs)
+	commitHash := getCommitHash(attrs)
 	return HeliosConfig{serviceName, apiToken, sampler, collectorEndpoint, collectorPath, environment, commitHash}
 }
