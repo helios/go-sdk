@@ -2,6 +2,7 @@ package sdk
 
 import (
 	"context"
+	"log"
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
@@ -50,6 +51,23 @@ func WithCommitHash(commitHash string) attribute.KeyValue {
 		Key:   commitHashKey,
 		Value: attribute.StringValue(commitHash),
 	}
+}
+
+func CreateCustomSpan(context context.Context, spanName string, attributes []attribute.KeyValue, callback func()) context.Context {
+	if providerSingelton == nil {
+		log.Print("Can't create custom span before Initialize is called")
+		return nil
+	}
+
+	tracer := providerSingelton.Tracer("helios")
+	ctx, span := tracer.Start(context, spanName)
+	span.SetAttributes(attributes...)
+	if callback != nil {
+		callback()
+	}
+
+	defer span.End()
+	return ctx
 }
 
 func Initialize(serviceName string, apiToken string, attrs ...attribute.KeyValue) (*trace.TracerProvider, error) {
