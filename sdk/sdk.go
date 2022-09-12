@@ -111,6 +111,8 @@ func Initialize(serviceName string, apiToken string, attrs ...attribute.KeyValue
 	propagator := propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{})
 	otel.SetTextMapPropagator(propagator)
 
+	log.Printf("Helios tracing initialized (service: %s, token: %s*****, environment: %s)", serviceName, heliosConfig.apiToken[0:3], heliosConfig.environment)
+
 	// Set singleton
 	providerSingelton = tracerProvider
 	return tracerProvider, nil
