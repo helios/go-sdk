@@ -1,3 +1,3 @@
 package sdk
 
-const version = "0.1.4"
+const version = "0.1.5"
