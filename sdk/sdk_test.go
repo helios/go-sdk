@@ -49,12 +49,19 @@ func TestCreateCustomSpanWithCallback(t *testing.T) {
 	assert.Equal(t, value, 2)
 	customSpan := exported[0]
 	assert.Equal(t, customSpan.Name, spanName)
-	var found bool = false
+	var foundUserAttr bool = false
+	var foundCustomSpanAttr bool = false
 	for i := range customSpan.Attributes {
 		if string(customSpan.Attributes[i].Key) == attrKey {
 			assert.Equal(t, customSpan.Attributes[i].Value.AsString(), attrValue)
-			found = true
+			foundUserAttr = true
+		}
+
+		if string(customSpan.Attributes[i].Key) == customSpanAttr {
+			assert.Equal(t, customSpan.Attributes[i].Value.AsString(), "true")
+			foundCustomSpanAttr = true
 		}
 	}
-	assert.True(t, found)
+	assert.True(t, foundUserAttr)
+	assert.True(t, foundCustomSpanAttr)
 }

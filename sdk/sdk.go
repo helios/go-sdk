@@ -15,6 +15,7 @@ import (
 )
 
 const sdkName = "helios-opentelemetry-sdk"
+const customSpanAttr = "hs-custom-span"
 
 var providerSingelton *trace.TracerProvider
 
@@ -61,6 +62,11 @@ func CreateCustomSpan(context context.Context, spanName string, attributes []att
 
 	tracer := providerSingelton.Tracer("helios")
 	ctx, span := tracer.Start(context, spanName)
+	customSpanAttr := attribute.KeyValue{
+		Key:   customSpanAttr,
+		Value: attribute.StringValue("true"),
+	}
+	attributes = append(attributes, customSpanAttr)
 	span.SetAttributes(attributes...)
 	if callback != nil {
 		callback()
