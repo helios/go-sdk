@@ -6,6 +6,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/baggage"
 	"go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/sdk/trace/tracetest"
 )
@@ -30,6 +31,24 @@ func TestCreateCustomSpanNoCallback(t *testing.T) {
 	assert.Equal(t, customSpan.Name, spanName)
 	serviceName := customSpan.Resource.Attributes()[0]
 	assert.Equal(t, serviceName.Value.AsString(), testServiceName)
+}
+
+func TestPropagateTestContext(t *testing.T) {
+	exporter.Reset()
+	ctx := context.Background()
+	bMember, _ := baggage.NewMember(HELIOS_TEST_TRIGGERED_TRACE, "true")
+	b, _ := baggage.New(bMember)
+	ctx = baggage.ContextWithBaggage(ctx, b)
+
+	tracer := provider.Tracer("helios")
+	spanName := "test_test"
+	_, span := tracer.Start(ctx, spanName)
+	span.End()
+
+	exported := exporter.GetSpans()
+	testSpan := exported[0]
+	attrs := []attribute.KeyValue{attribute.String(HELIOS_TEST_TRIGGERED_TRACE, "true")}
+	assert.Equal(t, testSpan.Attributes, attrs)
 }
 
 func TestCreateCustomSpanWithCallback(t *testing.T) {

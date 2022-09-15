@@ -112,7 +112,9 @@ func Initialize(serviceName string, apiToken string, attrs ...attribute.KeyValue
 	}
 
 	tracerProvider := trace.NewTracerProvider(providerParams...)
+	heliosProcessor := HeliosProcessor{}
 
+	tracerProvider.RegisterSpanProcessor(heliosProcessor)
 	otel.SetTracerProvider(tracerProvider)
 	propagator := propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{})
 	otel.SetTextMapPropagator(propagator)
