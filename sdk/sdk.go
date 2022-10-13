@@ -33,6 +33,13 @@ func WithEnvironment(environment string) attribute.KeyValue {
 	}
 }
 
+func WithCollectorInsecure() attribute.KeyValue {
+	return attribute.KeyValue{
+		Key:   collectorInsecureKey,
+		Value: attribute.StringValue("true"),
+	}
+}
+
 func WithCollectorEndpoint(collectorEndpoint string) attribute.KeyValue {
 	return attribute.KeyValue{
 		Key:   collectorEndpointKey,
@@ -84,11 +91,16 @@ func Initialize(serviceName string, apiToken string, attrs ...attribute.KeyValue
 	heliosConfig := getHeliosConfig(serviceName, apiToken, attrs...)
 	var exporter *otlptrace.Exporter
 	if heliosConfig.collectorEndpoint != "" {
-		endpoint := otlptracehttp.WithEndpoint(heliosConfig.collectorEndpoint)
-		urlPath := otlptracehttp.WithURLPath(heliosConfig.collectorPath)
-		headers := otlptracehttp.WithHeaders(map[string]string{"Authorization": heliosConfig.apiToken})
+		options := []otlptracehttp.Option{
+			otlptracehttp.WithEndpoint(heliosConfig.collectorEndpoint),
+			otlptracehttp.WithURLPath(heliosConfig.collectorPath),
+			otlptracehttp.WithHeaders(map[string]string{"Authorization": heliosConfig.apiToken}),
+		}
+		if heliosConfig.collectorInsecure {
+			options = append(options, otlptracehttp.WithInsecure())
+		}
 		var error error
-		exporter, error = otlptrace.New(context.Background(), otlptracehttp.NewClient(endpoint, headers, urlPath))
+		exporter, error = otlptrace.New(context.Background(), otlptracehttp.NewClient(options...))
 		if error != nil {
 			return nil, error
 		}

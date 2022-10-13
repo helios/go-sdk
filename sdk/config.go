@@ -12,6 +12,7 @@ type HeliosConfig struct {
 	serviceName       string
 	apiToken          string
 	sampler           trace.Sampler
+	collectorInsecure bool
 	collectorEndpoint string
 	collectorPath     string
 	environment       string
@@ -23,6 +24,8 @@ const samplingRatioKey = "samplingRatio"
 const samplingRatioEnvVar = "HS_SAMPLING_RATIO"
 const environmentKey = "environment"
 const environmentEnvVar = "HS_ENVIRONMENT"
+const collectorInsecureKey = "collectorInsecure"
+const collectorInsecureEnvVar = "HS_COLLECTOR_INSECURE"
 const collectorEndpointKey = "collectorEndpoint"
 const collectorEndpointEnvVar = "HS_COLLECTOR_ENDPOINT"
 const collectorPathKey = "collectorPath"
@@ -31,6 +34,7 @@ const commitHashKey = "commitHash"
 const commitHashEnvVar = "HS_COMMIT_HASH"
 
 // Default values
+const defaultCollectorInsecure = false
 const defaultCollectorEndpoint = "collector.heliosphere.io:443"
 const defaultCollectorPath = "traces"
 
@@ -76,6 +80,15 @@ func getStringConfig(envVar string, defaultValue string, config attribute.KeyVal
 	return config.Value.AsString()
 }
 
+func isCollectorInsecure(attrs []attribute.KeyValue) bool {
+	collectorInsecureConfig := getConfigByKey(collectorInsecureKey, attrs)
+	bool, err := strconv.ParseBool(getStringConfig(collectorInsecureEnvVar, strconv.FormatBool(defaultCollectorInsecure), collectorInsecureConfig))
+	if err != nil {
+		return defaultCollectorInsecure
+	}
+	return bool
+}
+
 func getCollectorEndpoint(attrs []attribute.KeyValue) string {
 	collectorEndpointConfig := getConfigByKey(collectorEndpointKey, attrs)
 	return getStringConfig(collectorEndpointEnvVar, defaultCollectorEndpoint, collectorEndpointConfig)
@@ -98,9 +111,10 @@ func getCommitHash(attrs []attribute.KeyValue) string {
 
 func getHeliosConfig(serviceName string, apiToken string, attrs ...attribute.KeyValue) HeliosConfig {
 	sampler := getSampler(attrs)
+	collectorInsecure := isCollectorInsecure(attrs)
 	collectorEndpoint := getCollectorEndpoint(attrs)
 	collectorPath := getCollectorPath(attrs)
 	environment := getEnvironment(attrs)
 	commitHash := getCommitHash(attrs)
-	return HeliosConfig{serviceName, apiToken, sampler, collectorEndpoint, collectorPath, environment, commitHash}
+	return HeliosConfig{serviceName, apiToken, sampler, collectorInsecure, collectorEndpoint, collectorPath, environment, commitHash}
 }
