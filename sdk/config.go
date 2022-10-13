@@ -34,7 +34,7 @@ const commitHashKey = "commitHash"
 const commitHashEnvVar = "HS_COMMIT_HASH"
 
 // Default values
-const defaultCollectorInsecure = "false"
+const defaultCollectorInsecure = false
 const defaultCollectorEndpoint = "collector.heliosphere.io:443"
 const defaultCollectorPath = "traces"
 
@@ -82,7 +82,10 @@ func getStringConfig(envVar string, defaultValue string, config attribute.KeyVal
 
 func isCollectorInsecure(attrs []attribute.KeyValue) bool {
 	collectorInsecureConfig := getConfigByKey(collectorInsecureKey, attrs)
-	bool, _ := strconv.ParseBool(getStringConfig(collectorInsecureEnvVar, defaultCollectorInsecure, collectorInsecureConfig))
+	bool, err := strconv.ParseBool(getStringConfig(collectorInsecureEnvVar, strconv.FormatBool(defaultCollectorInsecure), collectorInsecureConfig))
+	if err != nil {
+		return defaultCollectorInsecure
+	}
 	return bool
 }
 
