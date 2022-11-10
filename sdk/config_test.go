@@ -31,7 +31,7 @@ func TestConfigWithOptions(t *testing.T) {
 	assert.Equal(t, config.collectorInsecure, true)
 	assert.Equal(t, config.collectorEndpoint, testCollectorEndpoint)
 	assert.Equal(t, config.collectorPath, testCollectorPath)
-	assert.Equal(t, config.sampler.Description(), fmt.Sprintf("TraceIDRatioBased{%.4f}", testSamplingRatio))
+	assert.Equal(t, config.sampler.Description(), fmt.Sprintf("HeliosSampler(%.4f)", testSamplingRatio))
 }
 
 func TestConfigWithEnvVars(t *testing.T) {
@@ -48,5 +48,5 @@ func TestConfigWithEnvVars(t *testing.T) {
 	assert.Equal(t, config.collectorInsecure, true)
 	assert.Equal(t, config.collectorEndpoint, testCollectorEndpoint)
 	assert.Equal(t, config.collectorPath, testCollectorPath)
-	assert.Equal(t, config.sampler.Description(), fmt.Sprintf("TraceIDRatioBased{%.4f}", testSamplingRatio))
+	assert.Equal(t, config.sampler.Description(), fmt.Sprintf("HeliosSampler(%.4f)", testSamplingRatio))
 }

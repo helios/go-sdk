@@ -16,10 +16,18 @@ var provider *trace.TracerProvider
 
 const testServiceName = "test_service"
 
-func init() {
-	provider, _ = Initialize(serviceName, "abcd1234", WithCollectorEndpoint(""))
+func initHelper(samplingRatio float64) {
+	if provider != nil {
+		provider.Shutdown(context.Background())
+	}
+	providerSingelton = nil
+	provider, _ = Initialize(serviceName, "abcd1234", WithCollectorEndpoint(""), WithSamplingRatio(samplingRatio))
 	exporter = tracetest.NewInMemoryExporter()
 	provider.RegisterSpanProcessor(trace.NewSimpleSpanProcessor(exporter))
+}
+
+func init() {
+	initHelper(1)
 }
 
 func TestCreateCustomSpanNoCallback(t *testing.T) {
@@ -83,4 +91,17 @@ func TestCreateCustomSpanWithCallback(t *testing.T) {
 	}
 	assert.True(t, foundUserAttr)
 	assert.True(t, foundCustomSpanAttr)
+}
+
+func TestSamplerNoSampling(t *testing.T) {
+	exporter.Reset()
+	sampledCtx := CreateCustomSpan(context.Background(), "something2", []attribute.KeyValue{}, nil)
+	exported := exporter.GetSpans()
+	assert.Equal(t, len(exported), 1)
+	assert.Equal(t, exported[0].Name, "something2")
+	initHelper(0)
+	CreateCustomSpan(sampledCtx, "something3", []attribute.KeyValue{}, nil)
+	exported = exporter.GetSpans()
+	assert.Equal(t, len(exported), 1)
+	assert.Equal(t, exported[0].Name, "something3")
 }
