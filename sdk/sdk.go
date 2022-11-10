@@ -3,7 +3,9 @@ package sdk
 import (
 	"context"
 	"log"
+	"os"
 
+	"github.com/go-logr/stdr"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace"
@@ -61,6 +63,13 @@ func WithCommitHash(commitHash string) attribute.KeyValue {
 	}
 }
 
+func WithDebugMode() attribute.KeyValue {
+	return attribute.KeyValue{
+		Key:   debugKey,
+		Value: attribute.StringValue("true"),
+	}
+}
+
 func CreateCustomSpan(context context.Context, spanName string, attributes []attribute.KeyValue, callback func()) context.Context {
 	if providerSingelton == nil {
 		log.Print("Can't create custom span before Initialize is called")
@@ -104,6 +113,12 @@ func Initialize(serviceName string, apiToken string, attrs ...attribute.KeyValue
 		if error != nil {
 			return nil, error
 		}
+	}
+
+	if heliosConfig.debug {
+		stdoutLogger := stdr.New(log.New(os.Stdout, "[opentelemetry-logger] ", 3))
+		stdr.SetVerbosity(3)
+		otel.SetLogger(stdoutLogger)
 	}
 
 	serviceAttributes := []attribute.KeyValue{semconv.ServiceNameKey.String(serviceName), semconv.TelemetrySDKVersionKey.String(version), semconv.TelemetrySDKNameKey.String(sdkName), semconv.TelemetrySDKLanguageGo}
