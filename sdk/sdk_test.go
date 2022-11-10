@@ -95,13 +95,14 @@ func TestCreateCustomSpanWithCallback(t *testing.T) {
 
 func TestSamplerNoSampling(t *testing.T) {
 	exporter.Reset()
-	sampledCtx := CreateCustomSpan(context.Background(), "something2", []attribute.KeyValue{}, nil)
+	sampledCtx := CreateCustomSpan(context.Background(), "sampled1", []attribute.KeyValue{}, nil)
 	exported := exporter.GetSpans()
 	assert.Equal(t, len(exported), 1)
-	assert.Equal(t, exported[0].Name, "something2")
+	assert.Equal(t, exported[0].Name, "sampled1")
 	initHelper(0)
-	CreateCustomSpan(sampledCtx, "something3", []attribute.KeyValue{}, nil)
+	CreateCustomSpan(sampledCtx, "sampled2", []attribute.KeyValue{}, nil)
+	CreateCustomSpan(context.Background(), "not_sampled", []attribute.KeyValue{}, nil)
 	exported = exporter.GetSpans()
 	assert.Equal(t, len(exported), 1)
-	assert.Equal(t, exported[0].Name, "something3")
+	assert.Equal(t, exported[0].Name, "sampled2")
 }
