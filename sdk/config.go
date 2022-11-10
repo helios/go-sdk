@@ -57,14 +57,14 @@ func getSampler(attrs []attribute.KeyValue) trace.Sampler {
 			return trace.AlwaysSample()
 		}
 
-		return trace.TraceIDRatioBased(res)
+		return NewHeliosSampler(res)
 	}
 
 	if samplerConfig.Key == "" {
 		return trace.AlwaysSample()
 	}
 
-	return trace.TraceIDRatioBased(samplerConfig.Value.AsFloat64())
+	return NewHeliosSampler(samplerConfig.Value.AsFloat64())
 }
 
 func getStringConfig(envVar string, defaultValue string, config attribute.KeyValue) string {
