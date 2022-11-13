@@ -18,7 +18,7 @@ require (
 require (
 	github.com/cenkalti/backoff/v4 v4.1.3 // indirect
 	github.com/go-logr/logr v1.2.3 // indirect
-	github.com/go-logr/stdr v1.2.2 // indirect
+	github.com/go-logr/stdr v1.2.2
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.7.0 // indirect
 	github.com/stretchr/testify v1.8.0

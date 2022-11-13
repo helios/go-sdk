@@ -17,6 +17,7 @@ type HeliosConfig struct {
 	collectorPath     string
 	environment       string
 	commitHash        string
+	debug             bool
 }
 
 // Keys and their matching env vars
@@ -32,11 +33,14 @@ const collectorPathKey = "collectorPath"
 const collectorPathEnvVar = "HS_COLLECTOR_PATH"
 const commitHashKey = "commitHash"
 const commitHashEnvVar = "HS_COMMIT_HASH"
+const debugKey = "debug"
+const debugEnvVar = "HS_DEBUG"
 
 // Default values
 const defaultCollectorInsecure = false
 const defaultCollectorEndpoint = "collector.heliosphere.io:443"
 const defaultCollectorPath = "traces"
+const defaultDebug = false
 
 func getConfigByKey(key string, attrs []attribute.KeyValue) attribute.KeyValue {
 	for i := range attrs {
@@ -80,13 +84,23 @@ func getStringConfig(envVar string, defaultValue string, config attribute.KeyVal
 	return config.Value.AsString()
 }
 
+func getBoolConfig(envVar string, defaultValue bool, config attribute.KeyValue) bool {
+	result, err := strconv.ParseBool(getStringConfig(envVar, strconv.FormatBool(defaultValue), config))
+	if err != nil {
+		return defaultValue
+	}
+
+	return result
+}
+
 func isCollectorInsecure(attrs []attribute.KeyValue) bool {
 	collectorInsecureConfig := getConfigByKey(collectorInsecureKey, attrs)
-	bool, err := strconv.ParseBool(getStringConfig(collectorInsecureEnvVar, strconv.FormatBool(defaultCollectorInsecure), collectorInsecureConfig))
-	if err != nil {
-		return defaultCollectorInsecure
-	}
-	return bool
+	return getBoolConfig(collectorInsecureEnvVar, defaultCollectorInsecure, collectorInsecureConfig)
+}
+
+func isDebugMode(attrs []attribute.KeyValue) bool {
+	debugConfig := getConfigByKey(debugKey, attrs)
+	return getBoolConfig(debugEnvVar, defaultDebug, debugConfig)
 }
 
 func getCollectorEndpoint(attrs []attribute.KeyValue) string {
@@ -116,5 +130,6 @@ func getHeliosConfig(serviceName string, apiToken string, attrs ...attribute.Key
 	collectorPath := getCollectorPath(attrs)
 	environment := getEnvironment(attrs)
 	commitHash := getCommitHash(attrs)
-	return HeliosConfig{serviceName, apiToken, sampler, collectorInsecure, collectorEndpoint, collectorPath, environment, commitHash}
+	debug := isDebugMode(attrs)
+	return HeliosConfig{serviceName, apiToken, sampler, collectorInsecure, collectorEndpoint, collectorPath, environment, commitHash, debug}
 }
