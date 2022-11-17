@@ -83,8 +83,10 @@ type Decompressor = realGrpc.Decompressor
 type MethodConfig = realGrpc.MethodConfig
 type ServiceConfig = realGrpc.ServiceConfig
 type Stream = realGrpc.Stream
+type ClientConnInterface = realGrpc.ClientConnInterface
 
 func Invoke(ctx context.Context, method string, args, reply interface{}, cc *ClientConn, opts ...CallOption) error {
+	realGrpc.WithInsecure()
 	return realGrpc.Invoke(ctx, method, args, reply, cc, opts...)
 }
 
@@ -444,4 +446,28 @@ func RPCCompressor(cp Compressor) ServerOption {
 
 func RPCDecompressor(dc Decompressor) ServerOption {
 	return realGrpc.RPCDecompressor(dc)
+}
+
+func NewGZIPCompressor() Compressor {
+	return realGrpc.NewGZIPCompressor()
+}
+
+func NewGZIPCompressorWithLevel(level int) (Compressor, error) {
+	return realGrpc.NewGZIPCompressorWithLevel(level)
+}
+
+func NewGZIPDecompressor() Decompressor {
+	return realGrpc.NewGZIPDecompressor()
+}
+
+func WithBackoffMaxDelay(md time.Duration) DialOption {
+	return realGrpc.WithBackoffMaxDelay(md)
+}
+
+func WithBackoffConfig(b BackoffConfig) DialOption {
+	return realGrpc.WithBackoffConfig(b)
+}
+
+func WithDialer(f func(string, time.Duration) (net.Conn, error)) DialOption {
+	return realGrpc.WithDialer(f)
 }
