@@ -15,6 +15,8 @@ jobs:
         strategy:
           matrix:
             go: [ "1.18", "1.19" ]
+        env:
+          GH_ACCESS_TOKEN: ${{ secrets.ACTIONS_GITHUB_TOKEN }}
         steps:
           - name: Checkout Repo
             uses: actions/checkout@v3
@@ -45,6 +47,12 @@ jobs:
           - name: Run sdk unit tests
             working-directory: sdk
             run: go test
+
+          - name: Set GOPRIVATE
+            run: go env -w GOPRIVATE=github.com/helios/\*
+
+          - name: Configure token access as default
+            run: git config --global url."https://helios:${GH_ACCESS_TOKEN}@github.com".insteadOf "https://github.com"
 
           - name: Run http proxy unit tests
             working-directory: proxy-libs/helioshttp
