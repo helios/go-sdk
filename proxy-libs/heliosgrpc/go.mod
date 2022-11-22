@@ -17,7 +17,7 @@ require (
 	github.com/go-logr/logr v1.2.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
-	github.com/helios/helios-go-instrumenter/exports_extractor v0.0.0-20221120144428-8ea226a9caf1
+	github.com/helios/helios-go-instrumenter/exports_extractor v0.0.0-20221121125654-1dde952cf4c9
 	github.com/stretchr/testify v1.8.1
 	go.opentelemetry.io/otel v1.11.1
 	go.opentelemetry.io/otel/sdk v1.11.1

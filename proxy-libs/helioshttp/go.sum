@@ -9,8 +9,8 @@ github.com/go-logr/logr v1.2.3/go.mod h1:jdQByPbusPIv2/zmleS9BjJVeZ6kBagPoEUsqbV
 github.com/go-logr/stdr v1.2.2 h1:hSWxHoqTgW2S2qGc0LTAI563KZ5YKYRhT3MFKZMbjag=
 github.com/go-logr/stdr v1.2.2/go.mod h1:mMo/vtBO5dYbehREoey6XUKy/eSumjCCveDpRre4VKE=
 github.com/google/go-cmp v0.5.9 h1:O2Tfq5qg4qc4AmwVlvv0oLiVAGB7enBSJ2x2DqQFi38=
-github.com/helios/helios-go-instrumenter/exports_extractor v0.0.0-20221120144428-8ea226a9caf1 h1:IaXYvan12LLcymCE7pTFOjglcsTUmb3Wz+Bc1yBLjwQ=
-github.com/helios/helios-go-instrumenter/exports_extractor v0.0.0-20221120144428-8ea226a9caf1/go.mod h1:QBJcQPE+YNDMPN1J4gWJsqPzaTOGsUBHtKKv/LjsNWw=
+github.com/helios/helios-go-instrumenter/exports_extractor v0.0.0-20221121125654-1dde952cf4c9 h1:pF1dZ3nWsM85QzXUkWUZdjwrEO/fOTmO5T9nvvzBhMM=
+github.com/helios/helios-go-instrumenter/exports_extractor v0.0.0-20221121125654-1dde952cf4c9/go.mod h1:iq2WEopABhjfygiHq8RqP7rCx1IJpVE+bKMr2P5CCLQ=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=

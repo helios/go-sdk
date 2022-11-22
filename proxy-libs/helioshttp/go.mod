@@ -3,7 +3,7 @@ module github.com/helios/helios-proxy-libs/helioshttp
 go 1.18
 
 require (
-	github.com/helios/helios-go-instrumenter/exports_extractor v0.0.0-20221120144428-8ea226a9caf1
+	github.com/helios/helios-go-instrumenter/exports_extractor v0.0.0-20221121125654-1dde952cf4c9
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.36.4
 )
 
