@@ -1,4 +1,4 @@
-module github.com/helios/helios-proxy-libs/heliosgrpc
+module github.com/helios/go-sdk/proxy-libs/heliosgrpc
 
 go 1.17
 
