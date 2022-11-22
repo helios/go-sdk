@@ -12,6 +12,9 @@ on:
 jobs:
     test:
         runs-on: ubuntu-latest
+        strategy:
+          matrix:
+            go: [ "1.18", "1.19" ]
         steps:
           - name: Checkout Repo
             uses: actions/checkout@v3
@@ -19,7 +22,7 @@ jobs:
           - name: Setup Go
             uses: actions/setup-go@v3
             with:
-                go-version: 1.17
+                go-version: ${{ matrix.go }}
 
           - name: Setup Go Environment
             run: |
@@ -35,8 +38,18 @@ jobs:
               key: v1-go-pkg-mod-${{ runner.os }}-${{ hashFiles('**/go.mod', '**/go.sum') }}
 
           - name: Install dependencies
+            working-directory: sdk
             if: steps.module-cache.outputs.hit != 'true'
             run: go mod download && go mod verify
 
-          - name: Test
-            run: go test ./sdk
+          - name: Run sdk unit tests
+            working-directory: sdk
+            run: go test
+
+          - name: Run http proxy unit tests
+            working-directory: proxy-libs/helioshttp
+            run: go mod tidy && go test .
+
+          - name: Run grpc proxy unit tests
+            working-directory: proxy-libs/heliosgrpc
+            run: go mod tidy && go test .
