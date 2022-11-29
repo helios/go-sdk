@@ -69,7 +69,7 @@ func assertAttributes(t *testing.T, attributes []attribute.KeyValue, id int, nam
 		case semconv.DBMongoDBCollectionKey:
 			assert.Equal(t, "users", value)
 		case semconv.DBNameKey:
-			assert.Equal(t, "testing", value)
+			assert.Equal(t, "test", value)
 		case semconv.DBOperationKey:
 			assert.Equal(t, "insert", value)
 		case semconv.DBStatementKey:
