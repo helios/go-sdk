@@ -3,7 +3,7 @@ module github.com/helios/go-sdk/proxy-libs/heliosmongo
 go 1.18
 
 require (
-	github.com/helios/helios-go-instrumenter/exports_extractor v0.0.3
+	github.com/helios/helios-go-instrumenter/exports_extractor v0.0.1
 	github.com/stretchr/testify v1.8.1
 	go.mongodb.org/mongo-driver v1.11.0
 	go.opentelemetry.io/contrib/instrumentation/go.mongodb.org/mongo-driver/mongo/otelmongo v0.36.4

@@ -6,6 +6,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"reflect"
 	"sort"
 	"testing"
 	"time"
@@ -98,16 +99,12 @@ func TestInterfaceMatch(t *testing.T) {
 	grpcPackageName := "grpc"
 	grpcExports := exports_extractor.ExtractExports(grpcRepoFolder, grpcPackageName)
 	os.RemoveAll(grpcRepoFolder)
-	sort.Slice(grpcExports, func(i, j int) bool {
-		return grpcExports[i].Name < grpcExports[j].Name
-	})
+	sort.Strings(grpcExports)
 
 	heliosGrpcRoot, _ := filepath.Abs(".")
 	heliosGrpcPackageName := "heliosgrpc"
 	heliosGrpcExports := exports_extractor.ExtractExports(heliosGrpcRoot, heliosGrpcPackageName)
-	sort.Slice(heliosGrpcExports, func(i, j int) bool {
-		return heliosGrpcExports[i].Name < heliosGrpcExports[j].Name
-	})
+	sort.Strings(heliosGrpcExports)
 
-	assert.EqualValues(t, grpcExports, heliosGrpcExports)
+	assert.True(t, reflect.DeepEqual(heliosGrpcExports, grpcExports))
 }
