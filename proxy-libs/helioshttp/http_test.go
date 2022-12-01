@@ -5,7 +5,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"reflect"
 	"sort"
 	"testing"
 
@@ -71,12 +70,17 @@ func TestInterfaceMatch(t *testing.T) {
 	packagePath := filepath.Join(mainRepoFolder, "/src/net/http")
 	netHttpExports := exports_extractor.ExtractExports(packagePath, netHttpPackageName)
 	os.RemoveAll(mainRepoFolder)
-	sort.Strings(netHttpExports)
+	sort.Slice(netHttpExports, func(i, j int) bool {
+		return netHttpExports[i].Name < netHttpExports[j].Name
+	})
 
 	heliosHttpRoot, _ := filepath.Abs(".")
 	heliosHttpPackageName := "helioshttp"
 	heliosHttpExports := exports_extractor.ExtractExports(heliosHttpRoot, heliosHttpPackageName)
-	sort.Strings(heliosHttpExports)
+	sort.Slice(heliosHttpExports, func(i, j int) bool {
+		return heliosHttpExports[i].Name < heliosHttpExports[j].Name
+	})
 
-	assert.True(t, reflect.DeepEqual(netHttpExports, heliosHttpExports))
+	assert.Equal(t, len(netHttpExports), len(heliosHttpExports))
+	assert.EqualValues(t, netHttpExports, heliosHttpExports)
 }

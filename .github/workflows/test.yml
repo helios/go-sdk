@@ -66,10 +66,6 @@ jobs:
           - name: Configure token access as default
             run: git config --global url."https://helios:${GH_ACCESS_TOKEN}@github.com".insteadOf "https://github.com"
 
-          - name: Run http proxy unit tests
-            working-directory: proxy-libs/helioshttp
-            run: go mod tidy && go test .
-
           - name: Run grpc proxy unit tests
             working-directory: proxy-libs/heliosgrpc
             run: go mod tidy && go test .
@@ -80,4 +76,8 @@ jobs:
 
           - name: Run gin proxy unit tests
             working-directory: proxy-libs/heliosgin
+            run: go mod tidy && go test .
+
+          - name: Run http proxy unit tests
+            working-directory: proxy-libs/helioshttp
             run: go mod tidy && go test .

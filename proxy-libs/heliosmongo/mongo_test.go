@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"reflect"
 	"sort"
 	"testing"
 
+	exportsExtractor "github.com/helios/helios-go-instrumenter/exports_extractor"
 	"github.com/stretchr/testify/assert"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -16,11 +16,10 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/propagation"
-	"go.opentelemetry.io/otel/sdk/trace/tracetest"
-	"go.opentelemetry.io/otel/trace"
-	exportsExtractor "github.com/helios/helios-go-instrumenter/exports_extractor"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	"go.opentelemetry.io/otel/sdk/trace/tracetest"
 	semconv "go.opentelemetry.io/otel/semconv/v1.12.0"
+	"go.opentelemetry.io/otel/trace"
 )
 
 func getSpanRecorder() *tracetest.SpanRecorder {
@@ -116,13 +115,17 @@ func TestInterfaceMatch(t *testing.T) {
 	originalRepository := exportsExtractor.CloneGitRepository("https://github.com/mongodb/mongo-go-driver", "v1.11.0")
 	originalExports := exportsExtractor.ExtractExports(filepath.Join(originalRepository, "/mongo"), "mongo")
 	os.RemoveAll(originalRepository)
-	sort.Strings(originalExports)
+	sort.Slice(originalExports, func(i, j int) bool {
+		return originalExports[i].Name < originalExports[j].Name
+	})
 
 	// Get Helios mongo exports.
 	srcDir, _ := filepath.Abs(".")
 	heliosExports := exportsExtractor.ExtractExports(srcDir, "heliosmongo")
-	sort.Strings(heliosExports)
+	sort.Slice(heliosExports, func(i, j int) bool {
+		return heliosExports[i].Name < originalExports[j].Name
+	})
 
 	// Compare.
-	assert.True(t, reflect.DeepEqual(originalExports, heliosExports))
+	assert.EqualValues(t, originalExports, heliosExports)
 }
