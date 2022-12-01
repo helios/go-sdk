@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/gin-gonic/gin v1.8.1
-	github.com/helios/helios-go-instrumenter/exports_extractor v0.0.1
+	github.com/helios/helios-go-instrumenter/exports_extractor v0.0.3
 	github.com/stretchr/testify v1.8.1
 	go.opentelemetry.io/otel v1.11.1
 )

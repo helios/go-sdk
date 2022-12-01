@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"reflect"
 	"sort"
 	"testing"
 
@@ -71,13 +70,17 @@ func TestInterfaceMatch(t *testing.T) {
 	originalRepository := exportsExtractor.CloneGitRepository("https://github.com/gin-gonic/gin", "v1.8.1")
 	originalExports := exportsExtractor.ExtractExports(originalRepository, "gin")
 	os.RemoveAll(originalRepository)
-	sort.Strings(originalExports)
+	sort.Slice(originalExports, func(i, j int) bool {
+		return originalExports[i].Name < originalExports[j].Name
+	})
 
 	// Get Helios mongo exports.
 	srcDir, _ := filepath.Abs(".")
 	heliosExports := exportsExtractor.ExtractExports(srcDir, "heliosgin")
-	sort.Strings(heliosExports)
+	sort.Slice(heliosExports, func(i, j int) bool {
+		return heliosExports[i].Name < heliosExports[j].Name
+	})
 
 	// Compare.
-	assert.True(t, reflect.DeepEqual(originalExports, heliosExports))
+	assert.EqualValues(t, originalExports, heliosExports)
 }
