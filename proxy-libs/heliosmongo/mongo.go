@@ -2,11 +2,12 @@ package heliosmongo
 
 import (
 	"context"
+
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
+	originalMongo "go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.opentelemetry.io/contrib/instrumentation/go.mongodb.org/mongo-driver/mongo/otelmongo"
-	originalMongo "go.mongodb.org/mongo-driver/mongo"
 )
 
 const ClientStream = originalMongo.ClientStream
@@ -139,8 +140,8 @@ func NewReplaceOneModel() *ReplaceOneModel {
 	return originalMongo.NewReplaceOneModel()
 }
 
-func NewSessionContext(ctx context.Context, session Session) SessionContext {
-	return originalMongo.NewSessionContext(ctx, session)
+func NewSessionContext(ctx context.Context, sess Session) SessionContext {
+	return originalMongo.NewSessionContext(ctx, sess)
 }
 
 func NewSingleResultFromDocument(document interface{}, err error, registry *bsoncodec.Registry) *SingleResult {
@@ -159,6 +160,6 @@ func SessionFromContext(ctx context.Context) Session {
 	return originalMongo.SessionFromContext(ctx)
 }
 
-func WithSession(ctx context.Context, session Session, fn func(SessionContext) error) error {
-	return originalMongo.WithSession(ctx, session, fn)
+func WithSession(ctx context.Context, sess Session, fn func(SessionContext) error) error {
+	return originalMongo.WithSession(ctx, sess, fn)
 }
