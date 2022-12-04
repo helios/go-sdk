@@ -66,8 +66,8 @@ var DefaultTransport = realHttp.DefaultTransport
 
 type HandlerFunc = realHttp.HandlerFunc
 
-func FileServer(root FileSystem) Handler {
-	return realHttp.FileServer(root)
+func FileServer(root FileSystem) {
+	realHttp.FileServer(root)
 }
 
 func Error(w ResponseWriter, error string, code int) {
@@ -154,7 +154,7 @@ func Head(url string) (resp *Response, err error) {
 	return DefaultClient.Do(req)
 }
 
-func Post(url, contentType string, body io.Reader) (resp *Response, err error) {
+func Post(url string, contentType string, body io.Reader) (resp *Response, err error) {
 	ctx := context.Background()
 	req, err := NewRequestWithContext(ctx, "POST", url, body)
 	req.Header.Set("Content-Type", contentType)

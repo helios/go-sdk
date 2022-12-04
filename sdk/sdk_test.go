@@ -104,6 +104,6 @@ func TestSamplerNoSampling(t *testing.T) {
 	CreateCustomSpan(sampledCtx, "sampled2", []attribute.KeyValue{}, nil)
 	CreateCustomSpan(context.Background(), "not_sampled", []attribute.KeyValue{}, nil)
 	exported = exporter.GetSpans()
-	assert.Equal(t, len(exported), 1)
+	assert.Equal(t, 1, len(exported))
 	assert.Equal(t, exported[0].Name, "sampled2")
 }
