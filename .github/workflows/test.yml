@@ -77,3 +77,7 @@ jobs:
           - name: Run mongo proxy unit tests
             working-directory: proxy-libs/heliosmongo
             run: go mod tidy && go test .
+
+          - name: Run gin proxy unit tests
+            working-directory: proxy-libs/heliosgin
+            run: go mod tidy && go test .
