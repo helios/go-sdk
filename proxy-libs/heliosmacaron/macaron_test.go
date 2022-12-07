@@ -1,6 +1,8 @@
 package heliosmacaron
 
 import (
+	"context"
+	"net/http"
 	"os"
 	"path/filepath"
 	"sort"
@@ -37,29 +39,22 @@ func TestInstrumentation(t *testing.T) {
 	otel.SetTracerProvider(sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(sr)))
 	propagator := propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{})
 	otel.SetTextMapPropagator(propagator)
-	// r := New()
-	// tmplName := "user"
-	// tmplStr := "user {{ .name }} (id {{ .id }})\n"
-	// tmpl := template.Must(template.New(tmplName).Parse(tmplStr))
-	// r.SetHTMLTemplate(tmpl)
-	// r.GET("/users/:id", func(c *Context) {
-	// 	id := c.Param("id")
-	// 	c.HTML(http.StatusOK, tmplName, H{
-	// 		"name": "whatever",
-	// 		"id":   id,
-	// 	})
-	// })
+	m := Classic()
+	m.Get("/users/:id", func(ctx *Context) string {
+		id := ctx.Params("id")
+		return id
+	})
 
-	// go func() {
-	// 	_ = r.Run(":8090")
-	// }()
+	go func() {
+		m.Run()
+	}()
 
-	// http.Get("http://localhost:8090/users/abcd1234")
-	// sr.ForceFlush(context.Background())
-	// spans := sr.Ended()
-	// assert.Equal(t, 1, len(spans))
-	// serverSpan := spans[0]
-	// validateAttributes(serverSpan.Attributes(), t)
+	http.Get("http://localhost:4000/users/abcd1234")
+	sr.ForceFlush(context.Background())
+	spans := sr.Ended()
+	assert.Equal(t, 1, len(spans))
+	serverSpan := spans[0]
+	validateAttributes(serverSpan.Attributes(), t)
 }
 
 func TestInterfaceMatch(t *testing.T) {

@@ -3,8 +3,8 @@ package heliosmacaron
 import (
 	"io"
 	"net/http"
-	"sync"
 
+	"go.opentelemetry.io/contrib/instrumentation/gopkg.in/macaron.v1/otelmacaron"
 	"gopkg.in/ini.v1"
 	origin_macaron "gopkg.in/macaron.v1"
 )
@@ -31,14 +31,14 @@ func Recovery() Handler {
 	return origin_macaron.Recovery()
 }
 
-type routeMap struct {
-	lock   sync.RWMutex
-	routes map[string]map[string]*Leaf
-}
+// type routeMap struct {
+// 	lock   sync.RWMutex
+// 	routes map[string]map[string]*Leaf
+// }
 
-func NewRouteMap() *routeMap {
-	return origin_macaron.NewRouteMap()
-}
+// func NewRouteMap() *routeMap {
+// 	return origin_macaron.NewRouteMap()
+// }
 
 type Router = origin_macaron.Router
 
