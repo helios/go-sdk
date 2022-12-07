@@ -10,6 +10,58 @@ on:
     workflow_dispatch:
 
 jobs:
+    test-proxy-libs:
+        runs-on: ubuntu-latest
+        env:
+          GH_ACCESS_TOKEN: ${{ secrets.ACTIONS_GITHUB_TOKEN }}
+        
+        services:
+            mongodb:
+                image: mongo@sha256:845fd775d7a58f564fae7c17a4eec7ff038e1c4004ebe05cc1cb5fc3767cf6cc
+                options: >-
+                  --health-cmd="echo 'db.runCommand(\"ping\").ok' | mongo localhost:27017/test --quiet"
+                  --health-interval=10s
+                  --health-retries=3
+                  --health-timeout=5s
+                ports:
+                  - 27017:27017
+
+        steps:
+          - name: Checkout Repo
+            uses: actions/checkout@v3
+
+          - name: Setup Go
+            uses: actions/setup-go@v3
+            with:
+                go-version: 1.19
+
+          - name: Setup Go Environment
+            run: |
+              echo "GOPATH=$(go env GOPATH)" >> $GITHUB_ENV
+              echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
+
+          - name: Set GOPRIVATE
+            run: go env -w GOPRIVATE=github.com/helios/\*
+
+          - name: Configure token access as default
+            run: git config --global url."https://helios:${GH_ACCESS_TOKEN}@github.com".insteadOf "https://github.com"
+
+          - name: Run http proxy unit tests
+            working-directory: proxy-libs/helioshttp
+            run: go mod tidy && go test .
+
+          - name: Run grpc proxy unit tests
+            working-directory: proxy-libs/heliosgrpc
+            run: go mod tidy && go test .
+
+          - name: Run mongo proxy unit tests
+            working-directory: proxy-libs/heliosmongo
+            run: go mod tidy && go test .
+
+          - name: Run gin proxy unit tests
+            working-directory: proxy-libs/heliosgin
+            run: go mod tidy && go test .
+
     test:
         runs-on: ubuntu-latest
         strategy:
@@ -59,25 +111,3 @@ jobs:
           - name: Run sdk unit tests
             working-directory: sdk
             run: go test
-
-          - name: Set GOPRIVATE
-            run: go env -w GOPRIVATE=github.com/helios/\*
-
-          - name: Configure token access as default
-            run: git config --global url."https://helios:${GH_ACCESS_TOKEN}@github.com".insteadOf "https://github.com"
-
-          - name: Run http proxy unit tests
-            working-directory: proxy-libs/helioshttp
-            run: go mod tidy && go test .
-
-          - name: Run grpc proxy unit tests
-            working-directory: proxy-libs/heliosgrpc
-            run: go mod tidy && go test .
-
-          - name: Run mongo proxy unit tests
-            working-directory: proxy-libs/heliosmongo
-            run: go mod tidy && go test .
-
-          - name: Run gin proxy unit tests
-            working-directory: proxy-libs/heliosgin
-            run: go mod tidy && go test .
