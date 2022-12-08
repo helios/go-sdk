@@ -62,6 +62,10 @@ jobs:
             working-directory: proxy-libs/heliosgin
             run: go mod tidy && go test .
 
+          - name: Run mux proxy unit tests
+            working-directory: proxy-libs/heliosmux
+            run: go mod tidy && go test .
+
     test:
         runs-on: ubuntu-latest
         strategy:
