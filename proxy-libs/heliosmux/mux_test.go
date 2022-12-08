@@ -84,7 +84,7 @@ func TestNewRouterInstrumentation(t *testing.T) {
 		case semconv.HTTPSchemeKey:
 			assert.Equal(t, "http", value)
 		case semconv.HTTPServerNameKey:
-			assert.Equal(t, "helios", value)
+			assert.Equal(t, "opentelemetry-middleware", value)
 		case semconv.HTTPTargetKey:
 			assert.Equal(t, "/users", value)
 		}

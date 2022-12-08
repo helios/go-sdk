@@ -29,7 +29,7 @@ func CurrentRoute(r *http.Request) *Route {
 
 func NewRouter() *Router {
 	router := originalMux.NewRouter()
-	router.Use(otelmux.Middleware("helios"))
+	router.Use(otelmux.Middleware("opentelemetry-middleware"))
 	return router
 }
 
