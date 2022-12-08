@@ -31,14 +31,9 @@ func Recovery() Handler {
 	return origin_macaron.Recovery()
 }
 
-// type routeMap struct {
-// 	lock   sync.RWMutex
-// 	routes map[string]map[string]*Leaf
-// }
-
-// func NewRouteMap() *routeMap {
-// 	return origin_macaron.NewRouteMap()
-// }
+func NewRouteMap() interface{} {
+	return origin_macaron.NewRouteMap()
+}
 
 type Router = origin_macaron.Router
 
