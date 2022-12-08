@@ -65,7 +65,7 @@ func TestServerInstrumentation(t *testing.T) {
 }
 
 func TestInterfaceMatch(t *testing.T) {
-	mainRepoFolder := exports_extractor.CloneGitRepository("https://github.com/golang/go", "go1.18.8")
+	mainRepoFolder := exports_extractor.CloneGitRepository("https://github.com/golang/go", "go1.19")
 	netHttpPackageName := "http"
 	packagePath := filepath.Join(mainRepoFolder, "/src/net/http")
 	netHttpExports := exports_extractor.ExtractExports(packagePath, netHttpPackageName)
