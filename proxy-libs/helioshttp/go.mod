@@ -1,6 +1,6 @@
 module github.com/helios/go-sdk/proxy-libs/helioshttp
 
-go 1.18
+go 1.19
 
 require (
 	github.com/helios/helios-go-instrumenter/exports_extractor v0.0.3
