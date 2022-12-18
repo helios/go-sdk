@@ -3,6 +3,7 @@ package helioschi
 import (
 	"context"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -15,6 +16,7 @@ import (
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/sdk/trace/tracetest"
 	semconv "go.opentelemetry.io/otel/semconv/v1.4.0"
+	"go.opentelemetry.io/otel/trace"
 
 	exportsExtractor "github.com/helios/go-instrumentor/exports_extractor"
 	"github.com/stretchr/testify/assert"
@@ -45,7 +47,7 @@ func TestInstrumentation(t *testing.T) {
 	r.HandleFunc("/users/{id}", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		id := URLParam(r, "id")
 		name := "test"
-		reply := fmt.Sprintf("user %s (id %s)\n", name, id)
+		reply := fmt.Sprintf("user %s (id %s)", name, id)
 		w.Write(([]byte)(reply))
 	}))
 
@@ -53,11 +55,16 @@ func TestInstrumentation(t *testing.T) {
 		http.ListenAndServe(":3333", r)
 	}()
 
-	http.Get("http://localhost:3333/users/abcd1234")
+	res, _ := http.Get("http://localhost:3333/users/abcd1234")
+	body, _ := io.ReadAll(res.Body)
+	assert.Equal(t, "user test (id abcd1234)", string(body))
 	sr.ForceFlush(context.Background())
 	spans := sr.Ended()
 	assert.Equal(t, 1, len(spans))
-	validateAttributes(spans[0].Attributes(), t)
+	serverSpan := spans[0]
+	assert.Equal(t, "/users/{id}", serverSpan.Name())
+	assert.Equal(t, serverSpan.SpanKind(), trace.SpanKindServer)
+	validateAttributes(serverSpan.Attributes(), t)
 }
 
 func TestInterfaceMatch(t *testing.T) {
