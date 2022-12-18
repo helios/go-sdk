@@ -8,7 +8,7 @@ import (
 	"sort"
 	"testing"
 
-	exportsExtractor "github.com/helios/helios-go-instrumenter/exports_extractor"
+	exportsExtractor "github.com/helios/go-instrumentor/exports_extractor"
 	"github.com/stretchr/testify/assert"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"

@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/helios/helios-go-instrumenter/exports_extractor"
-	pb "github.com/helios/helios-proxy-libs/heliosgrpc/chat"
+	"github.com/helios/go-instrumentor/exports_extractor"
+	pb "github.com/helios/go-sdk/proxy-libs/heliosgrpc/chat"
 
 	"go.opentelemetry.io/otel/attribute"
 	semconv "go.opentelemetry.io/otel/semconv/v1.12.0"

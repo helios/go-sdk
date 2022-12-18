@@ -17,7 +17,7 @@ import (
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/trace/tracetest"
 	"go.opentelemetry.io/otel/trace"
-	exportsExtractor "github.com/helios/helios-go-instrumenter/exports_extractor"
+	exportsExtractor "github.com/helios/go-instrumentor/exports_extractor"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.12.0"
 )
