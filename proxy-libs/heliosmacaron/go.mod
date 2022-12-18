@@ -3,7 +3,7 @@ module github.com/helios/go-sdk/proxy-libs/heliosmacaron
 go 1.18
 
 require (
-	github.com/helios/helios-go-instrumenter/exports_extractor v0.0.4
+	github.com/helios/go-instrumentor/exports_extractor v0.0.9
 	github.com/stretchr/testify v1.8.1
 	go.opentelemetry.io/otel v1.11.2
 	gopkg.in/ini.v1 v1.46.0
@@ -14,6 +14,7 @@ require (
 	github.com/go-logr/logr v1.2.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-macaron/inject v0.0.0-20160627170012-d8a0b8677191 // indirect
+	github.com/hashicorp/go-version v1.6.0 // indirect
 	github.com/kr/pretty v0.3.0 // indirect
 	github.com/rogpeppe/go-internal v1.8.0 // indirect
 	github.com/unknwon/com v0.0.0-20190804042917-757f69c95f3e // indirect

@@ -8,7 +8,7 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/helios/helios-go-instrumenter/exports_extractor"
+	"github.com/helios/go-instrumentor/exports_extractor"
 	"github.com/stretchr/testify/assert"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"

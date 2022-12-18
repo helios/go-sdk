@@ -3,12 +3,13 @@ module github.com/helios/go-sdk/proxy-libs/helioshttp
 go 1.19
 
 require (
-	github.com/helios/helios-go-instrumenter/exports_extractor v0.0.3
+	github.com/helios/go-instrumentor/exports_extractor v0.0.9
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.36.4
 )
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/hashicorp/go-version v1.6.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	golang.org/x/sys v0.0.0-20220919091848-fb04ddd9f9c8 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect

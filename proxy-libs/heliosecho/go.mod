@@ -3,7 +3,7 @@ module github.com/helios/go-sdk/proxy-libs/heliosecho
 go 1.18
 
 require (
-	github.com/helios/helios-go-instrumenter/exports_extractor v0.0.3
+	github.com/helios/go-instrumentor/exports_extractor v0.0.9
 	github.com/labstack/echo/v4 v4.9.1
 	github.com/stretchr/testify v1.8.1
 	go.opentelemetry.io/contrib/instrumentation/github.com/labstack/echo/otelecho v0.37.0
@@ -27,6 +27,7 @@ require (
 	github.com/go-logr/logr v1.2.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/golang-jwt/jwt v3.2.2+incompatible // indirect
+	github.com/hashicorp/go-version v1.6.0 // indirect
 	github.com/mattn/go-isatty v0.0.14 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	golang.org/x/crypto v0.0.0-20210817164053-32db794688a5 // indirect
