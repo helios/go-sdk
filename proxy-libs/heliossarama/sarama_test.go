@@ -126,7 +126,6 @@ func TestNewAsyncProducerAndNewConsumerGroupInstrumentations(t *testing.T) {
 		spanRecorder: spanRecorder,
 		t:            t,
 	})
-	// consumerGroup.Close()
 }
 
 func TestNewSyncProducerAndNewConsumerGroupFromClientInstrumentations(t *testing.T) {
@@ -152,7 +151,6 @@ func TestNewSyncProducerAndNewConsumerGroupFromClientInstrumentations(t *testing
 		spanRecorder: spanRecorder,
 		t:            t,
 	})
-	// consumerGroup.Close()
 }
 
 func TestInterfaceMatch(t *testing.T) {
@@ -172,14 +170,16 @@ func TestInterfaceMatch(t *testing.T) {
 	os.RemoveAll(originalRepository)
 	sort.Slice(originalExports, func(i int, j int) bool { return originalExports[i].Name < originalExports[j].Name })
 
-	// Delete original exports that cannot be wrapped by proxy Helios exports.
-	originalExports = delete(originalExports, "NewMockWrapper")
-	originalExports = delete(originalExports, "Wrap")
-
 	// Get Helios sarama exports.
 	srcDir, _ := filepath.Abs(".")
 	heliosExports := exportsExtractor.ExtractExports(srcDir, "heliossarama")
 	sort.Slice(heliosExports, func(i int, j int) bool { return heliosExports[i].Name < heliosExports[j].Name })
+
+	// "NewMockWrapper" cannot be wrapped because its parameter's type is private - Remove it from the expected list.
+	originalExports = delete(originalExports, "NewMockWrapper")
+	// The signature of "Wrap" was changed because the original return type is private - Remove it from both lists.
+	originalExports = delete(originalExports, "Wrap")
+	heliosExports = delete(heliosExports, "Wrap")
 
 	assert.Equal(t, len(originalExports), len(heliosExports))
 	assert.EqualValues(t, originalExports, heliosExports)

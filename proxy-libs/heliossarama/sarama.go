@@ -812,7 +812,7 @@ func NewMockSyncGroupResponse(t TestReporter) *MockSyncGroupResponse {
 	return originalSarama.NewMockSyncGroupResponse(t)
 }
 
-// TODO.
+// Cannot create a proxy for "NewMockWrapper" because the parameter's type "encoderWithHeader" is not exported.
 // func NewMockWrapper(res encoderWithHeader) *MockWrapper {
 // 	return originalSarama.NewMockWrapper(res)
 // }
@@ -869,7 +869,7 @@ func WithCustomHashFunction(hasher func() hash.Hash32) HashPartitionerOption {
 	return originalSarama.WithCustomHashFunction(hasher)
 }
 
-// TODO.
-// func Wrap(sentinel error, wrapped ...error) sentinelError {
-// 	return originalSarama.Wrap(sentinel, wrapped...)
-// }
+// The original return type of "Wrap" is "sentinelError", but the proxy cannot access it, so it returns an interface.
+func Wrap(sentinel error, wrapped ...error) interface{} {
+	return originalSarama.Wrap(sentinel, wrapped...)
+}
