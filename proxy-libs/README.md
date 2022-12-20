@@ -9,5 +9,5 @@ Then, push the new tag:
 ``` git push origin proxy-libs/<PROXY_LIB_NAME>/<TAG>```
 
 For example:
-``` git tag github.com/helios/go-sdk/proxy-libs/heliosgrpc/v1.51.0```
+``` git tag proxy-libs/heliosgrpc/v1.51.0```
 ``` git push origin proxy-libs/heliosgrpc/v1.51.0 ```
