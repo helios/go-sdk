@@ -11,7 +11,6 @@ import (
 	"github.com/Shopify/sarama"
 	exportsExtractor "github.com/helios/go-instrumentor/exports_extractor"
 	"github.com/stretchr/testify/assert"
-	"go.opentelemetry.io/contrib/instrumentation/github.com/Shopify/sarama/otelsarama"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/propagation"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
@@ -114,8 +113,7 @@ func createRootSpanAndInjectMessage(message *sarama.ProducerMessage) {
 	ctx, span := otel.GetTracerProvider().Tracer("test").Start(context.Background(), testRootSpanName)
 	span.End()
 
-	carrier := otelsarama.NewProducerMessageCarrier(message)
-	otel.GetTextMapPropagator().Inject(ctx, carrier)
+	InjectContextToMessage(ctx, message)
 }
 
 func TestNewAsyncProducerAndNewConsumerGroupInstrumentations(t *testing.T) {
@@ -200,6 +198,8 @@ func TestInterfaceMatch(t *testing.T) {
 	// The signature of "Wrap" was changed because the original return type is private - Remove it from both lists.
 	originalExports = delete(originalExports, "Wrap")
 	heliosExports = delete(heliosExports, "Wrap")
+	// A helper method we've added to improve context propagation
+	heliosExports = delete(heliosExports, "InjectContextToMessage")
 
 	assert.Equal(t, len(originalExports), len(heliosExports))
 	assert.EqualValues(t, originalExports, heliosExports)
