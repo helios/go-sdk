@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	origin_chi "github.com/go-chi/chi/v5"
+	"github.com/helios/otelchi"
 )
 
 func RegisterMethod(method string) {
@@ -26,7 +27,7 @@ func Chain(middlewares ...func(http.Handler) http.Handler) Middlewares {
 type ChainHandler = origin_chi.ChainHandler
 
 func addOpentelemetryMiddleware(mux *Mux) {
-	mux.Use(Middleware("opentelemetry-middleware", WithChiRoutes(mux)))
+	mux.Use(otelchi.Middleware("opentelemetry-middleware", otelchi.WithChiRoutes(mux)))
 }
 
 func NewRouter() *Mux {

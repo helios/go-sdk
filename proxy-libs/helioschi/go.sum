@@ -21,6 +21,10 @@ github.com/hashicorp/go-version v1.6.0 h1:feTTfFNnjP967rlCxM/I9g701jU+RN74YKx2mO
 github.com/hashicorp/go-version v1.6.0/go.mod h1:fltr4n8CU8Ke44wwGCBoEymUuxUHl09ZGVZPK5anwXA=
 github.com/helios/go-instrumentor/exports_extractor v0.0.9 h1:AeP/pqRudkVTE4GgvbGG3zaXc8e8dqTQM6S3t8urJcY=
 github.com/helios/go-instrumentor/exports_extractor v0.0.9/go.mod h1:glN2sH4vlXQvUi89qn/he1BoSCUkKSonpTtu3ZG6crY=
+github.com/helios/otelchi v0.0.0-20221225074710-1092e0e278dc h1:djqhJ2ANim09u7gPbhUoZECWGo8HfPN8VGhXtLo7n4s=
+github.com/helios/otelchi v0.0.0-20221225074710-1092e0e278dc/go.mod h1:Hzi0YmX0EXf79XU8CRPB1tsTZ2kAVNFGfOuvH1XwyRo=
+github.com/helios/otelchi v0.0.0-20221225075526-53a9f6d04c81 h1:v/tsVcGXJzTebBTunUJT3Np6w9gOYZtDMvBNy6f+kb0=
+github.com/helios/otelchi v0.0.0-20221225075526-53a9f6d04c81/go.mod h1:Hzi0YmX0EXf79XU8CRPB1tsTZ2kAVNFGfOuvH1XwyRo=
 github.com/kr/pretty v0.1.0/go.mod h1:dAy3ld7l9f0ibDNOQOHHMYYIIbhfbHSm3C4ZsoJORNo=
 github.com/kr/pretty v0.2.1/go.mod h1:ipq/a2n7PKx3OHsz4KJII5eveXtPO4qwEXGdVfWzfnI=
 github.com/kr/pretty v0.3.0 h1:WgNl7dwNpEZ6jJ9k1snq4pZsg7DOEN8hP9Xw0Tsjwk0=

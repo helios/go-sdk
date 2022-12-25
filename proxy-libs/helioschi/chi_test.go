@@ -25,6 +25,7 @@ import (
 )
 
 const requestBody = "{\"id\":123,\"name\":\"Lior Govrin\",\"role\":\"Software Engineer\""
+const responseBody = "user test (id abcd1234)"
 
 func validateAttributes(attrs []attribute.KeyValue, t *testing.T) {
 	for _, value := range attrs {
@@ -39,6 +40,12 @@ func validateAttributes(attrs []attribute.KeyValue, t *testing.T) {
 			assert.Equal(t, "/users/{id}", value.Value.AsString())
 		} else if key == "http.request.body" {
 			assert.Equal(t, requestBody, value.Value.AsString())
+		} else if key == "http.response.body" {
+			assert.Equal(t, responseBody, value.Value.AsString())
+		} else if key == "http.request.headers" {
+			headers := map[string][]string{}
+			json.Unmarshal([]byte(value.Value.AsString()), &headers)
+			assert.Equal(t, "application/json", headers["Content-Type"][0])
 		}
 	}
 }
@@ -73,7 +80,7 @@ func TestInstrumentation(t *testing.T) {
 
 	res, _ := http.Post("http://localhost:3333/users/abcd1234", "application/json", bytes.NewBuffer([]byte(requestBody)))
 	body, _ := io.ReadAll(res.Body)
-	assert.Equal(t, "user test (id abcd1234)", string(body))
+	assert.Equal(t, responseBody, string(body))
 	sr.ForceFlush(context.Background())
 	spans := sr.Ended()
 	assert.Equal(t, 1, len(spans))
