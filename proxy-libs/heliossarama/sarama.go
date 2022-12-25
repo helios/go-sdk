@@ -1,11 +1,13 @@
 package heliossarama
 
 import (
+	"context"
 	"hash"
 	"net"
 
 	originalSarama "github.com/Shopify/sarama"
 	"go.opentelemetry.io/contrib/instrumentation/github.com/Shopify/sarama/otelsarama"
+	"go.opentelemetry.io/otel"
 )
 
 const APIKeySASLAuth = originalSarama.APIKeySASLAuth
@@ -872,4 +874,9 @@ func WithCustomHashFunction(hasher func() hash.Hash32) HashPartitionerOption {
 // The original return type of "Wrap" is "sentinelError", but the proxy cannot access it, so it returns an interface.
 func Wrap(sentinel error, wrapped ...error) interface{} {
 	return originalSarama.Wrap(sentinel, wrapped...)
+}
+
+func InjectContextToMessage(ctx context.Context, message *originalSarama.ProducerMessage) {
+	carrier := otelsarama.NewProducerMessageCarrier(message)
+	otel.GetTextMapPropagator().Inject(ctx, carrier)
 }

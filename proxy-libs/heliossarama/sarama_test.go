@@ -9,15 +9,17 @@ import (
 	"testing"
 
 	"github.com/Shopify/sarama"
+	exportsExtractor "github.com/helios/go-instrumentor/exports_extractor"
 	"github.com/stretchr/testify/assert"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/propagation"
-	"go.opentelemetry.io/otel/sdk/trace/tracetest"
-	"go.opentelemetry.io/otel/trace"
-	exportsExtractor "github.com/helios/go-instrumentor/exports_extractor"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	"go.opentelemetry.io/otel/sdk/trace/tracetest"
 	semconv "go.opentelemetry.io/otel/semconv/v1.12.0"
+	"go.opentelemetry.io/otel/trace"
 )
+
+const testRootSpanName = "test_root"
 
 var (
 	Addresses []string = []string{"localhost:9093"}
@@ -52,15 +54,19 @@ func (handler *TestConsumerGroupHandler) ConsumeClaim(session ConsumerGroupSessi
 func (handler *TestConsumerGroupHandler) assertSpans() {
 	handler.spanRecorder.ForceFlush(context.Background())
 	spans := handler.spanRecorder.Ended()
-	assert.Equal(handler.t, 2, len(spans))
-	producerSpan := spans[0]
-	consumerSpan := spans[1]
+	assert.Equal(handler.t, 3, len(spans))
+	rootTestSpan := spans[0]
+	producerSpan := spans[1]
+	consumerSpan := spans[2]
+	assert.Equal(handler.t, testRootSpanName, rootTestSpan.Name())
 	assert.Equal(handler.t, fmt.Sprintf("%v send", Topic), producerSpan.Name())
 	assert.Equal(handler.t, trace.SpanKindProducer, producerSpan.SpanKind())
 	handler.assertAttributes(producerSpan, "send")
 	assert.Equal(handler.t, fmt.Sprintf("%v receive", Topic), consumerSpan.Name())
 	assert.Equal(handler.t, trace.SpanKindConsumer, consumerSpan.SpanKind())
 	handler.assertAttributes(consumerSpan, "receive")
+	assert.Equal(handler.t, rootTestSpan.SpanContext().SpanID(), producerSpan.Parent().SpanID())
+	assert.Equal(handler.t, producerSpan.SpanContext().SpanID(), consumerSpan.Parent().SpanID())
 }
 
 func (handler *TestConsumerGroupHandler) assertAttributes(span sdktrace.ReadOnlySpan, messagingOperation string) {
@@ -103,6 +109,13 @@ func deleteTopic(config *Config) {
 	clusterAdmin.Close()
 }
 
+func createRootSpanAndInjectMessage(message *sarama.ProducerMessage) {
+	ctx, span := otel.GetTracerProvider().Tracer("test").Start(context.Background(), testRootSpanName)
+	span.End()
+
+	InjectContextToMessage(ctx, message)
+}
+
 func TestNewAsyncProducerAndNewConsumerGroupInstrumentations(t *testing.T) {
 	spanRecorder := getSpanRecorder()
 	config := getConfig()
@@ -111,11 +124,14 @@ func TestNewAsyncProducerAndNewConsumerGroupInstrumentations(t *testing.T) {
 	value := "Hello, World!"
 
 	asyncProducer, _ := NewAsyncProducer(Addresses, config)
-	asyncProducer.Input() <- &ProducerMessage{
+	message := ProducerMessage{
 		Topic: Topic,
 		Key:   StringEncoder(key),
 		Value: StringEncoder(value),
 	}
+
+	createRootSpanAndInjectMessage(&message)
+	asyncProducer.Input() <- &message
 	<-asyncProducer.Successes()
 	asyncProducer.Close()
 
@@ -136,11 +152,13 @@ func TestNewSyncProducerAndNewConsumerGroupFromClientInstrumentations(t *testing
 	value := "Welcome to Helios!"
 
 	syncProducer, _ := NewSyncProducer(Addresses, config)
-	syncProducer.SendMessage(&ProducerMessage{
+	message := ProducerMessage{
 		Topic: Topic,
 		Key:   StringEncoder(key),
 		Value: StringEncoder(value),
-	})
+	}
+	createRootSpanAndInjectMessage(&message)
+	syncProducer.SendMessage(&message)
 	syncProducer.Close()
 
 	client, _ := NewClient(Addresses, config)
@@ -180,6 +198,8 @@ func TestInterfaceMatch(t *testing.T) {
 	// The signature of "Wrap" was changed because the original return type is private - Remove it from both lists.
 	originalExports = delete(originalExports, "Wrap")
 	heliosExports = delete(heliosExports, "Wrap")
+	// A helper method we've added to improve context propagation
+	heliosExports = delete(heliosExports, "InjectContextToMessage")
 
 	assert.Equal(t, len(originalExports), len(heliosExports))
 	assert.EqualValues(t, originalExports, heliosExports)
