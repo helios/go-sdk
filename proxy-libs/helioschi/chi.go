@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	origin_chi "github.com/go-chi/chi/v5"
-	"github.com/riandyrn/otelchi"
+	"github.com/helios/otelchi"
 )
 
 func RegisterMethod(method string) {
