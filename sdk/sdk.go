@@ -70,6 +70,13 @@ func WithDebugMode() attribute.KeyValue {
 	}
 }
 
+func WithMetadataOnlyMode() attribute.KeyValue {
+	return attribute.KeyValue{
+		Key:   metadataOnlyKey,
+		Value: attribute.StringValue("true"),
+	}
+}
+
 func CreateCustomSpan(context context.Context, spanName string, attributes []attribute.KeyValue, callback func()) context.Context {
 	if providerSingelton == nil {
 		log.Print("Can't create custom span before Initialize is called")
@@ -139,7 +146,7 @@ func Initialize(serviceName string, apiToken string, attrs ...attribute.KeyValue
 	}
 
 	tracerProvider := trace.NewTracerProvider(providerParams...)
-	heliosProcessor := HeliosProcessor{}
+	heliosProcessor := HeliosProcessor{heliosConfig.metadataOnly}
 
 	tracerProvider.RegisterSpanProcessor(heliosProcessor)
 	otel.SetTracerProvider(tracerProvider)
