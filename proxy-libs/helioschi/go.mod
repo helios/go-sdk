@@ -4,20 +4,20 @@ go 1.18
 
 require (
 	github.com/helios/go-instrumentor/exports_extractor v0.0.9
-	github.com/helios/otelchi v0.0.0-20221225084211-60b0b5818f6a
+	github.com/helios/otelchi v0.0.0-20221228140755-3a1fc6d66b3b
 	github.com/stretchr/testify v1.8.1
 	go.opentelemetry.io/otel/trace v1.11.2
 )
 
 require (
-	github.com/felixge/httpsnoop v1.0.2 // indirect
+	github.com/felixge/httpsnoop v1.0.3 // indirect
 	github.com/go-logr/logr v1.2.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/hashicorp/go-version v1.6.0 // indirect
 	github.com/kr/pretty v0.3.0 // indirect
 	github.com/rogpeppe/go-internal v1.8.0 // indirect
-	go.opentelemetry.io/contrib v1.0.0 // indirect
-	golang.org/x/sys v0.0.0-20220919091848-fb04ddd9f9c8 // indirect
+	go.opentelemetry.io/contrib v1.12.0 // indirect
+	golang.org/x/sys v0.3.0 // indirect
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 )
 
