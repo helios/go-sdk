@@ -14,10 +14,10 @@ func sortExports(exports []exportsExtractor.ExtractedObject) {
 	sort.Slice(exports, func(i int, j int) bool { return exports[i].Name < exports[j].Name })
 }
 
-func cloneRepositoryAndExtractExports(repoUrl string, tag string, name string) []exportsExtractor.ExtractedObject {
+func cloneRepositoryAndExtractExports(repoUrl string, tag string, moduleName string, modulePath string) []exportsExtractor.ExtractedObject {
 	originalRepository := exportsExtractor.CloneGitRepository(repoUrl, tag)
 	defer os.RemoveAll(originalRepository)
-	originalExports := exportsExtractor.ExtractExports(originalRepository, "sarama")
+	originalExports := exportsExtractor.ExtractExports(originalRepository+modulePath, moduleName)
 	sortExports(originalExports)
 	return originalExports
 }
@@ -27,6 +27,16 @@ func extractProxyLibExports(libName string) []exportsExtractor.ExtractedObject {
 	heliosExports := exportsExtractor.ExtractExports(srcDir, libName)
 	sort.Slice(heliosExports, func(i int, j int) bool { return heliosExports[i].Name < heliosExports[j].Name })
 	return heliosExports
+}
+
+func TestHttpInterfaceMatch(t *testing.T) {
+	// Get original sarama exports.
+	originalExports := cloneRepositoryAndExtractExports("https://github.com/golang/go", "go1.19", "http", "/src/net/http")
+
+	// Get Helios sarama exports.
+	heliosExports := extractProxyLibExports("helioshttp")
+
+	assert.EqualValues(t, originalExports, heliosExports)
 }
 
 func TestSaramaInterfaceMatch(t *testing.T) {
@@ -41,7 +51,7 @@ func TestSaramaInterfaceMatch(t *testing.T) {
 	}
 
 	// Get original sarama exports.
-	originalExports := cloneRepositoryAndExtractExports("https://github.com/Shopify/sarama", "v1.37.2", "sarama")
+	originalExports := cloneRepositoryAndExtractExports("https://github.com/Shopify/sarama", "v1.37.2", "sarama", "")
 
 	// Get Helios sarama exports.
 	heliosExports := extractProxyLibExports("heliossarama")

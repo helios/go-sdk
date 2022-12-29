@@ -3,12 +3,8 @@ package helioshttp
 import (
 	"context"
 	"io"
-	"os"
-	"path/filepath"
-	"sort"
 	"testing"
 
-	"github.com/helios/go-instrumentor/exports_extractor"
 	"github.com/stretchr/testify/assert"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
@@ -62,24 +58,4 @@ func TestServerInstrumentation(t *testing.T) {
 	assert.False(t, clientSpan.Parent().HasTraceID())
 	validateAttributes(clientSpan.Attributes(), t)
 	assert.Equal(t, serverSpan.Parent().SpanID(), clientSpan.SpanContext().SpanID())
-}
-
-func TestInterfaceMatch(t *testing.T) {
-	mainRepoFolder := exports_extractor.CloneGitRepository("https://github.com/golang/go", "go1.19")
-	netHttpPackageName := "http"
-	packagePath := filepath.Join(mainRepoFolder, "/src/net/http")
-	netHttpExports := exports_extractor.ExtractExports(packagePath, netHttpPackageName)
-	os.RemoveAll(mainRepoFolder)
-	sort.Slice(netHttpExports, func(i, j int) bool {
-		return netHttpExports[i].Name < netHttpExports[j].Name
-	})
-
-	heliosHttpRoot, _ := filepath.Abs(".")
-	heliosHttpPackageName := "helioshttp"
-	heliosHttpExports := exports_extractor.ExtractExports(heliosHttpRoot, heliosHttpPackageName)
-	sort.Slice(heliosHttpExports, func(i, j int) bool {
-		return heliosHttpExports[i].Name < heliosHttpExports[j].Name
-	})
-
-	assert.EqualValues(t, netHttpExports, heliosHttpExports)
 }
