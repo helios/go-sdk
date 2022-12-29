@@ -10,6 +10,25 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func sortExports(exports []exportsExtractor.ExtractedObject) {
+	sort.Slice(exports, func(i int, j int) bool { return exports[i].Name < exports[j].Name })
+}
+
+func cloneRepositoryAndExtractExports(repoUrl string, tag string, name string) []exportsExtractor.ExtractedObject {
+	originalRepository := exportsExtractor.CloneGitRepository(repoUrl, tag)
+	defer os.RemoveAll(originalRepository)
+	originalExports := exportsExtractor.ExtractExports(originalRepository, "sarama")
+	sortExports(originalExports)
+	return originalExports
+}
+
+func extractProxyLibExports(libName string) []exportsExtractor.ExtractedObject {
+	srcDir, _ := filepath.Abs("../" + libName)
+	heliosExports := exportsExtractor.ExtractExports(srcDir, libName)
+	sort.Slice(heliosExports, func(i int, j int) bool { return heliosExports[i].Name < heliosExports[j].Name })
+	return heliosExports
+}
+
 func TestSaramaInterfaceMatch(t *testing.T) {
 	delete := func(exports []exportsExtractor.ExtractedObject, name string) []exportsExtractor.ExtractedObject {
 		for i, export := range exports {
@@ -22,15 +41,10 @@ func TestSaramaInterfaceMatch(t *testing.T) {
 	}
 
 	// Get original sarama exports.
-	originalRepository := exportsExtractor.CloneGitRepository("https://github.com/Shopify/sarama", "v1.37.2")
-	originalExports := exportsExtractor.ExtractExports(originalRepository, "sarama")
-	os.RemoveAll(originalRepository)
-	sort.Slice(originalExports, func(i int, j int) bool { return originalExports[i].Name < originalExports[j].Name })
+	originalExports := cloneRepositoryAndExtractExports("https://github.com/Shopify/sarama", "v1.37.2", "sarama")
 
 	// Get Helios sarama exports.
-	srcDir, _ := filepath.Abs("../heliossarama")
-	heliosExports := exportsExtractor.ExtractExports(srcDir, "heliossarama")
-	sort.Slice(heliosExports, func(i int, j int) bool { return heliosExports[i].Name < heliosExports[j].Name })
+	heliosExports := extractProxyLibExports("heliossarama")
 
 	// "NewMockWrapper" cannot be wrapped because its parameter's type is private - Remove it from the expected list.
 	originalExports = delete(originalExports, "NewMockWrapper")
