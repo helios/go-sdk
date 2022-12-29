@@ -4,9 +4,6 @@ import (
 	"context"
 	"html/template"
 	"net/http"
-	"os"
-	"path/filepath"
-	"sort"
 	"testing"
 
 	"go.opentelemetry.io/otel"
@@ -16,7 +13,6 @@ import (
 	"go.opentelemetry.io/otel/sdk/trace/tracetest"
 	semconv "go.opentelemetry.io/otel/semconv/v1.12.0"
 
-	exportsExtractor "github.com/helios/go-instrumentor/exports_extractor"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -63,24 +59,4 @@ func TestInstrumentation(t *testing.T) {
 	assert.Equal(t, 1, len(spans))
 	serverSpan := spans[0]
 	validateAttributes(serverSpan.Attributes(), t)
-}
-
-func TestInterfaceMatch(t *testing.T) {
-	// Get original mongo exports.
-	originalRepository := exportsExtractor.CloneGitRepository("https://github.com/gin-gonic/gin", "v1.8.1")
-	originalExports := exportsExtractor.ExtractExports(originalRepository, "gin")
-	os.RemoveAll(originalRepository)
-	sort.Slice(originalExports, func(i, j int) bool {
-		return originalExports[i].Name < originalExports[j].Name
-	})
-
-	// Get Helios mongo exports.
-	srcDir, _ := filepath.Abs(".")
-	heliosExports := exportsExtractor.ExtractExports(srcDir, "heliosgin")
-	sort.Slice(heliosExports, func(i, j int) bool {
-		return heliosExports[i].Name < heliosExports[j].Name
-	})
-
-	// Compare.
-	assert.EqualValues(t, originalExports, heliosExports)
 }

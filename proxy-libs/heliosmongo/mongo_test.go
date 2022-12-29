@@ -3,12 +3,8 @@ package heliosmongo
 import (
 	"context"
 	"fmt"
-	"os"
-	"path/filepath"
-	"sort"
 	"testing"
 
-	exportsExtractor "github.com/helios/go-instrumentor/exports_extractor"
 	"github.com/stretchr/testify/assert"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -108,24 +104,4 @@ func TestNewClientInstrumentation(t *testing.T) {
 	insertUser(client, 67890, "Bob McClown", "Company Jester")
 	attributes := assertSpan(t, spanRecorder)
 	assertAttributes(t, attributes, 67890, "Bob McClown", "Company Jester")
-}
-
-func TestInterfaceMatch(t *testing.T) {
-	// Get original mongo exports.
-	originalRepository := exportsExtractor.CloneGitRepository("https://github.com/mongodb/mongo-go-driver", "v1.11.0")
-	originalExports := exportsExtractor.ExtractExports(filepath.Join(originalRepository, "/mongo"), "mongo")
-	os.RemoveAll(originalRepository)
-	sort.Slice(originalExports, func(i, j int) bool {
-		return originalExports[i].Name < originalExports[j].Name
-	})
-
-	// Get Helios mongo exports.
-	srcDir, _ := filepath.Abs(".")
-	heliosExports := exportsExtractor.ExtractExports(srcDir, "heliosmongo")
-	sort.Slice(heliosExports, func(i, j int) bool {
-		return heliosExports[i].Name < heliosExports[j].Name
-	})
-
-	assert.Equal(t, len(originalExports), len(heliosExports))
-	assert.EqualValues(t, originalExports, heliosExports)
 }

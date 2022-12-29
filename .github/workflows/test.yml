@@ -61,12 +61,6 @@ jobs:
               echo "GOPATH=$(go env GOPATH)" >> $GITHUB_ENV
               echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
 
-          - name: Set GOPRIVATE
-            run: go env -w GOPRIVATE=github.com/helios/\*
-
-          - name: Configure token access as default
-            run: git config --global url."https://helios:${GH_ACCESS_TOKEN}@github.com".insteadOf "https://github.com"
-
           - name: Run http proxy unit tests
             working-directory: proxy-libs/helioshttp
             run: go mod tidy && go test .
@@ -89,6 +83,16 @@ jobs:
 
           - name: Run sarama proxy unit tests
             working-directory: proxy-libs/heliossarama
+            run: go mod tidy && go test .
+
+          - name: Set GOPRIVATE
+            run: go env -w GOPRIVATE=github.com/helios/\*
+
+          - name: Configure token access as default
+            run: git config --global url."https://helios:${GH_ACCESS_TOKEN}@github.com".insteadOf "https://github.com"
+
+          - name: Run interface validator tests
+            working-directory: proxy-libs/interface-validator
             run: go mod tidy && go test .
 
     test:

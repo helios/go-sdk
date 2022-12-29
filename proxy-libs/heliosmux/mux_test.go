@@ -6,20 +6,16 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
-	"os"
-	"path/filepath"
-	"sort"
 	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/propagation"
-	"go.opentelemetry.io/otel/sdk/trace/tracetest"
-	"go.opentelemetry.io/otel/trace"
-	exportsExtractor "github.com/helios/go-instrumentor/exports_extractor"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	"go.opentelemetry.io/otel/sdk/trace/tracetest"
 	semconv "go.opentelemetry.io/otel/semconv/v1.12.0"
+	"go.opentelemetry.io/otel/trace"
 )
 
 const (
@@ -89,24 +85,4 @@ func TestNewRouterInstrumentation(t *testing.T) {
 			assert.Equal(t, "/users", value)
 		}
 	}
-}
-
-func TestInterfaceMatch(t *testing.T) {
-	// Get original mux exports.
-	originalRepository := exportsExtractor.CloneGitRepository("https://github.com/gorilla/mux", "v1.8.0")
-	originalExports := exportsExtractor.ExtractExports(originalRepository, "mux")
-	os.RemoveAll(originalRepository)
-	sort.Slice(originalExports, func(i int, j int) bool {
-		return originalExports[i].Name < originalExports[j].Name
-	})
-
-	// Get Helios mux exports.
-	srcDir, _ := filepath.Abs(".")
-	heliosExports := exportsExtractor.ExtractExports(srcDir, "heliosmux")
-	sort.Slice(heliosExports, func(i int, j int) bool {
-		return heliosExports[i].Name < heliosExports[j].Name
-	})
-
-	assert.Equal(t, len(originalExports), len(heliosExports))
-	assert.EqualValues(t, originalExports, heliosExports)
 }
