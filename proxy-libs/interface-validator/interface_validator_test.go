@@ -53,6 +53,12 @@ func TestMuxInterfaceMatch(t *testing.T) {
 	assert.EqualValues(t, originalExports, heliosExports)
 }
 
+func TestEchoInterfaceMatch(t *testing.T) {
+	originalExports := cloneRepositoryAndExtractExports("https://github.com/labstack/echo", "v4.9.1", "echo", "")
+	heliosExports := extractProxyLibExports("heliosecho")
+	assert.EqualValues(t, originalExports, heliosExports)
+}
+
 func TestSaramaInterfaceMatch(t *testing.T) {
 	delete := func(exports []exportsExtractor.ExtractedObject, name string) []exportsExtractor.ExtractedObject {
 		for i, export := range exports {
