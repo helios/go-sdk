@@ -94,6 +94,12 @@ func TestMacaronInterfaceMatch(t *testing.T) {
 	}
 }
 
+func TestGinInterfaceMatch(t *testing.T) {
+	originalExports := cloneRepositoryAndExtractExports("https://github.com/gin-gonic/gin", "v1.8.1", "gin", "")
+	heliosExports := extractProxyLibExports("heliosgin")
+	assert.EqualValues(t, originalExports, heliosExports)
+}
+
 func TestSaramaInterfaceMatch(t *testing.T) {
 	delete := func(exports []exportsExtractor.ExtractedObject, name string) []exportsExtractor.ExtractedObject {
 		for i, export := range exports {
