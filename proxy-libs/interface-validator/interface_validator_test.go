@@ -100,6 +100,12 @@ func TestGinInterfaceMatch(t *testing.T) {
 	assert.EqualValues(t, originalExports, heliosExports)
 }
 
+func TestInterfaceMatch(t *testing.T) {
+	originalExports := cloneRepositoryAndExtractExports("https://github.com/go-chi/chi", "v5.0.8", "chi", "")
+	heliosExports := extractProxyLibExports("helioschi")
+	assert.EqualValues(t, originalExports, heliosExports)
+}
+
 func TestSaramaInterfaceMatch(t *testing.T) {
 	delete := func(exports []exportsExtractor.ExtractedObject, name string) []exportsExtractor.ExtractedObject {
 		for i, export := range exports {
