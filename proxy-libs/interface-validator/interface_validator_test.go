@@ -30,22 +30,20 @@ func extractProxyLibExports(libName string) []exportsExtractor.ExtractedObject {
 }
 
 func TestHttpInterfaceMatch(t *testing.T) {
-	// Get original sarama exports.
 	originalExports := cloneRepositoryAndExtractExports("https://github.com/golang/go", "go1.19", "http", "/src/net/http")
-
-	// Get Helios sarama exports.
 	heliosExports := extractProxyLibExports("helioshttp")
-
 	assert.EqualValues(t, originalExports, heliosExports)
 }
 
 func TestGrpcInterfaceMatch(t *testing.T) {
-	// Get original grpc exports.
 	originalExports := cloneRepositoryAndExtractExports("https://github.com/grpc/grpc-go", "v1.50.1", "grpc", "")
-
-	// Get Helios grpc exports.
 	heliosExports := extractProxyLibExports("heliosgrpc")
+	assert.EqualValues(t, originalExports, heliosExports)
+}
 
+func TestMongoInterfaceMatch(t *testing.T) {
+	originalExports := cloneRepositoryAndExtractExports("https://github.com/mongodb/mongo-go-driver", "v1.11.0", "mongo", "/mongo")
+	heliosExports := extractProxyLibExports("heliosmongo")
 	assert.EqualValues(t, originalExports, heliosExports)
 }
 
@@ -60,10 +58,7 @@ func TestSaramaInterfaceMatch(t *testing.T) {
 		return exports
 	}
 
-	// Get original sarama exports.
 	originalExports := cloneRepositoryAndExtractExports("https://github.com/Shopify/sarama", "v1.37.2", "sarama", "")
-
-	// Get Helios sarama exports.
 	heliosExports := extractProxyLibExports("heliossarama")
 
 	// "NewMockWrapper" cannot be wrapped because its parameter's type is private - Remove it from the expected list.
