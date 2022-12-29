@@ -59,6 +59,41 @@ func TestEchoInterfaceMatch(t *testing.T) {
 	assert.EqualValues(t, originalExports, heliosExports)
 }
 
+func removeDuplicateValues(slice []exportsExtractor.ExtractedObject) []exportsExtractor.ExtractedObject {
+	keys := make(map[string]bool)
+	list := []exportsExtractor.ExtractedObject{}
+
+	// If the key(values of the slice) is not equal
+	// to the already present value in new slice (list)
+	// then we append it. else we jump on another element.
+	for _, entry := range slice {
+		if _, value := keys[entry.Name]; !value {
+			keys[entry.Name] = true
+			list = append(list, entry)
+		}
+	}
+	return list
+}
+
+func TestMacaronInterfaceMatch(t *testing.T) {
+	originalExports := cloneRepositoryAndExtractExports("https://github.com/go-macaron/macaron", "v1.4.0", "macaron", "")
+	heliosExports := extractProxyLibExports("heliosmacaron")
+	// Macaron has separate implementations for PathUnescape for Go 1.17 and 1.18 - until the extractor properly
+	// handles that we're forced to remove duplicates
+	originalExports = removeDuplicateValues(originalExports)
+
+	for index, value := range originalExports {
+		heliosVal := heliosExports[index]
+		if value.Name == "NewRouteMap" {
+			// The return value can't be used by the proxy lib as its not exported by the original package
+			assert.Equal(t, value.FunctionReturnValues[0].AttributeType, "routeMap")
+			assert.Equal(t, heliosVal.FunctionReturnValues[0].AttributeType, "interface{}")
+		} else {
+			assert.Equal(t, value, heliosVal)
+		}
+	}
+}
+
 func TestSaramaInterfaceMatch(t *testing.T) {
 	delete := func(exports []exportsExtractor.ExtractedObject, name string) []exportsExtractor.ExtractedObject {
 		for i, export := range exports {
