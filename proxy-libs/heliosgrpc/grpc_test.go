@@ -4,13 +4,9 @@ import (
 	"context"
 	"log"
 	"net"
-	"os"
-	"path/filepath"
-	"sort"
 	"testing"
 	"time"
 
-	"github.com/helios/go-instrumentor/exports_extractor"
 	pb "github.com/helios/go-sdk/proxy-libs/heliosgrpc/chat"
 
 	"go.opentelemetry.io/otel/attribute"
@@ -91,23 +87,4 @@ func TestServerInstrumentation(t *testing.T) {
 	assert.False(t, clientSpan.Parent().HasTraceID())
 	validateAttributes(clientSpan.Attributes(), t)
 	assert.Equal(t, serverSpan.Parent().SpanID(), clientSpan.SpanContext().SpanID())
-}
-
-func TestInterfaceMatch(t *testing.T) {
-	grpcRepoFolder := exports_extractor.CloneGitRepository("https://github.com/grpc/grpc-go", "v1.50.1")
-	grpcPackageName := "grpc"
-	grpcExports := exports_extractor.ExtractExports(grpcRepoFolder, grpcPackageName)
-	os.RemoveAll(grpcRepoFolder)
-	sort.Slice(grpcExports, func(i, j int) bool {
-		return grpcExports[i].Name < grpcExports[j].Name
-	})
-
-	heliosGrpcRoot, _ := filepath.Abs(".")
-	heliosGrpcPackageName := "heliosgrpc"
-	heliosGrpcExports := exports_extractor.ExtractExports(heliosGrpcRoot, heliosGrpcPackageName)
-	sort.Slice(heliosGrpcExports, func(i, j int) bool {
-		return heliosGrpcExports[i].Name < heliosGrpcExports[j].Name
-	})
-
-	assert.EqualValues(t, grpcExports, heliosGrpcExports)
 }

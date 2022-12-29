@@ -39,6 +39,16 @@ func TestHttpInterfaceMatch(t *testing.T) {
 	assert.EqualValues(t, originalExports, heliosExports)
 }
 
+func TestGrpcInterfaceMatch(t *testing.T) {
+	// Get original grpc exports.
+	originalExports := cloneRepositoryAndExtractExports("https://github.com/grpc/grpc-go", "v1.50.1", "grpc", "")
+
+	// Get Helios grpc exports.
+	heliosExports := extractProxyLibExports("heliosgrpc")
+
+	assert.EqualValues(t, originalExports, heliosExports)
+}
+
 func TestSaramaInterfaceMatch(t *testing.T) {
 	delete := func(exports []exportsExtractor.ExtractedObject, name string) []exportsExtractor.ExtractedObject {
 		for i, export := range exports {
