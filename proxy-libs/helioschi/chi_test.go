@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"testing"
 
 	"go.opentelemetry.io/otel"
@@ -23,7 +24,7 @@ import (
 const requestBody = "{\"id\":123,\"name\":\"Lior Govrin\",\"role\":\"Software Engineer\""
 const responseBody = "user test (id abcd1234)"
 
-func validateAttributes(attrs []attribute.KeyValue, t *testing.T) {
+func validateAttributes(attrs []attribute.KeyValue, t *testing.T, metadataOnly bool) {
 	for _, value := range attrs {
 		key := value.Key
 		if key == semconv.HTTPMethodKey {
@@ -35,10 +36,13 @@ func validateAttributes(attrs []attribute.KeyValue, t *testing.T) {
 		} else if key == semconv.HTTPRouteKey {
 			assert.Equal(t, "/users/{id}", value.Value.AsString())
 		} else if key == "http.request.body" {
+			assert.False(t, metadataOnly)
 			assert.Equal(t, requestBody, value.Value.AsString())
 		} else if key == "http.response.body" {
+			assert.False(t, metadataOnly)
 			assert.Equal(t, responseBody, value.Value.AsString())
 		} else if key == "http.request.headers" {
+			assert.False(t, metadataOnly)
 			headers := map[string][]string{}
 			json.Unmarshal([]byte(value.Value.AsString()), &headers)
 			assert.Equal(t, "application/json", headers["Content-Type"][0])
@@ -52,7 +56,7 @@ type User struct {
 	Role string `json:"role"`
 }
 
-func TestInstrumentation(t *testing.T) {
+func runTests(t *testing.T, port string, metadataOnly bool) {
 	sr := tracetest.NewSpanRecorder()
 	otel.SetTracerProvider(sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(sr)))
 	propagator := propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{})
@@ -71,10 +75,11 @@ func TestInstrumentation(t *testing.T) {
 	}))
 
 	go func() {
-		http.ListenAndServe(":3333", r)
+		http.ListenAndServe(":"+port, r)
 	}()
 
-	res, _ := http.Post("http://localhost:3333/users/abcd1234", "application/json", bytes.NewBuffer([]byte(requestBody)))
+	url := fmt.Sprintf("http://localhost:%s/users/abcd1234", port)
+	res, _ := http.Post(url, "application/json", bytes.NewBuffer([]byte(requestBody)))
 	body, _ := io.ReadAll(res.Body)
 	assert.Equal(t, responseBody, string(body))
 	sr.ForceFlush(context.Background())
@@ -83,5 +88,14 @@ func TestInstrumentation(t *testing.T) {
 	serverSpan := spans[0]
 	assert.Equal(t, "/users/{id}", serverSpan.Name())
 	assert.Equal(t, serverSpan.SpanKind(), trace.SpanKindServer)
-	validateAttributes(serverSpan.Attributes(), t)
+	validateAttributes(serverSpan.Attributes(), t, metadataOnly)
+}
+
+func TestInstrumentation(t *testing.T) {
+	runTests(t, "3333", false)
+}
+
+func TestInstrumentationInMetadataOnlyMode(t *testing.T) {
+	os.Setenv("HS_METADATA_ONLY", "true")
+	runTests(t, "3334", true)
 }
