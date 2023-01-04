@@ -18,6 +18,7 @@ type HeliosConfig struct {
 	environment       string
 	commitHash        string
 	debug             bool
+	metadataOnly      bool
 }
 
 // Keys and their matching env vars
@@ -35,12 +36,15 @@ const commitHashKey = "commitHash"
 const commitHashEnvVar = "HS_COMMIT_HASH"
 const debugKey = "debug"
 const debugEnvVar = "HS_DEBUG"
+const metadataOnlyKey = "metadataOnly"
+const metadataOnlyEnvVar = "HS_METADATA_ONLY"
 
 // Default values
 const defaultCollectorInsecure = false
 const defaultCollectorEndpoint = "collector.heliosphere.io:443"
 const defaultCollectorPath = "traces"
 const defaultDebug = false
+const defaultMetadataOnly = false
 
 func getConfigByKey(key string, attrs []attribute.KeyValue) attribute.KeyValue {
 	for i := range attrs {
@@ -103,6 +107,11 @@ func isDebugMode(attrs []attribute.KeyValue) bool {
 	return getBoolConfig(debugEnvVar, defaultDebug, debugConfig)
 }
 
+func isMetadataOnlyMode(attrs []attribute.KeyValue) bool {
+	metadataOnlyConfig := getConfigByKey(metadataOnlyKey, attrs)
+	return getBoolConfig(metadataOnlyEnvVar, defaultMetadataOnly, metadataOnlyConfig)
+}
+
 func getCollectorEndpoint(attrs []attribute.KeyValue) string {
 	collectorEndpointConfig := getConfigByKey(collectorEndpointKey, attrs)
 	return getStringConfig(collectorEndpointEnvVar, defaultCollectorEndpoint, collectorEndpointConfig)
@@ -131,5 +140,6 @@ func getHeliosConfig(serviceName string, apiToken string, attrs ...attribute.Key
 	environment := getEnvironment(attrs)
 	commitHash := getCommitHash(attrs)
 	debug := isDebugMode(attrs)
-	return HeliosConfig{serviceName, apiToken, sampler, collectorInsecure, collectorEndpoint, collectorPath, environment, commitHash, debug}
+	metadataOnly := isMetadataOnlyMode(attrs)
+	return HeliosConfig{serviceName, apiToken, sampler, collectorInsecure, collectorEndpoint, collectorPath, environment, commitHash, debug, metadataOnly}
 }

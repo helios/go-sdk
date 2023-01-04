@@ -70,6 +70,13 @@ func WithDebugMode() attribute.KeyValue {
 	}
 }
 
+func WithMetadataOnlyMode() attribute.KeyValue {
+	return attribute.KeyValue{
+		Key:   metadataOnlyKey,
+		Value: attribute.StringValue("true"),
+	}
+}
+
 func CreateCustomSpan(context context.Context, spanName string, attributes []attribute.KeyValue, callback func()) context.Context {
 	if providerSingelton == nil {
 		log.Print("Can't create custom span before Initialize is called")
@@ -119,6 +126,10 @@ func Initialize(serviceName string, apiToken string, attrs ...attribute.KeyValue
 		stdoutLogger := stdr.New(log.New(os.Stdout, "[opentelemetry-logger] ", 3))
 		stdr.SetVerbosity(3)
 		otel.SetLogger(stdoutLogger)
+	}
+
+	if heliosConfig.metadataOnly {
+		os.Setenv("HS_METADATA_ONLY", "true")
 	}
 
 	serviceAttributes := []attribute.KeyValue{semconv.ServiceNameKey.String(serviceName), semconv.TelemetrySDKVersionKey.String(version), semconv.TelemetrySDKNameKey.String(sdkName), semconv.TelemetrySDKLanguageGo}
