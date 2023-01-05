@@ -5,7 +5,6 @@ go 1.18
 require (
 	github.com/stretchr/testify v1.8.1
 	go.opentelemetry.io/otel v1.11.2
-	gopkg.in/ini.v1 v1.46.0
 	gopkg.in/macaron.v1 v1.4.0
 )
 
@@ -19,6 +18,7 @@ require (
 	go.opentelemetry.io/otel/trace v1.11.2 // indirect
 	golang.org/x/crypto v0.0.0-20190701094942-4def268fd1a4 // indirect
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
+	gopkg.in/ini.v1 v1.46.0 // indirect
 )
 
 require (

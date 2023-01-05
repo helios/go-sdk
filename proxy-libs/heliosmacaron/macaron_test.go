@@ -11,6 +11,7 @@ import (
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/sdk/trace/tracetest"
 	semconv "go.opentelemetry.io/otel/semconv/v1.12.0"
+	"gopkg.in/macaron.v1"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -36,7 +37,7 @@ func TestInstrumentation(t *testing.T) {
 	propagator := propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{})
 	otel.SetTextMapPropagator(propagator)
 	m := Classic()
-	m.Get("/users/:id", func(ctx *Context) string {
+	m.Get("/users/:id", func(ctx *macaron.Context) string {
 		id := ctx.Params("id")
 		return id
 	})
