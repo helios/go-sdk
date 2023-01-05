@@ -11,6 +11,7 @@ import (
 
 	"go.opentelemetry.io/otel/attribute"
 	semconv "go.opentelemetry.io/otel/semconv/v1.12.0"
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/metadata"
 
@@ -60,8 +61,8 @@ func TestServerInstrumentation(t *testing.T) {
 		}
 	}()
 
-	var conn *ClientConn
-	conn, err := Dial("localhost:3030", WithTransportCredentials(insecure.NewCredentials()))
+	var conn *grpc.ClientConn
+	conn, err := Dial("localhost:3030", grpc.WithTransportCredentials(insecure.NewCredentials()))
 
 	if err != nil {
 		log.Fatalf("did not connect: %v", err)
