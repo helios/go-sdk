@@ -18,8 +18,8 @@ func sortExports(exports []exportsExtractor.ExtractedObject) {
 
 func cloneRepositoryAndExtractExports(repoUrl string, tag string, moduleName string, modulePath string) []exportsExtractor.ExtractedObject {
 	originalRepository := exportsExtractor.CloneGitRepository(repoUrl, tag)
-	defer os.RemoveAll(originalRepository)
 	originalExports := exportsExtractor.ExtractExports(originalRepository+modulePath, moduleName)
+	os.RemoveAll(originalRepository)
 	sortExports(originalExports)
 	return originalExports
 }
@@ -130,13 +130,19 @@ func TestGinInterfaceMatch(t *testing.T) {
 }
 
 func TestChiInterfaceMatch(t *testing.T) {
-	originalExports := cloneRepositoryAndExtractExports("https://github.com/go-chi/chi", "v5.0.8", "chi", "")
-	heliosExports := extractProxyLibExports("helioschi")
-	assertExportsEquality(t, heliosExports, originalExports)
+	supportedTags := []string{"v1.5.3", "v5.0.0", "v5.0.8"}
+	for _, tag := range supportedTags {
+		originalExports := cloneRepositoryAndExtractExports("https://github.com/go-chi/chi", tag, "chi", "")
+		heliosExports := extractProxyLibExports("helioschi")
+		assertExportsEquality(t, heliosExports, originalExports)
+	}
 }
 
 func TestSaramaInterfaceMatch(t *testing.T) {
-	originalExports := cloneRepositoryAndExtractExports("https://github.com/Shopify/sarama", "v1.37.2", "sarama", "")
-	heliosExports := deleteExportedMember(extractProxyLibExports("heliossarama"), "InjectContextToMessage")
-	assertExportsEquality(t, heliosExports, originalExports)
+	supportedTags := []string{"v1.28.0", "v1.34.0", "v1.37.2"}
+	for _, tag := range supportedTags {
+		originalExports := cloneRepositoryAndExtractExports("https://github.com/Shopify/sarama", tag, "sarama", "")
+		heliosExports := deleteExportedMember(extractProxyLibExports("heliossarama"), "InjectContextToMessage")
+		assertExportsEquality(t, heliosExports, originalExports)
+	}
 }
