@@ -13,6 +13,7 @@ import (
 	"go.opentelemetry.io/otel/sdk/trace/tracetest"
 	semconv "go.opentelemetry.io/otel/semconv/v1.12.0"
 
+	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -41,9 +42,9 @@ func TestInstrumentation(t *testing.T) {
 	tmplStr := "user {{ .name }} (id {{ .id }})\n"
 	tmpl := template.Must(template.New(tmplName).Parse(tmplStr))
 	r.SetHTMLTemplate(tmpl)
-	r.GET("/users/:id", func(c *Context) {
+	r.GET("/users/:id", func(c *gin.Context) {
 		id := c.Param("id")
-		c.HTML(http.StatusOK, tmplName, H{
+		c.HTML(http.StatusOK, tmplName, gin.H{
 			"name": "whatever",
 			"id":   id,
 		})
