@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	exportsExtractor "github.com/helios/go-instrumentor/exports_extractor"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -78,21 +79,30 @@ func deleteExportedMember(exports []exportsExtractor.ExtractedObject, name strin
 }
 
 func TestHttpInterfaceMatch(t *testing.T) {
-	originalExports := cloneRepositoryAndExtractExports("https://github.com/golang/go", "go1.19", "http", "/src/net/http")
-	heliosExports := extractProxyLibExports("helioshttp")
-	assertExportsEquality(t, heliosExports, originalExports)
+	supportedTags := []string{"go1.18", "go1.19"}
+	for _, tag := range supportedTags {
+		originalExports := cloneRepositoryAndExtractExports("https://github.com/golang/go", tag, "http", "/src/net/http")
+		heliosExports := extractProxyLibExports("helioshttp")
+		assertExportsEquality(t, heliosExports, originalExports)
+	}
 }
 
 func TestGrpcInterfaceMatch(t *testing.T) {
-	originalExports := cloneRepositoryAndExtractExports("https://github.com/grpc/grpc-go", "v1.50.1", "grpc", "")
-	heliosExports := extractProxyLibExports("heliosgrpc")
-	assertExportsEquality(t, heliosExports, originalExports)
+	supportedTags := []string{"v1.30.0", "v1.35.0", "v1.40.0", "v1.45.0", "v1.50.0", "v1.51.0"}
+	for _, tag := range supportedTags {
+		originalExports := cloneRepositoryAndExtractExports("https://github.com/grpc/grpc-go", tag, "grpc", "")
+		heliosExports := extractProxyLibExports("heliosgrpc")
+		assertExportsEquality(t, heliosExports, originalExports)
+	}
 }
 
 func TestMongoInterfaceMatch(t *testing.T) {
-	originalExports := cloneRepositoryAndExtractExports("https://github.com/mongodb/mongo-go-driver", "v1.11.0", "mongo", "/mongo")
-	heliosExports := extractProxyLibExports("heliosmongo")
-	assertExportsEquality(t, heliosExports, originalExports)
+	supportedTags := []string{"v1.4.2", "v1.5.0", "v1.9.0", "v1.10.3", "v1.11.0"}
+	for _, tag := range supportedTags {
+		originalExports := cloneRepositoryAndExtractExports("https://github.com/mongodb/mongo-go-driver", tag, "mongo", "/mongo")
+		heliosExports := extractProxyLibExports("heliosmongo")
+		assertExportsEquality(t, heliosExports, originalExports)
+	}
 }
 
 func TestMuxInterfaceMatch(t *testing.T) {
