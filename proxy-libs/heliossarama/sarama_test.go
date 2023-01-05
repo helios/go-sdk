@@ -29,15 +29,15 @@ type TestConsumerGroupHandler struct {
 	t            *testing.T
 }
 
-func (handler *TestConsumerGroupHandler) Setup(session ConsumerGroupSession) error {
+func (handler *TestConsumerGroupHandler) Setup(session sarama.ConsumerGroupSession) error {
 	return nil
 }
 
-func (handler *TestConsumerGroupHandler) Cleanup(session ConsumerGroupSession) error {
+func (handler *TestConsumerGroupHandler) Cleanup(session sarama.ConsumerGroupSession) error {
 	return nil
 }
 
-func (handler *TestConsumerGroupHandler) ConsumeClaim(session ConsumerGroupSession, claim ConsumerGroupClaim) error {
+func (handler *TestConsumerGroupHandler) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
 	message := <-claim.Messages()
 	assert.Equal(handler.t, Topic, message.Topic)
 	assert.Equal(handler.t, handler.messageKey, string(message.Key))
@@ -91,15 +91,15 @@ func getSpanRecorder() *tracetest.SpanRecorder {
 	return spanRecorder
 }
 
-func getConfig() *Config {
-	config := NewConfig()
-	config.Version = V2_5_0_0
+func getConfig() *sarama.Config {
+	config := sarama.NewConfig()
+	config.Version = sarama.V2_5_0_0
 	config.Producer.Return.Successes = true
-	config.Consumer.Offsets.Initial = OffsetOldest
+	config.Consumer.Offsets.Initial = sarama.OffsetOldest
 	return config
 }
 
-func deleteTopic(config *Config) {
+func deleteTopic(config *sarama.Config) {
 	clusterAdmin, _ := sarama.NewClusterAdmin(Addresses, config)
 	clusterAdmin.DeleteTopic(Topic)
 	clusterAdmin.Close()
@@ -120,10 +120,10 @@ func TestNewAsyncProducerAndNewConsumerGroupInstrumentations(t *testing.T) {
 	value := "Hello, World!"
 
 	asyncProducer, _ := NewAsyncProducer(Addresses, config)
-	message := ProducerMessage{
+	message := sarama.ProducerMessage{
 		Topic: Topic,
-		Key:   StringEncoder(key),
-		Value: StringEncoder(value),
+		Key:   sarama.StringEncoder(key),
+		Value: sarama.StringEncoder(value),
 	}
 
 	createRootSpanAndInjectMessage(&message)
@@ -148,16 +148,16 @@ func TestNewSyncProducerAndNewConsumerGroupFromClientInstrumentations(t *testing
 	value := "Welcome to Helios!"
 
 	syncProducer, _ := NewSyncProducer(Addresses, config)
-	message := ProducerMessage{
+	message := sarama.ProducerMessage{
 		Topic: Topic,
-		Key:   StringEncoder(key),
-		Value: StringEncoder(value),
+		Key:   sarama.StringEncoder(key),
+		Value: sarama.StringEncoder(value),
 	}
 	createRootSpanAndInjectMessage(&message)
 	syncProducer.SendMessage(&message)
 	syncProducer.Close()
 
-	client, _ := NewClient(Addresses, config)
+	client, _ := sarama.NewClient(Addresses, config)
 	consumerGroup, _ := NewConsumerGroupFromClient("consumerGroupFromClient", client)
 	consumerGroup.Consume(context.Background(), []string{Topic}, &TestConsumerGroupHandler{
 		messageKey:   key,

@@ -3,12 +3,13 @@ package heliossarama
 import (
 	"context"
 
+	"github.com/Shopify/sarama"
 	"go.opentelemetry.io/contrib/instrumentation/github.com/Shopify/sarama/otelsarama"
 	"go.opentelemetry.io/otel"
 )
 
 type asyncProducerWrapper struct {
-	asyncProducer AsyncProducer
+	asyncProducer sarama.AsyncProducer
 }
 
 func (wrapper asyncProducerWrapper) AsyncClose() {
@@ -19,8 +20,8 @@ func (wrapper asyncProducerWrapper) Close() error {
 	return wrapper.asyncProducer.Close()
 }
 
-func (wrapper asyncProducerWrapper) Input() chan<- *ProducerMessage {
-	channel := make(chan *ProducerMessage, 1)
+func (wrapper asyncProducerWrapper) Input() chan<- *sarama.ProducerMessage {
+	channel := make(chan *sarama.ProducerMessage, 1)
 
 	go func() {
 		producerMessage := <-channel
@@ -33,11 +34,11 @@ func (wrapper asyncProducerWrapper) Input() chan<- *ProducerMessage {
 	return channel
 }
 
-func (wrapper asyncProducerWrapper) Successes() <-chan *ProducerMessage {
+func (wrapper asyncProducerWrapper) Successes() <-chan *sarama.ProducerMessage {
 	return wrapper.asyncProducer.Successes()
 }
 
-func (wrapper asyncProducerWrapper) Errors() <-chan *ProducerError {
+func (wrapper asyncProducerWrapper) Errors() <-chan *sarama.ProducerError {
 	return wrapper.asyncProducer.Errors()
 }
 
@@ -45,7 +46,7 @@ func (wrapper asyncProducerWrapper) IsTransactional() bool {
 	return wrapper.asyncProducer.IsTransactional()
 }
 
-func (wrapper asyncProducerWrapper) TxnStatus() ProducerTxnStatusFlag {
+func (wrapper asyncProducerWrapper) TxnStatus() sarama.ProducerTxnStatusFlag {
 	return wrapper.asyncProducer.TxnStatus()
 }
 
@@ -61,10 +62,10 @@ func (wrapper asyncProducerWrapper) AbortTxn() error {
 	return wrapper.asyncProducer.AbortTxn()
 }
 
-func (wrapper asyncProducerWrapper) AddOffsetsToTxn(offsets map[string][]*PartitionOffsetMetadata, groupId string) error {
+func (wrapper asyncProducerWrapper) AddOffsetsToTxn(offsets map[string][]*sarama.PartitionOffsetMetadata, groupId string) error {
 	return wrapper.asyncProducer.AddOffsetsToTxn(offsets, groupId)
 }
 
-func (wrapper asyncProducerWrapper) AddMessageToTxn(msg *ConsumerMessage, groupId string, metadata *string) error {
+func (wrapper asyncProducerWrapper) AddMessageToTxn(msg *sarama.ConsumerMessage, groupId string, metadata *string) error {
 	return wrapper.asyncProducer.AddMessageToTxn(msg, groupId, metadata)
 }

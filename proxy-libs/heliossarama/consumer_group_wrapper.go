@@ -3,14 +3,15 @@ package heliossarama
 import (
 	"context"
 
+	"github.com/Shopify/sarama"
 	"go.opentelemetry.io/contrib/instrumentation/github.com/Shopify/sarama/otelsarama"
 )
 
 type consumerGroupWrapper struct {
-	consumerGroup ConsumerGroup
+	consumerGroup sarama.ConsumerGroup
 }
 
-func (wrapper consumerGroupWrapper) Consume(ctx context.Context, topics []string, handler ConsumerGroupHandler) error {
+func (wrapper consumerGroupWrapper) Consume(ctx context.Context, topics []string, handler sarama.ConsumerGroupHandler) error {
 	handler = otelsarama.WrapConsumerGroupHandler(handler)
 	return wrapper.consumerGroup.Consume(ctx, topics, handler)
 }
