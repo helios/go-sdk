@@ -5,7 +5,7 @@ import (
 	"github.com/helios/otelchi"
 )
 
-var InstrumentedSymbols = [...]string{"NewRouter"}
+var InstrumentedSymbols = [...]string{"NewRouter", "NewMux"}
 
 func addOpentelemetryMiddleware(mux *origin_chi.Mux) {
 	mux.Use(otelchi.Middleware("opentelemetry-middleware", otelchi.WithChiRoutes(mux)))

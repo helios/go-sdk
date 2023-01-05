@@ -5,6 +5,8 @@ import (
 	"go.opentelemetry.io/contrib/instrumentation/github.com/labstack/echo/otelecho"
 )
 
+var IntsrumentedSymbols = [...]string{"New"}
+
 func addOpenTelemetryMiddleare(echo *origin_echo.Echo) {
 	echo.Use(otelecho.Middleware("opentelemetry-middleware"))
 }
