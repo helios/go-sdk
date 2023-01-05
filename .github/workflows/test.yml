@@ -85,6 +85,18 @@ jobs:
             working-directory: proxy-libs/heliossarama
             run: go mod tidy && go test .
 
+          - name: Run chi proxy unit tests
+            working-directory: proxy-libs/helioschi
+            run: go mod tidy && go test .
+
+          - name: Run echo proxy unit tests
+            working-directory: proxy-libs/heliosecho
+            run: go mod tidy && go test .
+
+          - name: Run macaron proxy unit tests
+            working-directory: proxy-libs/heliosmacaron
+            run: go mod tidy && go test .
+
           - name: Set GOPRIVATE
             run: go env -w GOPRIVATE=github.com/helios/\*
 
