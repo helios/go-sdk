@@ -3,6 +3,7 @@ package helioshttp
 import (
 	"context"
 	"io"
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -17,7 +18,7 @@ import (
 
 const responseBody = "hello1234"
 
-func getHello(responseWriter ResponseWriter, request *Request) {
+func getHello(responseWriter http.ResponseWriter, request *http.Request) {
 	io.WriteString(responseWriter, responseBody)
 }
 
@@ -39,9 +40,9 @@ func TestServerInstrumentation(t *testing.T) {
 	otel.SetTracerProvider(sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(sr)))
 	propagator := propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{})
 	otel.SetTextMapPropagator(propagator)
-	Handle("/test", HandlerFunc(getHello))
+	Handle("/test", http.HandlerFunc(getHello))
 	go func() {
-		ListenAndServe(":8000", nil)
+		http.ListenAndServe(":8000", nil)
 	}()
 
 	res, _ := Get("http://localhost:8000/test")
