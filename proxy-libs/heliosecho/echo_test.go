@@ -11,6 +11,7 @@ import (
 	"go.opentelemetry.io/otel/sdk/trace/tracetest"
 	semconv "go.opentelemetry.io/otel/semconv/v1.12.0"
 
+	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 )
@@ -37,7 +38,7 @@ func TestInstrumentation(t *testing.T) {
 	otel.SetTextMapPropagator(propagator)
 	r := New()
 
-	r.GET("/users/:id", func(c Context) error {
+	r.GET("/users/:id", func(c echo.Context) error {
 		id := c.Param("id")
 		name := "Random"
 		return c.JSON(http.StatusOK, struct {
