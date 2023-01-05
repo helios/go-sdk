@@ -18,6 +18,7 @@ import (
 	semconv "go.opentelemetry.io/otel/semconv/v1.4.0"
 	"go.opentelemetry.io/otel/trace"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -68,7 +69,7 @@ func runTests(t *testing.T, port string, metadataOnly bool) {
 		var user User
 		decoder.Decode(&user)
 
-		id := URLParam(r, "id")
+		id := chi.URLParam(r, "id")
 		name := "test"
 		reply := fmt.Sprintf("user %s (id %s)", name, id)
 		w.Write(([]byte)(reply))
