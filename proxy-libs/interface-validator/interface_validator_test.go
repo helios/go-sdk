@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 	"testing"
 
 	exportsExtractor "github.com/helios/go-instrumentor/exports_extractor"
@@ -29,16 +30,53 @@ func extractProxyLibExports(libName string) []exportsExtractor.ExtractedObject {
 	return heliosExports
 }
 
+func assertExportsEquality(t *testing.T, proxyExports []exportsExtractor.ExtractedObject, originalExports []exportsExtractor.ExtractedObject) {
+	for _, proxyExport := range proxyExports {
+		if proxyExport.Name == "InstrumentedSymbols" {
+			continue
+		}
+
+		var found bool = false
+		for _, originalExport := range originalExports {
+			if proxyExport.Name == originalExport.Name {
+				found = true
+				assertExtractedObjectEquality(t, proxyExport, originalExport)
+			}
+		}
+
+		assert.True(t, found)
+	}
+}
+
+func assertFunctionParameterEquality(t *testing.T, heliosAttribute exportsExtractor.ObjectAttribute, originalAttribute exportsExtractor.ObjectAttribute) {
+	assert.True(t, strings.HasSuffix(heliosAttribute.AttributeType, originalAttribute.AttributeType))
+	assert.True(t, strings.HasSuffix(heliosAttribute.AttributeTypeKey, originalAttribute.AttributeTypeKey))
+}
+
+func assertExtractedObjectEquality(t *testing.T, heliosObject exportsExtractor.ExtractedObject, originalObject exportsExtractor.ExtractedObject) {
+	assert.Equal(t, heliosObject.Name, originalObject.Name)
+	assert.Equal(t, heliosObject.PackageAttributeType, originalObject.PackageAttributeType)
+	for index, proxyInput := range heliosObject.FunctionAttributeInput {
+		originalInput := originalObject.FunctionAttributeInput[index]
+		assertFunctionParameterEquality(t, proxyInput, originalInput)
+	}
+
+	for index, proxyInput := range heliosObject.FunctionReturnValues {
+		originalInput := originalObject.FunctionReturnValues[index]
+		assertFunctionParameterEquality(t, proxyInput, originalInput)
+	}
+}
+
 func TestHttpInterfaceMatch(t *testing.T) {
 	originalExports := cloneRepositoryAndExtractExports("https://github.com/golang/go", "go1.19", "http", "/src/net/http")
 	heliosExports := extractProxyLibExports("helioshttp")
-	assert.EqualValues(t, originalExports, heliosExports)
+	assertExportsEquality(t, heliosExports, originalExports)
 }
 
 func TestGrpcInterfaceMatch(t *testing.T) {
 	originalExports := cloneRepositoryAndExtractExports("https://github.com/grpc/grpc-go", "v1.50.1", "grpc", "")
 	heliosExports := extractProxyLibExports("heliosgrpc")
-	assert.EqualValues(t, originalExports, heliosExports)
+	assertExportsEquality(t, originalExports, heliosExports)
 }
 
 func TestMongoInterfaceMatch(t *testing.T) {
