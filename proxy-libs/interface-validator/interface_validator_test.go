@@ -131,3 +131,9 @@ func TestSaramaInterfaceMatch(t *testing.T) {
 	assert.Equal(t, len(originalExports), len(heliosExports))
 	assert.EqualValues(t, originalExports, heliosExports)
 }
+
+func TestAwsLambdaInterfaceMatch(t *testing.T) {
+	originalExports := cloneRepositoryAndExtractExports("https://github.com/aws/aws-lambda-go", "v1.37.0", "lambda", "/lambda")
+	heliosExports := extractProxyLibExports("helioslambda")
+	assert.EqualValues(t, originalExports, heliosExports)
+}
