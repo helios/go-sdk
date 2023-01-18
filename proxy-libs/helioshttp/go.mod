@@ -1,8 +1,10 @@
 module github.com/helios/go-sdk/proxy-libs/helioshttp
 
-go 1.19
+go 1.18
 
-require go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.36.4
+require (
+	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.36.4
+)
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
