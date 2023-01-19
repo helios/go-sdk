@@ -5,20 +5,32 @@ import (
 
 	"github.com/aws/aws-lambda-go/lambda"
 	"go.opentelemetry.io/contrib/instrumentation/github.com/aws/aws-lambda-go/otellambda"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/sdk/trace"
 )
 
 var InstrumentedSymbols = [...]string{"Start", "StartWithContext", "StartWithOptions"}
 
+func instrumentHandler(handler interface{}) interface{} {
+	provider := otel.GetTracerProvider()
+	options := []otellambda.Option{}
+	castProvider, success := provider.(*trace.TracerProvider)
+	if success {
+		options = append(options, otellambda.WithFlusher(castProvider))
+	}
+	return otellambda.InstrumentHandler(handler, options...)
+}
+
 func Start(handler interface{}) {
-	lambda.Start(otellambda.InstrumentHandler(handler))
+	lambda.Start(instrumentHandler(handler))
 }
 
 func StartWithOptions(handler interface{}, options ...Option) {
-	lambda.StartWithOptions(otellambda.InstrumentHandler(handler), options...)
+	lambda.StartWithOptions(instrumentHandler(handler), options...)
 }
 
 func StartWithContext(ctx context.Context, handler interface{}) {
-	lambda.StartWithContext(ctx, otellambda.InstrumentHandler(handler))
+	lambda.StartWithContext(ctx, instrumentHandler(handler))
 }
 
 func StartHandlerWithContext(ctx context.Context, handler Handler) {
