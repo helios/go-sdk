@@ -1,6 +1,6 @@
 module github.com/helios/go-sdk/proxy-libs/heliosmux
 
-go 1.12
+go 1.18
 
 require (
 	github.com/gorilla/mux v1.8.0
