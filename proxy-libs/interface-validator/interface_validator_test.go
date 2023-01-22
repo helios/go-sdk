@@ -73,8 +73,16 @@ func TestEchoInterfaceMatch(t *testing.T) {
 func TestS3InterfaceMatch(t *testing.T) {
 	originalExports := cloneRepositoryAndExtractExports("https://github.com/aws/aws-sdk-go-v2", "service/s3/v1.30.0", "s3", "/service/s3")
 	heliosExports := extractProxyLibExports("helioss3")
-	originalExports = deleteByName(originalExports,"NewDefaultEndpointResolver")
+	originalExports = deleteByName(originalExports,"NewDefaultEndpointResolver") // this method signature was changed, hence deleting it from comparison
 	heliosExports = deleteByName(heliosExports,"NewDefaultEndpointResolver")
+	assert.EqualValues(t, originalExports, heliosExports)
+}
+
+func TestDynamoDbInterfaceMatch(t *testing.T) {
+	originalExports := cloneRepositoryAndExtractExports("https://github.com/aws/aws-sdk-go-v2", "service/dynamodb/v1.18.0", "dynamodb", "/service/dynamodb")
+	heliosExports := extractProxyLibExports("heliosdynamodb")
+	originalExports = deleteByName(originalExports,"NewDefaultEndpointResolver") // this method signature was changed, hence deleting it from comparison
+	heliosExports = deleteByName(heliosExports,"NewDefaultEndpointResolver") 
 	assert.EqualValues(t, originalExports, heliosExports)
 }
 
