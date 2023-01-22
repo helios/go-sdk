@@ -3,15 +3,18 @@ package helioss3
 import (
 	"context"
 	"fmt"
+	"log"
 	"testing"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
+	awsConfig "github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/stretchr/testify/assert"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/propagation"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/sdk/trace/tracetest"
-	awsConfig "github.com/aws/aws-sdk-go-v2/config"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -51,23 +54,25 @@ func TestListBuckets(t *testing.T) {
 	spanRecorder := getSpanRecorder()
 	// init aws config
 	ctx := context.Background()
-	cfg, err := awsConfig.LoadDefaultConfig(ctx)
+	newCreds := credentials.NewStaticCredentialsProvider("test", "test", "")
+
+	customResolver := aws.EndpointResolverWithOptionsFunc(func(service, region string, options ...interface{}) (aws.Endpoint, error) {
+			return aws.Endpoint{
+				PartitionID:   "aws",
+				URL:           "http://localhost:4566",
+				SigningRegion: "us-east-1",
+			}, nil
+			})
+	cfg, err := awsConfig.LoadDefaultConfig(ctx, awsConfig.WithCredentialsProvider(newCreds) ,awsConfig.WithEndpointResolverWithOptions(customResolver))
 	if err != nil {
 		panic("configuration error, " + err.Error())
 	}
 	s3Client := NewFromConfig(cfg)
 	input := &ListBucketsInput{}
-	result, err := s3Client.ListBuckets(ctx, input)
+	_, err = s3Client.ListBuckets(ctx, input)
 	if err != nil {
-		fmt.Printf("Got an error retrieving buckets, %v", err)
-		return
+		log.Fatalf("Got an error retrieving buckets, %v", err)
 	}
-
-	fmt.Println("Buckets:")
-	for _, bucket := range result.Buckets {
-		fmt.Println(*bucket.Name + ": " + bucket.CreationDate.Format("2006-01-02 15:04:05 Monday"))
-	}
-
 	attributes := assertSpan(t, spanRecorder)
 	fmt.Println(attributes)
 	assertAttributes(t, attributes)

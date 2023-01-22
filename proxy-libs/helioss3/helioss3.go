@@ -28,6 +28,7 @@ const ServiceAPIVersion = origin_s3.ServiceAPIVersion
 type Client = origin_s3.Client
 
 func New(options Options,optFns ...func(*Options) ) (*Client) {
+	otelaws.AppendMiddlewares(&options.APIOptions)
 	return origin_s3.New(options, optFns...)
  }
 

@@ -14,9 +14,26 @@ jobs:
         runs-on: ubuntu-latest
         env:
           GH_ACCESS_TOKEN: ${{ secrets.ACTIONS_GITHUB_TOKEN }}
-          AWS_REGION: us-east-1
         
         services:
+            localstack:
+              image: localstack/localstack@sha256:81a7b7f12223fcd6c4f596baaf004c19e7a1f815887116c7f7f25962b7a7e89e
+              ports:
+                  - 4566:4566
+              env:
+                  AWS_SERVICES: ${{ env.AWS_SERVICES }}
+                  DEFAULT_REGION: us-east-1
+                  HOSTNAME_EXTERNAL: ${{ env.AWS_HOST }}
+                  LAMBDA_EXECUTOR: docker-reuse
+                  LAMBDA_REMOTE_DOCKER: true
+              volumes:
+                  - /var/run/docker.sock:/var/run/docker.sock
+              options: >-
+                  --name=localstack
+                  --health-cmd="curl -sS 127.0.0.1:4566 || exit 1"
+                  --health-interval=10s
+                  --health-timeout=5s
+                  --health-retries=3
             mongodb:
                 image: mongo@sha256:845fd775d7a58f564fae7c17a4eec7ff038e1c4004ebe05cc1cb5fc3767cf6cc
                 options: >-
@@ -51,13 +68,6 @@ jobs:
         steps:
           - name: Checkout Repo
             uses: actions/checkout@v3
-
-          - name: Configure AWS credentials
-            uses: aws-actions/configure-aws-credentials@13d241b293754004c80624b5567555c4a39ffbe3
-            with:
-                aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-                aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-                aws-region: ${{ env.AWS_REGION }}  
 
           - name: Setup Go
             uses: actions/setup-go@v3
