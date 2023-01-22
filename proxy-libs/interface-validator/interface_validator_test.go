@@ -8,7 +8,6 @@ import (
 
 	exportsExtractor "github.com/helios/go-instrumentor/exports_extractor"
 	"github.com/stretchr/testify/assert"
-	"golang.org/x/exp/slices"
 )
 
 func sortExports(exports []exportsExtractor.ExtractedObject) {
