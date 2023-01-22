@@ -8,6 +8,7 @@ import (
 
 	exportsExtractor "github.com/helios/go-instrumentor/exports_extractor"
 	"github.com/stretchr/testify/assert"
+	"golang.org/x/exp/slices"
 )
 
 func sortExports(exports []exportsExtractor.ExtractedObject) {
@@ -56,6 +57,26 @@ func TestMuxInterfaceMatch(t *testing.T) {
 func TestEchoInterfaceMatch(t *testing.T) {
 	originalExports := cloneRepositoryAndExtractExports("https://github.com/labstack/echo", "v4.9.1", "echo", "")
 	heliosExports := extractProxyLibExports("heliosecho")
+	assert.EqualValues(t, originalExports, heliosExports)
+}
+
+func dropExtractedObject(extractedObjects []exportsExtractor.ExtractedObject, objectNames []string) []exportsExtractor.ExtractedObject {
+	newExtractedObjects := []exportsExtractor.ExtractedObject{}
+	for _, object := range extractedObjects {
+		if slices.Contains(objectNames, object.Name) {
+			continue
+		} else {
+			newExtractedObjects = append(newExtractedObjects, object)
+		}
+	}
+	return newExtractedObjects
+}
+
+func TestS3InterfaceMatch(t *testing.T) {
+	originalExports := cloneRepositoryAndExtractExports("https://github.com/aws/aws-sdk-go-v2", "service/s3/v1.30.0", "s3", "/service/s3")
+	heliosExports := extractProxyLibExports("helioss3")
+	originalExports = dropExtractedObject(originalExports,[]string {"NewDefaultEndpointResolver"})
+	heliosExports = dropExtractedObject(heliosExports,[]string{"NewDefaultEndpointResolver"})
 	assert.EqualValues(t, originalExports, heliosExports)
 }
 

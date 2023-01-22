@@ -51,6 +51,13 @@ jobs:
           - name: Checkout Repo
             uses: actions/checkout@v3
 
+          - name: Configure AWS credentials
+            uses: aws-actions/configure-aws-credentials@13d241b293754004c80624b5567555c4a39ffbe3
+            with:
+                aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+                aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+                aws-region: ${{ env.AWS_REGION }}  
+
           - name: Setup Go
             uses: actions/setup-go@v3
             with:
@@ -84,6 +91,10 @@ jobs:
           - name: Run sarama proxy unit tests
             working-directory: proxy-libs/heliossarama
             run: go mod tidy && go test .
+
+          - name: Run s3 proxy unit tests
+            working-directory: proxy-libs/helioss3
+            run: go mod tidy && go test .  
 
           - name: Set GOPRIVATE
             run: go env -w GOPRIVATE=github.com/helios/\*
