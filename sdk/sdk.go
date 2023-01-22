@@ -104,6 +104,7 @@ func Initialize(serviceName string, apiToken string, attrs ...attribute.KeyValue
 		return providerSingelton, nil
 	}
 
+	ctx := context.Background()
 	heliosConfig := getHeliosConfig(serviceName, apiToken, attrs...)
 	var exporter *otlptrace.Exporter
 	if heliosConfig.collectorEndpoint != "" {
@@ -116,7 +117,7 @@ func Initialize(serviceName string, apiToken string, attrs ...attribute.KeyValue
 			options = append(options, otlptracehttp.WithInsecure())
 		}
 		var error error
-		exporter, error = otlptrace.New(context.Background(), otlptracehttp.NewClient(options...))
+		exporter, error = otlptrace.New(ctx, otlptracehttp.NewClient(options...))
 		if error != nil {
 			return nil, error
 		}
@@ -157,6 +158,8 @@ func Initialize(serviceName string, apiToken string, attrs ...attribute.KeyValue
 	propagator := propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{})
 	otel.SetTextMapPropagator(propagator)
 
+	_, debugSpan := tracerProvider.Tracer("helios").Start(ctx, "debug span")
+	defer debugSpan.End()
 	log.Printf("Helios tracing initialized (service: %s, token: %s*****, environment: %s)", serviceName, heliosConfig.apiToken[0:3], heliosConfig.environment)
 
 	// Set singleton
