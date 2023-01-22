@@ -16,6 +16,24 @@ jobs:
           GH_ACCESS_TOKEN: ${{ secrets.ACTIONS_GITHUB_TOKEN }}
         
         services:
+            localstack:
+              image: localstack/localstack@sha256:81a7b7f12223fcd6c4f596baaf004c19e7a1f815887116c7f7f25962b7a7e89e
+              ports:
+                  - 4566:4566
+              env:
+                  AWS_SERVICES: ${{ env.AWS_SERVICES }}
+                  DEFAULT_REGION: us-east-1
+                  HOSTNAME_EXTERNAL: ${{ env.AWS_HOST }}
+                  LAMBDA_EXECUTOR: docker-reuse
+                  LAMBDA_REMOTE_DOCKER: true
+              volumes:
+                  - /var/run/docker.sock:/var/run/docker.sock
+              options: >-
+                  --name=localstack
+                  --health-cmd="curl -sS 127.0.0.1:4566 || exit 1"
+                  --health-interval=10s
+                  --health-timeout=5s
+                  --health-retries=3
             mongodb:
                 image: mongo@sha256:845fd775d7a58f564fae7c17a4eec7ff038e1c4004ebe05cc1cb5fc3767cf6cc
                 options: >-
@@ -84,6 +102,10 @@ jobs:
           - name: Run sarama proxy unit tests
             working-directory: proxy-libs/heliossarama
             run: go mod tidy && go test .
+
+          - name: Run s3 proxy unit tests
+            working-directory: proxy-libs/helioss3
+            run: go mod tidy && go test .  
 
           - name: Set GOPRIVATE
             run: go env -w GOPRIVATE=github.com/helios/\*

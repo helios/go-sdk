@@ -70,6 +70,14 @@ func TestEchoInterfaceMatch(t *testing.T) {
 	assert.EqualValues(t, originalExports, heliosExports)
 }
 
+func TestS3InterfaceMatch(t *testing.T) {
+	originalExports := cloneRepositoryAndExtractExports("https://github.com/aws/aws-sdk-go-v2", "service/s3/v1.30.0", "s3", "/service/s3")
+	heliosExports := extractProxyLibExports("helioss3")
+	originalExports = deleteByName(originalExports,"NewDefaultEndpointResolver")
+	heliosExports = deleteByName(heliosExports,"NewDefaultEndpointResolver")
+	assert.EqualValues(t, originalExports, heliosExports)
+}
+
 func removeDuplicateValues(slice []exportsExtractor.ExtractedObject) []exportsExtractor.ExtractedObject {
 	keys := make(map[string]bool)
 	list := []exportsExtractor.ExtractedObject{}
