@@ -78,6 +78,14 @@ func TestS3InterfaceMatch(t *testing.T) {
 	assert.EqualValues(t, originalExports, heliosExports)
 }
 
+func TestDynamoDbInterfaceMatch(t *testing.T) {
+	originalExports := cloneRepositoryAndExtractExports("https://github.com/aws/aws-sdk-go-v2", "service/dynamodb/v1.18.0", "dynamodb", "/service/dynamodb")
+	heliosExports := extractProxyLibExports("heliosdynamodb")
+	originalExports = deleteByName(originalExports,"NewDefaultEndpointResolver")
+	heliosExports = deleteByName(heliosExports,"NewDefaultEndpointResolver")
+	assert.EqualValues(t, originalExports, heliosExports)
+}
+
 func removeDuplicateValues(slice []exportsExtractor.ExtractedObject) []exportsExtractor.ExtractedObject {
 	keys := make(map[string]bool)
 	list := []exportsExtractor.ExtractedObject{}
