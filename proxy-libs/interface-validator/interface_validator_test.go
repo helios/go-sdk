@@ -26,8 +26,19 @@ func cloneRepositoryAndExtractExports(repoUrl string, tag string, moduleName str
 func extractProxyLibExports(libName string) []exportsExtractor.ExtractedObject {
 	srcDir, _ := filepath.Abs("../" + libName)
 	heliosExports := exportsExtractor.ExtractExports(srcDir, libName)
-	sort.Slice(heliosExports, func(i int, j int) bool { return heliosExports[i].Name < heliosExports[j].Name })
+	heliosExports = deleteByName(heliosExports, "InstrumentedSymbols")
+	sortExports(heliosExports)
 	return heliosExports
+}
+
+func deleteByName(exports []exportsExtractor.ExtractedObject, name string) []exportsExtractor.ExtractedObject {
+	for i, export := range exports {
+		if export.Name == name {
+			return append(exports[:i], exports[i+1:]...)
+		}
+	}
+
+	return exports
 }
 
 func TestHttpInterfaceMatch(t *testing.T) {
@@ -128,27 +139,28 @@ func TestInterfaceMatch(t *testing.T) {
 }
 
 func TestSaramaInterfaceMatch(t *testing.T) {
-	delete := func(exports []exportsExtractor.ExtractedObject, name string) []exportsExtractor.ExtractedObject {
-		for i, export := range exports {
-			if export.Name == name {
-				return append(exports[:i], exports[i+1:]...)
-			}
-		}
-
-		return exports
-	}
-
 	originalExports := cloneRepositoryAndExtractExports("https://github.com/Shopify/sarama", "v1.37.2", "sarama", "")
 	heliosExports := extractProxyLibExports("heliossarama")
 
 	// "NewMockWrapper" cannot be wrapped because its parameter's type is private - Remove it from the expected list.
-	originalExports = delete(originalExports, "NewMockWrapper")
+	originalExports = deleteByName(originalExports, "NewMockWrapper")
 	// The signature of "Wrap" was changed because the original return type is private - Remove it from both lists.
-	originalExports = delete(originalExports, "Wrap")
-	heliosExports = delete(heliosExports, "Wrap")
+	originalExports = deleteByName(originalExports, "Wrap")
+	heliosExports = deleteByName(heliosExports, "Wrap")
 	// A helper method we've added to improve context propagation
-	heliosExports = delete(heliosExports, "InjectContextToMessage")
+	heliosExports = deleteByName(heliosExports, "InjectContextToMessage")
 
 	assert.Equal(t, len(originalExports), len(heliosExports))
+	assert.EqualValues(t, originalExports, heliosExports)
+}
+
+func TestAwsLambdaInterfaceMatch(t *testing.T) {
+	originalExports := cloneRepositoryAndExtractExports("https://github.com/aws/aws-lambda-go", "v1.37.0", "lambda", "/lambda")
+	heliosExports := extractProxyLibExports("helioslambda")
+
+	// Generics, not supported
+	originalExports = deleteByName(originalExports, "HandlerFunc")
+	originalExports = deleteByName(originalExports, "StartHandlerFunc")
+
 	assert.EqualValues(t, originalExports, heliosExports)
 }
