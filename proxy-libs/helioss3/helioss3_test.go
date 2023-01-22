@@ -2,7 +2,6 @@ package helioss3
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"testing"
 
@@ -74,6 +73,5 @@ func TestListBuckets(t *testing.T) {
 		log.Fatalf("Got an error retrieving buckets, %v", err)
 	}
 	attributes := assertSpan(t, spanRecorder)
-	fmt.Println(attributes)
 	assertAttributes(t, attributes)
 }
