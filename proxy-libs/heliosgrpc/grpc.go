@@ -312,7 +312,7 @@ func WithWriteBufferSize(s int) DialOption {
 }
 
 func NewServer(opt ...ServerOption) *Server {
-	newOptions := append(opt, UnaryInterceptor(otelgrpc.UnaryServerInterceptor()), StreamInterceptor(otelgrpc.StreamServerInterceptor()))
+	newOptions := append(opt, ChainUnaryInterceptor(otelgrpc.UnaryServerInterceptor()), ChainStreamInterceptor(otelgrpc.StreamServerInterceptor()))
 	return realGrpc.NewServer(newOptions...)
 }
 
