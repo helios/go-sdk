@@ -44,6 +44,17 @@ func validateAttributes(attrs []attribute.KeyValue, t *testing.T) {
 	}
 }
 
+var unaryInterceptorCalled bool = false
+
+func noopUnaryInterceptor(ctx context.Context, req interface{}, info *UnaryServerInfo, handler UnaryHandler) (resp interface{}, err error) {
+	unaryInterceptorCalled = true
+	return handler(ctx, req)
+}
+
+func noopstreamInterceptor(srv interface{}, ss ServerStream, info *StreamServerInfo, handler StreamHandler) error {
+	return nil
+}
+
 func TestServerInstrumentation(t *testing.T) {
 	sr := tracetest.NewSpanRecorder()
 	otel.SetTracerProvider(sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(sr)))
@@ -52,7 +63,7 @@ func TestServerInstrumentation(t *testing.T) {
 
 	go func() {
 		lis, _ := net.Listen("tcp", ":3030")
-		grpcServer := NewServer()
+		grpcServer := NewServer(UnaryInterceptor(noopUnaryInterceptor), StreamInterceptor(noopstreamInterceptor))
 		s := GrpcServer{}
 		pb.RegisterChatServiceServer(grpcServer, &s)
 		if err := grpcServer.Serve(lis); err != nil {
@@ -87,4 +98,5 @@ func TestServerInstrumentation(t *testing.T) {
 	assert.False(t, clientSpan.Parent().HasTraceID())
 	validateAttributes(clientSpan.Attributes(), t)
 	assert.Equal(t, serverSpan.Parent().SpanID(), clientSpan.SpanContext().SpanID())
+	assert.True(t, unaryInterceptorCalled)
 }
