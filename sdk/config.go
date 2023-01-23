@@ -38,6 +38,9 @@ const debugKey = "debug"
 const debugEnvVar = "HS_DEBUG"
 const metadataOnlyKey = "metadataOnly"
 const metadataOnlyEnvVar = "HS_METADATA_ONLY"
+const hsDataObfuscationAllowlist = "HS_DATA_OBFUSCATION_ALLOWLIST"
+const hsDataObfuscationBlocklist = "HS_DATA_OBFUSCATION_BLOCKLIST"
+const hsDatahMacKey = "HS_DATA_OBFUSCATION_HMAC_KEY"
 
 // Default values
 const defaultCollectorInsecure = false

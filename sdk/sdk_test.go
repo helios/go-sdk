@@ -107,3 +107,16 @@ func TestSamplerNoSampling(t *testing.T) {
 	assert.Equal(t, 1, len(exported))
 	assert.Equal(t, exported[0].Name, "sampled2")
 }
+
+func TestObfuscation(t *testing.T) {
+	stringAttr := "{\"collection\":\"spec\",\"details\":[{ \"name\":\"Lior Govrin\",\"male\":true,\"age\":35,\"address\":\"New York\",\"null\":null},{\"name\":\"Alice Smith\",\"male\":false,\"age\":42,\"address\":\"Jerusalem\",\"extra\":\"field\"}]}"
+	obfuscatedDataExpectedValue := "{\"collection\":\"1PAuqv0anp3n0Qlyyo5H+nqYWCXDycHiSccmg8s+Txk=\",\"details\":[{\"address\":\"New York\",\"age\":35,\"male\":true,\"name\":\"0u/+ivNNIqn+iW+DVzpuaJ9KpvhtPu4Y/aUOE5JfI6o=\",\"null\":null},{\"address\":\"Jerusalem\",\"age\":42,\"extra\":\"field\",\"male\":false,\"name\":\"iuEN/Jpp+X3MkeH1G87Tr/RCvFeoaeBBJr0Mp8tK8p0=\"}]}"
+	keyValueAttr := attribute.KeyValue{
+		Key:   "db_statement",
+		Value: attribute.StringValue(stringAttr),
+	}
+	attrs := []attribute.KeyValue{keyValueAttr}
+	obfuscatedData := obfuscate_data(attrs[0].Value, "1234")
+	assert.Equal(t, obfuscatedDataExpectedValue, obfuscatedData)
+}
+	
