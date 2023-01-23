@@ -107,3 +107,12 @@ func TestSamplerNoSampling(t *testing.T) {
 	assert.Equal(t, 1, len(exported))
 	assert.Equal(t, exported[0].Name, "sampled2")
 }
+
+func TestMutatingSpan(t *testing.T) {
+	exporter.Reset()
+	CreateCustomSpan(context.Background(), "sampled1", []attribute.KeyValue{attribute.String("key1", "value1")}, nil)
+	exported := exporter.GetSpans()
+	assert.Equal(t, len(exported), 1)
+	span := exported[0]
+	assert.Equal(t, "value1", span.Attributes[0].Value.AsString())
+}
