@@ -6,9 +6,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 	"testing"
 
+	"github.com/helios/opentelemetry-go-contrib/instrumentation/net/http/otelhttp"
 	"github.com/stretchr/testify/assert"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
@@ -82,5 +84,8 @@ func TestServerInstrumentation(t *testing.T) {
 
 func TestServerInstrumentationMetadataOnly(t *testing.T) {
 	os.Setenv("HS_METADATA_ONLY", "true")
+	// Reset the client so that metadaaonly mode canbe properly applied
+	otelhttp.DefaultClient = &http.Client{Transport: otelhttp.NewTransport(http.DefaultTransport)}
+	DefaultClient = &Client{}
 	testHelper(t, 8001, "test2", true)
 }
