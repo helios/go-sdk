@@ -8,10 +8,10 @@ import (
 	"github.com/google/martian/v3/log"
 	"github.com/ohler55/ojg/jp"
 	"go.opentelemetry.io/otel/attribute"
-	// semconv "go.opentelemetry.io/otel/semconv/v1.11.0"
+	semconv "go.opentelemetry.io/otel/semconv/v1.11.0"
 )
 
-// const DATA_TO_OBFUSCATE = []string{string(semconv.DBStatementKey)}
+var DATA_TO_OBFUSCATE = [5]string{"http.reqeust.body", "http.response.body", "db.query_result", string(semconv.DBSystemKey), "messaging.payload" }
 
 func obfuscate_data(value attribute.Value, spanId string) any {
 	var attrValueAsJson = interface{}(nil)
