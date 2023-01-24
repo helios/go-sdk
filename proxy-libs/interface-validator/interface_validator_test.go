@@ -86,6 +86,14 @@ func TestDynamoDbInterfaceMatch(t *testing.T) {
 	assert.EqualValues(t, originalExports, heliosExports)
 }
 
+func TestSqsInterfaceMatch(t *testing.T) {
+	originalExports := cloneRepositoryAndExtractExports("https://github.com/aws/aws-sdk-go-v2", "service/sqs/v1.20.1", "sqs", "/service/sqs")
+	heliosExports := extractProxyLibExports("heliossqs")
+	originalExports = deleteByName(originalExports,"NewDefaultEndpointResolver") // this method signature was changed, hence deleting it from comparison
+	heliosExports = deleteByName(heliosExports,"NewDefaultEndpointResolver") 
+	assert.EqualValues(t, originalExports, heliosExports)
+}
+
 func removeDuplicateValues(slice []exportsExtractor.ExtractedObject) []exportsExtractor.ExtractedObject {
 	keys := make(map[string]bool)
 	list := []exportsExtractor.ExtractedObject{}
