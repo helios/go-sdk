@@ -49,7 +49,7 @@ func assertAttributes(t *testing.T, attributes []attribute.KeyValue) {
 	}
 }
 
-func TestListBuckets(t *testing.T) {
+func TestListRules(t *testing.T) {
 	spanRecorder := getSpanRecorder()
 	// init aws config
 	ctx := context.Background()
