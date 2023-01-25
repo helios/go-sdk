@@ -50,7 +50,7 @@ func assertAttributes(t *testing.T, attributes []attribute.KeyValue) {
 	}
 }
 
-func TestListBuckets(t *testing.T) {
+func TestListQueues(t *testing.T) {
 	spanRecorder := getSpanRecorder()
 	// init aws config
 	ctx := context.Background()
@@ -68,7 +68,7 @@ func TestListBuckets(t *testing.T) {
 	if err != nil {
 		panic("configuration error, " + err.Error())
 	}
-	client := sqs.NewFromConfig(cfg)
+	client := NewFromConfig(cfg)
 
 	input := &sqs.ListQueuesInput{}
 
