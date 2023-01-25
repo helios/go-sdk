@@ -234,7 +234,7 @@ const MethodOptions = realHttp.MethodOptions
 
 const MethodTrace = realHttp.MethodTrace
 
-var DefaultClient = &Client{}
+var DefaultClient = &Client{Transport: otelhttp.NewTransport(realHttp.DefaultTransport)}
 
 type RoundTripper = realHttp.RoundTripper
 
