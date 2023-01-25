@@ -4,6 +4,7 @@ import (
 	"io"
 	realHttp "net/http"
 	"net/url"
+	"reflect"
 	"time"
 
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
@@ -23,7 +24,14 @@ func copyClientProxyToReal(from *Client, to *realHttp.Client) {
 		if from.Transport == nil {
 			to.Transport = otelhttp.NewTransport(realHttp.DefaultTransport)
 		} else {
-			to.Transport = otelhttp.NewTransport(from.Transport)
+			// Check if the existing transport is the wrapped OpenTelemetry transport
+			transportType := reflect.ValueOf(from.Transport).Elem()
+			found := transportType.FieldByName("tracer")
+			if found == (reflect.Value{}) {
+				to.Transport = otelhttp.NewTransport(from.Transport)
+			} else {
+				to.Transport = from.Transport
+			}
 		}
 
 		from.initialized = true
