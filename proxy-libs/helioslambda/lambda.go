@@ -2,21 +2,44 @@ package helioslambda
 
 import (
 	"context"
+	"encoding/json"
 
 	"github.com/aws/aws-lambda-go/lambda"
 	"go.opentelemetry.io/contrib/instrumentation/github.com/aws/aws-lambda-go/otellambda"
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/trace"
 )
 
 var InstrumentedSymbols = [...]string{"Start", "StartWithContext", "StartWithOptions"}
 
+type HttpHeaders struct {
+	Headers map[string]string `json:"headers"`
+}
+func heliosEventToCarrier (eventJSON []byte) propagation.TextMapCarrier {
+	var headers HttpHeaders
+	err := json.Unmarshal(eventJSON, &headers)
+	if err != nil {
+		return propagation.HeaderCarrier{"": []string{""}}
+	} else {
+			if val, ok := headers.Headers["Traceparent"]; ok  {
+				return propagation.HeaderCarrier{"Traceparent": []string{val}}
+			} else if val, ok = headers.Headers["traceparent"]; ok {
+				return propagation.HeaderCarrier{"traceparent": []string{val}}
+			}
+	}
+	return propagation.HeaderCarrier{"": []string{""}}
+}
+
 func instrumentHandler(handler interface{}) interface{} {
 	provider := otel.GetTracerProvider()
+	
 	options := []otellambda.Option{}
 	castProvider, success := provider.(*trace.TracerProvider)
 	if success {
-		options = append(options, otellambda.WithFlusher(castProvider))
+		options = append(options, otellambda.WithFlusher(castProvider), 
+		otellambda.WithEventToCarrier(heliosEventToCarrier),
+		otellambda.WithPropagator(propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{})))
 	}
 	return otellambda.InstrumentHandler(handler, options...)
 }
