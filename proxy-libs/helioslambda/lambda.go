@@ -16,28 +16,29 @@ var InstrumentedSymbols = [...]string{"Start", "StartWithContext", "StartWithOpt
 type httpHeaders struct {
 	Headers map[string]string `json:"headers"`
 }
+
 func heliosEventToCarrier(eventJSON []byte) propagation.TextMapCarrier {
 	var headers httpHeaders
 	err := json.Unmarshal(eventJSON, &headers)
 	if err == nil {
-			if val, ok := headers.Headers["Traceparent"]; ok  {
-				return propagation.HeaderCarrier{"Traceparent": []string{val}}
-			} else if val, ok = headers.Headers["traceparent"]; ok {
-				return propagation.HeaderCarrier{"Traceparent": []string{val}}
-			}
+		if val, ok := headers.Headers["Traceparent"]; ok {
+			return propagation.HeaderCarrier{"Traceparent": []string{val}}
+		} else if val, ok = headers.Headers["traceparent"]; ok {
+			return propagation.HeaderCarrier{"Traceparent": []string{val}}
+		}
 	}
 	return propagation.HeaderCarrier{"": []string{""}}
 }
 
 func instrumentHandler(handler interface{}) interface{} {
 	provider := otel.GetTracerProvider()
-	
+
 	options := []otellambda.Option{}
 	castProvider, success := provider.(*trace.TracerProvider)
 	if success {
-		options = append(options, otellambda.WithFlusher(castProvider), 
-		otellambda.WithEventToCarrier(heliosEventToCarrier),
-		otellambda.WithPropagator(propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{})))
+		options = append(options, otellambda.WithFlusher(castProvider),
+			otellambda.WithEventToCarrier(heliosEventToCarrier),
+			otellambda.WithPropagator(propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{})))
 	}
 	return otellambda.InstrumentHandler(handler, options...)
 }
