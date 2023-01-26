@@ -12,7 +12,7 @@ import (
 	"go.opentelemetry.io/otel/sdk/trace/tracetest"
 )
 
-type mockRequest struct {
+type lambdaEvent struct {
 	Headers map[string]string
 }
 
@@ -20,15 +20,18 @@ var (
 	traceId       = "83d8d6c5347593d092e9409f4978bd51"
 	parentSpanId  = "6f2a23d2d1e9159c"
 	tracingHeader = "00" + "-" + traceId + "-" + parentSpanId + "-" + "01"
-	testEvent     = mockRequest{Headers: map[string]string{"traceparent": tracingHeader}}
+	testEvent     = lambdaEvent{Headers: map[string]string{"traceparent": tracingHeader}}
 )
 
-func TestInstrumentHandlerTracingWithMockPropagator(t *testing.T) {
+func TestApiGatewayContextPropagation(t *testing.T) {
 	ctx := context.Background()
 	exporter := tracetest.NewInMemoryExporter()
-	otel.SetTracerProvider(trace.NewTracerProvider(trace.WithBatcher(exporter)))
+	provider := trace.NewTracerProvider(trace.WithBatcher(exporter))
+	otel.SetTracerProvider(provider)
 
-	customerHandler := func(event mockRequest) (string, error) {
+	customerHandler := func(lambdaContext context.Context, mockRequest lambdaEvent) (string, error) {
+		_, customSpan := provider.Tracer("test").Start(lambdaContext, "custom_span")
+		customSpan.End()
 		return "hello world", nil
 	}
 
@@ -41,8 +44,11 @@ func TestInstrumentHandlerTracingWithMockPropagator(t *testing.T) {
 	assert.Nil(t, resp[1].Interface())
 
 	spans := exporter.GetSpans()
-	assert.Len(t, spans, 1)
-	span := spans[0]
-	assert.Equal(t, traceId, span.SpanContext.TraceID().String())
-	assert.Equal(t, parentSpanId, span.Parent.SpanID().String())
+	assert.Len(t, spans, 2)
+	lambdaSpan := spans[1]
+	assert.Equal(t, traceId, lambdaSpan.SpanContext.TraceID().String())
+	assert.Equal(t, parentSpanId, lambdaSpan.Parent.SpanID().String())
+	customSpan := spans[0]
+	assert.Equal(t, traceId, customSpan.SpanContext.TraceID().String())
+	assert.Equal(t, lambdaSpan.SpanContext.SpanID().String(), customSpan.Parent.SpanID().String())
 }
