@@ -13,19 +13,17 @@ import (
 
 var InstrumentedSymbols = [...]string{"Start", "StartWithContext", "StartWithOptions"}
 
-type HttpHeaders struct {
+type httpHeaders struct {
 	Headers map[string]string `json:"headers"`
 }
-func heliosEventToCarrier (eventJSON []byte) propagation.TextMapCarrier {
-	var headers HttpHeaders
+func heliosEventToCarrier(eventJSON []byte) propagation.TextMapCarrier {
+	var headers httpHeaders
 	err := json.Unmarshal(eventJSON, &headers)
-	if err != nil {
-		return propagation.HeaderCarrier{"": []string{""}}
-	} else {
+	if err == nil {
 			if val, ok := headers.Headers["Traceparent"]; ok  {
 				return propagation.HeaderCarrier{"Traceparent": []string{val}}
 			} else if val, ok = headers.Headers["traceparent"]; ok {
-				return propagation.HeaderCarrier{"traceparent": []string{val}}
+				return propagation.HeaderCarrier{"Traceparent": []string{val}}
 			}
 	}
 	return propagation.HeaderCarrier{"": []string{""}}
