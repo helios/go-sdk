@@ -117,7 +117,11 @@ jobs:
 
           - name: Run eventbridge proxy unit tests
             working-directory: proxy-libs/helioseventbridge
-            run: go mod tidy && go test .        
+            run: go mod tidy && go test .    
+
+          - name: Run lambda proxy unit tests
+            working-directory: proxy-libs/helioslambda
+            run: go mod tidy && go test .     
 
           - name: Set GOPRIVATE
             run: go env -w GOPRIVATE=github.com/helios/\*
