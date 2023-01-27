@@ -17,16 +17,33 @@ type httpHeaders struct {
 	Headers map[string]string `json:"headers"`
 }
 
+type eventBridgeDetail struct {
+	Detail map[string]string `json:"detail"`
+}
+
 func heliosEventToCarrier(eventJSON []byte) propagation.TextMapCarrier {
+	// Try API Gateway context propagation
 	var headers httpHeaders
 	err := json.Unmarshal(eventJSON, &headers)
-	if err == nil {
+	if err == nil && headers.Headers != nil {
 		if val, ok := headers.Headers["Traceparent"]; ok {
 			return propagation.HeaderCarrier{"Traceparent": []string{val}}
 		} else if val, ok = headers.Headers["traceparent"]; ok {
 			return propagation.HeaderCarrier{"Traceparent": []string{val}}
 		}
 	}
+
+	// Try EventBridge context propagation
+	var detail eventBridgeDetail
+	err = json.Unmarshal(eventJSON, &detail)
+	if err == nil && detail.Detail != nil {
+		if val, ok := detail.Detail["Traceparent"]; ok {
+			return propagation.HeaderCarrier{"Traceparent": []string{val}}
+		} else if val, ok = detail.Detail["traceparent"]; ok {
+			return propagation.HeaderCarrier{"Traceparent": []string{val}}
+		}
+	}
+
 	return propagation.HeaderCarrier{"": []string{""}}
 }
 

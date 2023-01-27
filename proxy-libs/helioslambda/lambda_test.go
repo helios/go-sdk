@@ -12,35 +12,30 @@ import (
 	"go.opentelemetry.io/otel/sdk/trace/tracetest"
 )
 
-type lambdaEvent struct {
+type apiGatewayEvent struct {
 	Headers map[string]string
 }
 
+type eventBridgeEvent struct {
+	Detail map[string]string
+}
+
 var (
-	traceId       = "83d8d6c5347593d092e9409f4978bd51"
-	parentSpanId  = "6f2a23d2d1e9159c"
-	tracingHeader = "00" + "-" + traceId + "-" + parentSpanId + "-" + "01"
-	testEvent     = lambdaEvent{Headers: map[string]string{"traceparent": tracingHeader}}
+	traceId              = "83d8d6c5347593d092e9409f4978bd51"
+	parentSpanId         = "6f2a23d2d1e9159c"
+	tracingHeader        = "00" + "-" + traceId + "-" + parentSpanId + "-" + "01"
+	traceCarrier         = map[string]string{"traceparent": tracingHeader}
+	testApiGatewayEvent  = apiGatewayEvent{Headers: traceCarrier}
+	testEventBridgeEvent = eventBridgeEvent{Detail: traceCarrier}
+	exporter             = tracetest.NewInMemoryExporter()
+	provider             = trace.NewTracerProvider(trace.WithBatcher(exporter))
 )
 
-func TestApiGatewayContextPropagation(t *testing.T) {
-	ctx := context.Background()
-	exporter := tracetest.NewInMemoryExporter()
-	provider := trace.NewTracerProvider(trace.WithBatcher(exporter))
-	otel.SetTracerProvider(provider)
+const response = "hello world"
 
-	customerHandler := func(lambdaContext context.Context, mockRequest lambdaEvent) (string, error) {
-		_, customSpan := provider.Tracer("test").Start(lambdaContext, "custom_span")
-		customSpan.End()
-		return "hello world", nil
-	}
-
-	wrapped := instrumentHandler(customerHandler)
-
-	wrappedCallable := reflect.ValueOf(wrapped)
-	resp := wrappedCallable.Call([]reflect.Value{reflect.ValueOf(ctx), reflect.ValueOf(testEvent)})
+func validateResults(t *testing.T, resp []reflect.Value) {
 	assert.Len(t, resp, 2)
-	assert.Equal(t, "hello world", resp[0].Interface())
+	assert.Equal(t, response, resp[0].Interface())
 	assert.Nil(t, resp[1].Interface())
 
 	spans := exporter.GetSpans()
@@ -51,4 +46,40 @@ func TestApiGatewayContextPropagation(t *testing.T) {
 	customSpan := spans[0]
 	assert.Equal(t, traceId, customSpan.SpanContext.TraceID().String())
 	assert.Equal(t, lambdaSpan.SpanContext.SpanID().String(), customSpan.Parent.SpanID().String())
+}
+
+func TestApiGatewayContextPropagation(t *testing.T) {
+	ctx := context.Background()
+	exporter.Reset()
+	otel.SetTracerProvider(provider)
+
+	customerHandler := func(lambdaContext context.Context, event apiGatewayEvent) (string, error) {
+		_, customSpan := provider.Tracer("test").Start(lambdaContext, "custom_span")
+		customSpan.End()
+		return response, nil
+	}
+
+	wrapped := instrumentHandler(customerHandler)
+
+	wrappedCallable := reflect.ValueOf(wrapped)
+	resp := wrappedCallable.Call([]reflect.Value{reflect.ValueOf(ctx), reflect.ValueOf(testApiGatewayEvent)})
+	validateResults(t, resp)
+}
+
+func TestEventbridgeContextPropagatio(t *testing.T) {
+	exporter.Reset()
+	ctx := context.Background()
+	otel.SetTracerProvider(provider)
+
+	customerHandler := func(lambdaContext context.Context, event eventBridgeEvent) (string, error) {
+		_, customSpan := provider.Tracer("test").Start(lambdaContext, "custom_span")
+		customSpan.End()
+		return response, nil
+	}
+
+	wrapped := instrumentHandler(customerHandler)
+
+	wrappedCallable := reflect.ValueOf(wrapped)
+	resp := wrappedCallable.Call([]reflect.Value{reflect.ValueOf(ctx), reflect.ValueOf(testEventBridgeEvent)})
+	validateResults(t, resp)
 }
