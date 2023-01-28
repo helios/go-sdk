@@ -13,34 +13,44 @@ import (
 
 var InstrumentedSymbols = [...]string{"Start", "StartWithContext", "StartWithOptions"}
 
-type httpHeaders struct {
+type apiGatewayEvent struct {
 	Headers map[string]string `json:"headers"`
 }
 
-type eventBridgeDetail struct {
-	Detail map[string]string `json:"detail"`
+type eventBridgeEvent struct {
+	Detail      map[string]string `json:"detail"`
+	TraceHeader string            `json:"trace-header"`
 }
 
 func heliosEventToCarrier(eventJSON []byte) propagation.TextMapCarrier {
+	const traceParentHeader = "Traceparent"
+	const lowerCaseTraceParentHeader = "traceparent"
+
 	// Try API Gateway context propagation
-	var headers httpHeaders
+	var headers apiGatewayEvent
 	err := json.Unmarshal(eventJSON, &headers)
 	if err == nil && headers.Headers != nil {
-		if val, ok := headers.Headers["Traceparent"]; ok {
-			return propagation.HeaderCarrier{"Traceparent": []string{val}}
-		} else if val, ok = headers.Headers["traceparent"]; ok {
-			return propagation.HeaderCarrier{"Traceparent": []string{val}}
+		if val, ok := headers.Headers[traceParentHeader]; ok {
+			return propagation.HeaderCarrier{traceParentHeader: []string{val}}
+		} else if val, ok = headers.Headers[lowerCaseTraceParentHeader]; ok {
+			return propagation.HeaderCarrier{traceParentHeader: []string{val}}
 		}
 	}
 
 	// Try EventBridge context propagation
-	var detail eventBridgeDetail
-	err = json.Unmarshal(eventJSON, &detail)
-	if err == nil && detail.Detail != nil {
-		if val, ok := detail.Detail["Traceparent"]; ok {
-			return propagation.HeaderCarrier{"Traceparent": []string{val}}
-		} else if val, ok = detail.Detail["traceparent"]; ok {
-			return propagation.HeaderCarrier{"Traceparent": []string{val}}
+	var payload eventBridgeEvent
+	err = json.Unmarshal(eventJSON, &payload)
+	if err == nil {
+		if payload.Detail != nil {
+			if val, ok := payload.Detail[traceParentHeader]; ok {
+				return propagation.HeaderCarrier{traceParentHeader: []string{val}}
+			} else if val, ok = payload.Detail[lowerCaseTraceParentHeader]; ok {
+				return propagation.HeaderCarrier{traceParentHeader: []string{val}}
+			}
+		}
+
+		if payload.TraceHeader != "" {
+			return propagation.HeaderCarrier{traceParentHeader: []string{payload.TraceHeader}}
 		}
 	}
 

@@ -12,23 +12,16 @@ import (
 	"go.opentelemetry.io/otel/sdk/trace/tracetest"
 )
 
-type apiGatewayEvent struct {
-	Headers map[string]string
-}
-
-type eventBridgeEvent struct {
-	Detail map[string]string
-}
-
 var (
-	traceId              = "83d8d6c5347593d092e9409f4978bd51"
-	parentSpanId         = "6f2a23d2d1e9159c"
-	tracingHeader        = "00" + "-" + traceId + "-" + parentSpanId + "-" + "01"
-	traceCarrier         = map[string]string{"traceparent": tracingHeader}
-	testApiGatewayEvent  = apiGatewayEvent{Headers: traceCarrier}
-	testEventBridgeEvent = eventBridgeEvent{Detail: traceCarrier}
-	exporter             = tracetest.NewInMemoryExporter()
-	provider             = trace.NewTracerProvider(trace.WithBatcher(exporter))
+	traceId               = "83d8d6c5347593d092e9409f4978bd51"
+	parentSpanId          = "6f2a23d2d1e9159c"
+	tracingHeader         = "00" + "-" + traceId + "-" + parentSpanId + "-" + "01"
+	traceCarrier          = map[string]string{"traceparent": tracingHeader}
+	testApiGatewayEvent   = apiGatewayEvent{Headers: traceCarrier}
+	testEventBridgeEvent1 = eventBridgeEvent{Detail: traceCarrier}
+	testEventBridgeEvent2 = eventBridgeEvent{TraceHeader: tracingHeader}
+	exporter              = tracetest.NewInMemoryExporter()
+	provider              = trace.NewTracerProvider(trace.WithBatcher(exporter))
 )
 
 const response = "hello world"
@@ -66,7 +59,7 @@ func TestApiGatewayContextPropagation(t *testing.T) {
 	validateResults(t, resp)
 }
 
-func TestEventbridgeContextPropagatio(t *testing.T) {
+func TestEventbridgeContextPropagationInDetail(t *testing.T) {
 	exporter.Reset()
 	ctx := context.Background()
 	otel.SetTracerProvider(provider)
@@ -80,6 +73,24 @@ func TestEventbridgeContextPropagatio(t *testing.T) {
 	wrapped := instrumentHandler(customerHandler)
 
 	wrappedCallable := reflect.ValueOf(wrapped)
-	resp := wrappedCallable.Call([]reflect.Value{reflect.ValueOf(ctx), reflect.ValueOf(testEventBridgeEvent)})
+	resp := wrappedCallable.Call([]reflect.Value{reflect.ValueOf(ctx), reflect.ValueOf(testEventBridgeEvent1)})
+	validateResults(t, resp)
+}
+
+func TestEventbridgeContextPropagationInTraceHeader(t *testing.T) {
+	exporter.Reset()
+	ctx := context.Background()
+	otel.SetTracerProvider(provider)
+
+	customerHandler := func(lambdaContext context.Context, event eventBridgeEvent) (string, error) {
+		_, customSpan := provider.Tracer("test").Start(lambdaContext, "custom_span")
+		customSpan.End()
+		return response, nil
+	}
+
+	wrapped := instrumentHandler(customerHandler)
+
+	wrappedCallable := reflect.ValueOf(wrapped)
+	resp := wrappedCallable.Call([]reflect.Value{reflect.ValueOf(ctx), reflect.ValueOf(testEventBridgeEvent2)})
 	validateResults(t, resp)
 }
