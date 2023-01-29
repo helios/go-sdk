@@ -62,6 +62,12 @@ func runTests(t *testing.T, port string, metadataOnly bool) {
 	propagator := propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{})
 	otel.SetTextMapPropagator(propagator)
 	r := NewRouter()
+	called := false
+	r.Use(func(h http.Handler) http.Handler {
+		// Does nothing
+		called = true
+		return h
+	})
 
 	r.HandleFunc("/users/{id}", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		decoder := json.NewDecoder(r.Body)
@@ -89,6 +95,7 @@ func runTests(t *testing.T, port string, metadataOnly bool) {
 	assert.Equal(t, "/users/{id}", serverSpan.Name())
 	assert.Equal(t, serverSpan.SpanKind(), trace.SpanKindServer)
 	validateAttributes(serverSpan.Attributes(), t, metadataOnly)
+	assert.True(t, called) // Assert original middleware was indeed called
 }
 
 func TestInstrumentation(t *testing.T) {
