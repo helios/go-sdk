@@ -13,20 +13,47 @@ import (
 
 var InstrumentedSymbols = [...]string{"Start", "StartWithContext", "StartWithOptions"}
 
-type httpHeaders struct {
+type apiGatewayEvent struct {
 	Headers map[string]string `json:"headers"`
 }
 
+type eventBridgeEvent struct {
+	Detail      map[string]string `json:"detail"`
+	TraceHeader string            `json:"trace-header"`
+}
+
 func heliosEventToCarrier(eventJSON []byte) propagation.TextMapCarrier {
-	var headers httpHeaders
+	const traceParentHeader = "Traceparent"
+	const lowerCaseTraceParentHeader = "traceparent"
+
+	// Try API Gateway context propagation
+	var headers apiGatewayEvent
 	err := json.Unmarshal(eventJSON, &headers)
-	if err == nil {
-		if val, ok := headers.Headers["Traceparent"]; ok {
-			return propagation.HeaderCarrier{"Traceparent": []string{val}}
-		} else if val, ok = headers.Headers["traceparent"]; ok {
-			return propagation.HeaderCarrier{"Traceparent": []string{val}}
+	if err == nil && headers.Headers != nil {
+		if val, ok := headers.Headers[traceParentHeader]; ok {
+			return propagation.HeaderCarrier{traceParentHeader: []string{val}}
+		} else if val, ok = headers.Headers[lowerCaseTraceParentHeader]; ok {
+			return propagation.HeaderCarrier{traceParentHeader: []string{val}}
 		}
 	}
+
+	// Try EventBridge context propagation
+	var payload eventBridgeEvent
+	err = json.Unmarshal(eventJSON, &payload)
+	if err == nil {
+		if payload.Detail != nil {
+			if val, ok := payload.Detail[traceParentHeader]; ok {
+				return propagation.HeaderCarrier{traceParentHeader: []string{val}}
+			} else if val, ok = payload.Detail[lowerCaseTraceParentHeader]; ok {
+				return propagation.HeaderCarrier{traceParentHeader: []string{val}}
+			}
+		}
+
+		if payload.TraceHeader != "" {
+			return propagation.HeaderCarrier{traceParentHeader: []string{payload.TraceHeader}}
+		}
+	}
+
 	return propagation.HeaderCarrier{"": []string{""}}
 }
 
