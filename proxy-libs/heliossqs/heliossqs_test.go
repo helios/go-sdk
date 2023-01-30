@@ -1,4 +1,4 @@
-package heliosdynamodb
+package heliossqs
 
 import (
 	"context"
@@ -8,6 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	awsConfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/aws/aws-sdk-go-v2/service/sqs"
 	"github.com/stretchr/testify/assert"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
@@ -30,7 +31,7 @@ func assertSpan(t *testing.T, spanRecorder *tracetest.SpanRecorder) []attribute.
 	spans := spanRecorder.Ended()
 	assert.Equal(t, 1, len(spans))
 	span := spans[0]
-	assert.Equal(t, "DynamoDB", span.Name())
+	assert.Equal(t, "SQS", span.Name())
 	assert.Equal(t, trace.SpanKindClient, span.SpanKind())
 	return span.Attributes()
 }
@@ -42,14 +43,14 @@ func assertAttributes(t *testing.T, attributes []attribute.KeyValue) {
 
 		switch key {
 		case "aws.operation":
-			assert.Equal(t, "ListTables", value)
+			assert.Equal(t, "ListQueues", value)
 		case "aws.service":
-			assert.Equal(t, "DynamoDB", value)
+			assert.Equal(t, "SQS", value)
 		}
 	}
 }
 
-func TestListTables(t *testing.T) {
+func TestListQueues(t *testing.T) {
 	spanRecorder := getSpanRecorder()
 	// init aws config
 	ctx := context.Background()
@@ -62,16 +63,19 @@ func TestListTables(t *testing.T) {
 				SigningRegion: "us-east-1",
 			}, nil
 			})
+	
 	cfg, err := awsConfig.LoadDefaultConfig(ctx, awsConfig.WithCredentialsProvider(newCreds) ,awsConfig.WithEndpointResolverWithOptions(customResolver))
 	if err != nil {
 		panic("configuration error, " + err.Error())
 	}
-	dynamoDbClient := NewFromConfig(cfg)
-	_, err = dynamoDbClient.ListTables(ctx, &ListTablesInput{
-		Limit: aws.Int32(5),
-	})
+	client := NewFromConfig(cfg)
+
+	input := &sqs.ListQueuesInput{}
+
+	_, err = client.ListQueues(context.TODO(), input)
+		
 	if err != nil {
-		log.Fatalf("failed to list tables, %v", err)
+		log.Fatalf("failed to list queues, %v", err)
 		return
 	}
 	attributes := assertSpan(t, spanRecorder)

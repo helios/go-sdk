@@ -107,6 +107,22 @@ jobs:
             working-directory: proxy-libs/helioss3
             run: go mod tidy && go test .  
 
+          - name: Run dynamodb proxy unit tests
+            working-directory: proxy-libs/heliosdynamodb
+            run: go mod tidy && go test .  
+
+          - name: Run sqs proxy unit tests
+            working-directory: proxy-libs/heliossqs
+            run: go mod tidy && go test . 
+
+          - name: Run eventbridge proxy unit tests
+            working-directory: proxy-libs/helioseventbridge
+            run: go mod tidy && go test .    
+
+          - name: Run lambda proxy unit tests
+            working-directory: proxy-libs/helioslambda
+            run: go mod tidy && go test .     
+
           - name: Set GOPRIVATE
             run: go env -w GOPRIVATE=github.com/helios/\*
 

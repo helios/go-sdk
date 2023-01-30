@@ -1,4 +1,4 @@
-package heliosdynamodb
+package helioseventbridge
 
 import (
 	"context"
@@ -30,7 +30,7 @@ func assertSpan(t *testing.T, spanRecorder *tracetest.SpanRecorder) []attribute.
 	spans := spanRecorder.Ended()
 	assert.Equal(t, 1, len(spans))
 	span := spans[0]
-	assert.Equal(t, "DynamoDB", span.Name())
+	assert.Equal(t, "EventBridge", span.Name())
 	assert.Equal(t, trace.SpanKindClient, span.SpanKind())
 	return span.Attributes()
 }
@@ -42,14 +42,14 @@ func assertAttributes(t *testing.T, attributes []attribute.KeyValue) {
 
 		switch key {
 		case "aws.operation":
-			assert.Equal(t, "ListTables", value)
+			assert.Equal(t, "ListRules", value)
 		case "aws.service":
-			assert.Equal(t, "DynamoDB", value)
+			assert.Equal(t, "EventBridge", value)
 		}
 	}
 }
 
-func TestListTables(t *testing.T) {
+func TestListRules(t *testing.T) {
 	spanRecorder := getSpanRecorder()
 	// init aws config
 	ctx := context.Background()
@@ -66,12 +66,12 @@ func TestListTables(t *testing.T) {
 	if err != nil {
 		panic("configuration error, " + err.Error())
 	}
-	dynamoDbClient := NewFromConfig(cfg)
-	_, err = dynamoDbClient.ListTables(ctx, &ListTablesInput{
+	eventbridgeClient := NewFromConfig(cfg)
+	_, err = eventbridgeClient.ListRules(ctx, &ListRulesInput{
 		Limit: aws.Int32(5),
 	})
 	if err != nil {
-		log.Fatalf("failed to list tables, %v", err)
+		log.Fatalf("failed to list rules, %v", err)
 		return
 	}
 	attributes := assertSpan(t, spanRecorder)
