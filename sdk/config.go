@@ -1,9 +1,12 @@
 package sdk
 
 import (
+	"encoding/json"
+	"log"
 	"os"
 	"strconv"
 
+	"github.com/ohler55/ojg/jp"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/sdk/trace"
 )
@@ -13,7 +16,7 @@ var heliosConfigSingletone *HeliosConfig
 type HeliosObfuscationConfig struct {
 	obfuscationEnabled bool
 	obfuscationMode    string
-	obfuscationRules   []string
+	obfuscationRules   []jp.Expr
 	obfuscationhmacKey int
 }
 
@@ -104,6 +107,21 @@ func getStringConfig(envVar string, defaultValue string, config attribute.KeyVal
 	return config.Value.AsString()
 }
 
+func getStringSliceConfig(envVar string, defaultValue []string, config attribute.KeyValue) []string {
+	envVarValue := os.Getenv(envVar)
+	var returnVal []string
+	if envVarValue != "" {
+		json.Unmarshal([]byte(envVarValue), &returnVal)
+		return returnVal
+	}
+
+	if config.Key == "" {
+		return defaultValue
+	}
+
+	return config.Value.AsStringSlice()
+}
+
 func getBoolConfig(envVar string, defaultValue bool, config attribute.KeyValue) bool {
 	result, err := strconv.ParseBool(getStringConfig(envVar, strconv.FormatBool(defaultValue), config))
 	if err != nil {
@@ -148,27 +166,38 @@ func getCommitHash(attrs []attribute.KeyValue) string {
 	return getStringConfig(commitHashEnvVar, "", commitHashConfig)
 }
 
+func parseObfuscationRules(rules []string) []jp.Expr {
+	parsedRules := []jp.Expr{}
+
+	for _, rule := range rules {
+		ruleAsExpr, err := jp.ParseString(rule)
+		if err != nil {
+			log.Printf("Failed parsing obfuscation rule %s", rule)
+			continue
+		}
+		parsedRules = append(parsedRules, ruleAsExpr)
+	}
+	return parsedRules
+}
+
 func getObfuscationDetails(attrs []attribute.KeyValue) HeliosObfuscationConfig {
-	hsDataObfuscationBlocklist := []string{}
-	hsDataObfuscationAllowlist := []string{
-		"$.metadata.*",
-		"$.collection",
-		"$.details[*].name",
-		"$.topic",
-		"$.information[*].age",
-		"$..information[?(@.address=='Unclassified')].address"}
-	hsDatahMacKey := "1234"
+	hsDataObfuscationBlocklistConfig := getConfigByKey(hsDataObfuscationBlocklistKey, attrs)
+	hsDataObfuscationAllowlistConfig := getConfigByKey(hsDataObfuscationAllowlistKey, attrs)
+	hsDatahMacKeyConfig := getConfigByKey(hsDatahMacKey, attrs)
+	hsDataObfuscationBlocklist := getStringSliceConfig(hsDataObfuscationBlocklistEnvVar, []string{}, hsDataObfuscationBlocklistConfig)
+	hsDataObfuscationAllowlist := getStringSliceConfig(hsDataObfuscationAllowlistEnvVAr, []string{}, hsDataObfuscationAllowlistConfig)
+	hsDatahMacKey := getStringConfig(hsDatahMacKeyEnvVar, "", hsDatahMacKeyConfig)
 	if hsDatahMacKey != "" {
 		hsDatahMacKeyAsInt, err := strconv.Atoi(hsDatahMacKey)
 		if err == nil {
 		if len(hsDataObfuscationBlocklist) > 0 {
-			return HeliosObfuscationConfig{true, "blocklist", hsDataObfuscationBlocklist, hsDatahMacKeyAsInt}
+			return HeliosObfuscationConfig{true, "blocklist", parseObfuscationRules(hsDataObfuscationBlocklist), hsDatahMacKeyAsInt}
 		} else if len(hsDataObfuscationAllowlist) > 0 {
-			return HeliosObfuscationConfig{true, "allowlist", hsDataObfuscationAllowlist, hsDatahMacKeyAsInt}
+			return HeliosObfuscationConfig{true, "allowlist", parseObfuscationRules(hsDataObfuscationAllowlist), hsDatahMacKeyAsInt}
 		}
 	}
 	}
-	return HeliosObfuscationConfig{false, "", []string{}, 0}
+	return HeliosObfuscationConfig{false, "", []jp.Expr{}, 0}
 }
 
 func getOrCreateHeliosConfig(serviceName string, apiToken string, attrs ...attribute.KeyValue) *HeliosConfig {
