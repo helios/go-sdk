@@ -10,6 +10,7 @@ import (
 	awsConfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
+	"github.com/aws/aws-sdk-go-v2/service/sqs/types"
 	"github.com/stretchr/testify/assert"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
@@ -77,6 +78,14 @@ func assertAttributes(t *testing.T, attributes []attribute.KeyValue, operation s
 	}
 }
 
+func validateTraceparentMessageAttribute(t *testing.T, message types.Message, sendSpan sdktrace.ReadOnlySpan) {
+	messageAttributes := message.MessageAttributes
+	traceparent := messageAttributes["traceparent"].StringValue
+	assert.NotNil(t, traceparent)
+	spanContext := sendSpan.SpanContext()
+	assert.Equal(t, fmt.Sprintf("00-%s-%s-01", spanContext.TraceID().String(), spanContext.SpanID().String()), *traceparent)
+}
+
 func TestContextPropagation(t *testing.T) {
 	spanRecorder := getSpanRecorder()
 	// init aws config
@@ -128,10 +137,19 @@ func TestContextPropagation(t *testing.T) {
 	spanRecorder.ForceFlush(context.Background())
 	spans := spanRecorder.Ended()
 	assertSpans(t, spans, messageBody)
-	messageAttributes := message.MessageAttributes
-	traceparent := messageAttributes["traceparent"].StringValue
-	assert.NotNil(t, traceparent)
-	sendSpan := spans[2]
-	spanContext := sendSpan.SpanContext()
-	assert.Equal(t, fmt.Sprintf("00-%s-%s-01", spanContext.TraceID().String(), spanContext.SpanID().String()), *traceparent)
+	validateTraceparentMessageAttribute(t, message, spans[2])
+
+	messageId := "abcd1234"
+	messageBody2 := "messageBody2"
+	entry := types.SendMessageBatchRequestEntry{Id: &messageId, MessageBody: &messageBody2}
+	_, err = client.SendMessageBatch(ctx, &sqs.SendMessageBatchInput{QueueUrl: queueUrl, Entries: []types.SendMessageBatchRequestEntry{entry}})
+	if err != nil {
+		print(1234)
+	}
+	receiveMessageResult, _ = client.ReceiveMessage(ctx, &sqs.ReceiveMessageInput{QueueUrl: queueUrl})
+	message = receiveMessageResult.Messages[0]
+	assert.Equal(t, messageBody2, *message.Body)
+	spanRecorder.ForceFlush(context.Background())
+	spans = spanRecorder.Ended()
+	validateTraceparentMessageAttribute(t, message, spans[4])
 }

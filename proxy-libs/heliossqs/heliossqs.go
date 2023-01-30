@@ -84,7 +84,8 @@ func attributeSetter(ctx context.Context, ii middleware.InitializeInput) []attri
 	case *origin_sqs.SendMessageBatchInput:
 		{
 			entries := castParams.Entries
-			for _, entry := range entries {
+			for index := range entries {
+				entry := &entries[index]
 				attrs := entry.MessageAttributes
 				if attrs == nil {
 					attrs = map[string]types.MessageAttributeValue{}
