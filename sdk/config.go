@@ -8,6 +8,15 @@ import (
 	"go.opentelemetry.io/otel/sdk/trace"
 )
 
+var heliosConfigSingletone *HeliosConfig
+
+type HeliosObfuscationConfig struct {
+	obfuscationEnabled bool
+	obfuscationMode    string
+	obfuscationRules   []string
+	obfuscationhmacKey int
+}
+
 type HeliosConfig struct {
 	serviceName       string
 	apiToken          string
@@ -19,6 +28,7 @@ type HeliosConfig struct {
 	commitHash        string
 	debug             bool
 	metadataOnly      bool
+	obfuscationConfig HeliosObfuscationConfig
 }
 
 // Keys and their matching env vars
@@ -38,9 +48,12 @@ const debugKey = "debug"
 const debugEnvVar = "HS_DEBUG"
 const metadataOnlyKey = "metadataOnly"
 const metadataOnlyEnvVar = "HS_METADATA_ONLY"
-const hsDataObfuscationAllowlist = "HS_DATA_OBFUSCATION_ALLOWLIST"
-const hsDataObfuscationBlocklist = "HS_DATA_OBFUSCATION_BLOCKLIST"
-const hsDatahMacKey = "HS_DATA_OBFUSCATION_HMAC_KEY"
+const hsDataObfuscationAllowlistEnvVAr = "HS_DATA_OBFUSCATION_ALLOWLIST"
+const hsDataObfuscationAllowlistKey = "dataObfuscationAllowlist"
+const hsDataObfuscationBlocklistEnvVar = "HS_DATA_OBFUSCATION_BLOCKLIST"
+const hsDataObfuscationBlocklistKey = "dataObfuscationBlocklist"
+const hsDatahMacKeyEnvVar = "HS_DATA_OBFUSCATION_HMAC_KEY"
+const hsDatahMacKey = "dataObfuscationhMacKey"
 
 // Default values
 const defaultCollectorInsecure = false
@@ -135,14 +148,50 @@ func getCommitHash(attrs []attribute.KeyValue) string {
 	return getStringConfig(commitHashEnvVar, "", commitHashConfig)
 }
 
-func getHeliosConfig(serviceName string, apiToken string, attrs ...attribute.KeyValue) HeliosConfig {
-	sampler := getSampler(attrs)
-	collectorInsecure := isCollectorInsecure(attrs)
-	collectorEndpoint := getCollectorEndpoint(attrs)
-	collectorPath := getCollectorPath(attrs)
-	environment := getEnvironment(attrs)
-	commitHash := getCommitHash(attrs)
-	debug := isDebugMode(attrs)
-	metadataOnly := isMetadataOnlyMode(attrs)
-	return HeliosConfig{serviceName, apiToken, sampler, collectorInsecure, collectorEndpoint, collectorPath, environment, commitHash, debug, metadataOnly}
+func getObfuscationDetails(attrs []attribute.KeyValue) HeliosObfuscationConfig {
+	hsDataObfuscationBlocklist := []string{}
+	hsDataObfuscationAllowlist := []string{
+		"$.metadata.*",
+		"$.collection",
+		"$.details[*].name",
+		"$.topic",
+		"$.information[*].age",
+		"$..information[?(@.address=='Unclassified')].address"}
+	hsDatahMacKey := "1234"
+	if hsDatahMacKey != "" {
+		hsDatahMacKeyAsInt, err := strconv.Atoi(hsDatahMacKey)
+		if err == nil {
+		if len(hsDataObfuscationBlocklist) > 0 {
+			return HeliosObfuscationConfig{true, "blocklist", hsDataObfuscationBlocklist, hsDatahMacKeyAsInt}
+		} else if len(hsDataObfuscationAllowlist) > 0 {
+			return HeliosObfuscationConfig{true, "allowlist", hsDataObfuscationAllowlist, hsDatahMacKeyAsInt}
+		}
+	}
+	}
+	return HeliosObfuscationConfig{false, "", []string{}, 0}
+}
+
+func getOrCreateHeliosConfig(serviceName string, apiToken string, attrs ...attribute.KeyValue) *HeliosConfig {
+	if heliosConfigSingletone != nil {
+		return heliosConfigSingletone
+	} else {
+		sampler := getSampler(attrs)
+		collectorInsecure := isCollectorInsecure(attrs)
+		collectorEndpoint := getCollectorEndpoint(attrs)
+		collectorPath := getCollectorPath(attrs)
+		environment := getEnvironment(attrs)
+		commitHash := getCommitHash(attrs)
+		debug := isDebugMode(attrs)
+		metadataOnly := isMetadataOnlyMode(attrs)
+		obfuscationConfig := getObfuscationDetails(attrs)
+		heliosConfigSingletone = &HeliosConfig{serviceName, apiToken, sampler, collectorInsecure, collectorEndpoint, collectorPath, environment, commitHash, debug, metadataOnly, obfuscationConfig}
+		return heliosConfigSingletone
+	}
+}
+
+func getHeliosConfig() *HeliosConfig {
+	if heliosConfigSingletone != nil {
+		return heliosConfigSingletone
+	}
+	return  nil
 }

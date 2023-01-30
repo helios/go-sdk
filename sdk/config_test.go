@@ -12,7 +12,7 @@ const serviceName = "test_service"
 const token = "abcd1234"
 
 func TestBasicConfig(t *testing.T) {
-	config := getHeliosConfig(serviceName, token)
+	config := getOrCreateHeliosConfig(serviceName, token)
 	assert.Equal(t, config.serviceName, serviceName)
 	assert.Equal(t, config.apiToken, token)
 	assert.Equal(t, config.collectorEndpoint, defaultCollectorEndpoint)
@@ -28,7 +28,7 @@ func TestConfigWithOptions(t *testing.T) {
 	testCollectorEndpoint := "aaa.bbb.com:1234"
 	testCollectorPath := "/sababa"
 	testSamplingRatio := 0.1234
-	config := getHeliosConfig(serviceName, token, WithCollectorInsecure(), WithCollectorEndpoint(testCollectorEndpoint), WithCollectorPath(testCollectorPath), WithSamplingRatio(testSamplingRatio), WithDebugMode(), WithMetadataOnlyMode())
+	config := getOrCreateHeliosConfig(serviceName, token, WithCollectorInsecure(), WithCollectorEndpoint(testCollectorEndpoint), WithCollectorPath(testCollectorPath), WithSamplingRatio(testSamplingRatio), WithDebugMode(), WithMetadataOnlyMode())
 	assert.Equal(t, config.apiToken, token)
 	assert.Equal(t, config.collectorInsecure, true)
 	assert.Equal(t, config.collectorEndpoint, testCollectorEndpoint)
@@ -49,7 +49,7 @@ func TestConfigWithEnvVars(t *testing.T) {
 	os.Setenv(debugEnvVar, "true")
 	os.Setenv(metadataOnlyEnvVar, "true")
 
-	config := getHeliosConfig(serviceName, token)
+	config := getOrCreateHeliosConfig(serviceName, token)
 	assert.Equal(t, config.apiToken, token)
 	assert.Equal(t, config.collectorInsecure, true)
 	assert.Equal(t, config.collectorEndpoint, testCollectorEndpoint)

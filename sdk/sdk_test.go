@@ -108,15 +108,27 @@ func TestSamplerNoSampling(t *testing.T) {
 	assert.Equal(t, exported[0].Name, "sampled2")
 }
 
-func TestObfuscation(t *testing.T) {
+func TestObfuscationBlocklist(t *testing.T) {
 	stringAttr := "{\"collection\":\"spec\",\"details\":[{ \"name\":\"Lior Govrin\",\"male\":true,\"age\":35,\"address\":\"New York\",\"null\":null},{\"name\":\"Alice Smith\",\"male\":false,\"age\":42,\"address\":\"Jerusalem\",\"extra\":\"field\"}]}"
-	obfuscatedDataExpectedValue := "{\"collection\":\"1PAuqv0anp3n0Qlyyo5H+nqYWCXDycHiSccmg8s+Txk=\",\"details\":[{\"address\":\"New York\",\"age\":35,\"male\":true,\"name\":\"0u/+ivNNIqn+iW+DVzpuaJ9KpvhtPu4Y/aUOE5JfI6o=\",\"null\":null},{\"address\":\"Jerusalem\",\"age\":42,\"extra\":\"field\",\"male\":false,\"name\":\"iuEN/Jpp+X3MkeH1G87Tr/RCvFeoaeBBJr0Mp8tK8p0=\"}]}"
+	obfuscatedDataExpectedValue := "{\"collection\":\"XHF3xRtbaOzWm4lxXtvBUi9HTArz+dw1Q7yxr5G7E0k=\",\"details\":[{\"address\":\"New York\",\"age\":35,\"male\":true,\"name\":\"n1IkECL7qb8VEcv9/7NUwFtabP6Gs8aW7fK7codetqE=\",\"null\":null},{\"address\":\"Jerusalem\",\"age\":42,\"extra\":\"field\",\"male\":false,\"name\":\"wEHZ1CbCELc6+Tv5RJgHetjYFeSZPvIh8KNIZcQZx7E=\"}]}"
 	keyValueAttr := attribute.KeyValue{
-		Key:   "db_statement",
+		Key:   "db.statement",
 		Value: attribute.StringValue(stringAttr),
 	}
 	attrs := []attribute.KeyValue{keyValueAttr}
-	obfuscatedData := obfuscate_data(attrs[0].Value, "1234")
+	obfuscatedData := obfuscateAttribute(attrs[0])
+	assert.Equal(t, obfuscatedDataExpectedValue, obfuscatedData)
+}
+
+func TestObfuscationAllowlist(t *testing.T) {
+	stringAttr := "{\"collection\":\"spec\",\"details\":[{ \"name\":\"Lior Govrin\",\"male\":true,\"age\":35,\"address\":\"New York\",\"null\":null},{\"name\":\"Alice Smith\",\"male\":false,\"age\":42,\"address\":\"Jerusalem\",\"extra\":\"field\"}]}"
+	obfuscatedDataExpectedValue := "{\"collection\":\"XHF3xRtbaOzWm4lxXtvBUi9HTArz+dw1Q7yxr5G7E0k=\",\"details\":[{\"address\":\"New York\",\"age\":35,\"male\":true,\"name\":\"n1IkECL7qb8VEcv9/7NUwFtabP6Gs8aW7fK7codetqE=\",\"null\":null},{\"address\":\"Jerusalem\",\"age\":42,\"extra\":\"field\",\"male\":false,\"name\":\"wEHZ1CbCELc6+Tv5RJgHetjYFeSZPvIh8KNIZcQZx7E=\"}]}"
+	keyValueAttr := attribute.KeyValue{
+		Key:   "db.statement",
+		Value: attribute.StringValue(stringAttr),
+	}
+	attrs := []attribute.KeyValue{keyValueAttr}
+	obfuscatedData := obfuscateAttribute(attrs[0])
 	assert.Equal(t, obfuscatedDataExpectedValue, obfuscatedData)
 }
 	

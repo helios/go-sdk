@@ -27,6 +27,7 @@ require (
 	go.opentelemetry.io/otel/exporters/otlp/internal/retry v1.11.2 // indirect
 	go.opentelemetry.io/otel/trace v1.11.2
 	go.opentelemetry.io/proto/otlp v0.19.0 // indirect
+	golang.org/x/exp v0.0.0-20230125214544-b3c2aaf6208d
 	golang.org/x/net v0.4.0 // indirect
 	golang.org/x/sys v0.3.0 // indirect
 	golang.org/x/text v0.5.0 // indirect

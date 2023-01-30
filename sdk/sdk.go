@@ -105,7 +105,7 @@ func Initialize(serviceName string, apiToken string, attrs ...attribute.KeyValue
 	}
 
 	ctx := context.Background()
-	heliosConfig := getHeliosConfig(serviceName, apiToken, attrs...)
+	heliosConfig := getOrCreateHeliosConfig(serviceName, apiToken, attrs...)
 	var exporter *otlptrace.Exporter
 	if heliosConfig.collectorEndpoint != "" {
 		options := []otlptracehttp.Option{
