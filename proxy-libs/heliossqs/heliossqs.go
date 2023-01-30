@@ -59,12 +59,14 @@ func (c sqsMessageCarrier) Set(key, val string) {
 
 func (c sqsMessageCarrier) Keys() []string {
 	result := []string{}
-	for key, _ := range c.messageAttrs {
+	for key := range c.messageAttrs {
 		result = append(result, key)
 	}
 
 	return result
 }
+
+const maxSqsAttributesCount = 10
 
 func attributeSetter(ctx context.Context, ii middleware.InitializeInput) []attribute.KeyValue {
 	result := []attribute.KeyValue{}
@@ -77,8 +79,11 @@ func attributeSetter(ctx context.Context, ii middleware.InitializeInput) []attri
 				castParams.MessageAttributes = attrs
 			}
 
-			carrier := sqsMessageCarrier{attrs}
-			otel.GetTextMapPropagator().Inject(ctx, carrier)
+			if len(attrs) < maxSqsAttributesCount {
+				carrier := sqsMessageCarrier{attrs}
+				otel.GetTextMapPropagator().Inject(ctx, carrier)
+			}
+
 			result = append(result, attribute.KeyValue{Key: "messaging.payload", Value: attribute.StringValue(*castParams.MessageBody)})
 		}
 	case *origin_sqs.SendMessageBatchInput:
@@ -90,6 +95,11 @@ func attributeSetter(ctx context.Context, ii middleware.InitializeInput) []attri
 				if attrs == nil {
 					attrs = map[string]types.MessageAttributeValue{}
 					entry.MessageAttributes = attrs
+				}
+
+				if len(attrs) < maxSqsAttributesCount {
+					carrier := sqsMessageCarrier{attrs}
+					otel.GetTextMapPropagator().Inject(ctx, carrier)
 				}
 
 				carrier := sqsMessageCarrier{attrs}
