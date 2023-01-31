@@ -3,6 +3,7 @@ package helioslambda
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"strings"
 
 	"github.com/aws/aws-lambda-go/events"
@@ -66,7 +67,7 @@ func extractQueueName(eventSourceArn string) string {
 	if eventSourceArn != "" {
 		queueNameIndex := strings.LastIndex(":", eventSourceArn)
 		if queueNameIndex != -1 {
-			return eventSourceArn[strings.LastIndex(":", eventSourceArn)+1:]
+			return eventSourceArn[queueNameIndex+1:]
 		}
 	}
 	return eventSourceArn
@@ -87,7 +88,7 @@ func HandleRecord(ctx context.Context, record events.SQSMessage, handleRecordHel
 		Key:   "faas.event",
 		Value: attribute.StringValue(record.Body),
 	}
-	spanName := extractQueueName(record.EventSourceARN)
+	spanName := fmt.Sprintf("process %s", extractQueueName(record.EventSourceARN))
 	if spanName == "" {
 		spanName = "process SQS"
 	}
