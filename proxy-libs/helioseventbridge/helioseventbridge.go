@@ -1,11 +1,15 @@
 package helioseventbridge
 
 import (
+	"context"
+
 	"github.com/aws/aws-sdk-go-v2/aws"
 	origin_eventbridge "github.com/aws/aws-sdk-go-v2/service/eventbridge"
 	"github.com/aws/smithy-go/middleware"
-	"go.opentelemetry.io/contrib/instrumentation/github.com/aws/aws-sdk-go-v2/otelaws"
+	"github.com/helios/opentelemetry-go-contrib/instrumentation/github.com/aws/aws-sdk-go-v2/otelaws"
+	"go.opentelemetry.io/otel/attribute"
 )
+
 type DescribeConnectionInput = origin_eventbridge.DescribeConnectionInput
 
 type DescribeConnectionOutput = origin_eventbridge.DescribeConnectionOutput
@@ -74,15 +78,15 @@ type EndpointResolverOptions = origin_eventbridge.EndpointResolverOptions
 
 type EndpointResolver = origin_eventbridge.EndpointResolver
 
-func NewDefaultEndpointResolver() (interface {}) {
+func NewDefaultEndpointResolver() interface{} {
 	return origin_eventbridge.NewDefaultEndpointResolver()
- }
+}
 
 type EndpointResolverFunc = origin_eventbridge.EndpointResolverFunc
 
-func EndpointResolverFromURL(url string,optFns ...func(*aws.Endpoint) ) (EndpointResolver) {
-	return origin_eventbridge.EndpointResolverFromURL(url,optFns...)
- }
+func EndpointResolverFromURL(url string, optFns ...func(*aws.Endpoint)) EndpointResolver {
+	return origin_eventbridge.EndpointResolverFromURL(url, optFns...)
+}
 
 type ResolveEndpoint = origin_eventbridge.ResolveEndpoint
 
@@ -208,27 +212,34 @@ const ServiceAPIVersion = origin_eventbridge.ServiceAPIVersion
 
 type Client = origin_eventbridge.Client
 
-func New(options Options,optFns ...func(*Options) ) (*Client) {
-	otelaws.AppendMiddlewares(&options.APIOptions)
-	return origin_eventbridge.New(options,optFns...)
- }
+func attributeSetter(ctx context.Context, ii middleware.InitializeInput) []attribute.KeyValue {
+	result := []attribute.KeyValue{}
+	return result
+}
+
+func New(options Options, optFns ...func(*Options)) *Client {
+	attributeSetterOpt := otelaws.WithAttributeSetter(attributeSetter)
+	otelaws.AppendMiddlewares(&options.APIOptions, attributeSetterOpt)
+	return origin_eventbridge.New(options, optFns...)
+}
 
 type Options = origin_eventbridge.Options
 
-func WithAPIOptions(optFns ...func(*middleware.Stack) error) (func(*Options) ) {
+func WithAPIOptions(optFns ...func(*middleware.Stack) error) func(*Options) {
 	return origin_eventbridge.WithAPIOptions(optFns...)
- }
+}
 
-func WithEndpointResolver(v EndpointResolver) (func(*Options) ) {
+func WithEndpointResolver(v EndpointResolver) func(*Options) {
 	return origin_eventbridge.WithEndpointResolver(v)
- }
+}
 
 type HTTPClient = origin_eventbridge.HTTPClient
 
-func NewFromConfig(cfg aws.Config,optFns ...func(*Options) ) (*Client) {
-	otelaws.AppendMiddlewares(&cfg.APIOptions)
-	return origin_eventbridge.NewFromConfig(cfg,optFns...)
- }
+func NewFromConfig(cfg aws.Config, optFns ...func(*Options)) *Client {
+	attributeSetterOpt := otelaws.WithAttributeSetter(attributeSetter)
+	otelaws.AppendMiddlewares(&cfg.APIOptions, attributeSetterOpt)
+	return origin_eventbridge.NewFromConfig(cfg, optFns...)
+}
 
 type HTTPSignerV4 = origin_eventbridge.HTTPSignerV4
 
@@ -275,4 +286,3 @@ type UpdateConnectionOutput = origin_eventbridge.UpdateConnectionOutput
 type DeauthorizeConnectionInput = origin_eventbridge.DeauthorizeConnectionInput
 
 type DeauthorizeConnectionOutput = origin_eventbridge.DeauthorizeConnectionOutput
-
