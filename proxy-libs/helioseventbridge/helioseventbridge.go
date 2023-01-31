@@ -2,11 +2,13 @@ package helioseventbridge
 
 import (
 	"context"
+	"encoding/json"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	origin_eventbridge "github.com/aws/aws-sdk-go-v2/service/eventbridge"
 	"github.com/aws/smithy-go/middleware"
 	"github.com/helios/opentelemetry-go-contrib/instrumentation/github.com/aws/aws-sdk-go-v2/otelaws"
+	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 )
 
@@ -212,8 +214,60 @@ const ServiceAPIVersion = origin_eventbridge.ServiceAPIVersion
 
 type Client = origin_eventbridge.Client
 
+type eventBridgeDetailCarrier struct {
+	eventAttributes map[string]interface{}
+}
+
+func (c eventBridgeDetailCarrier) Get(key string) string {
+	if c.eventAttributes == nil {
+		return ""
+	}
+
+	for attrKey, val := range c.eventAttributes {
+		if attrKey == key {
+			stringVal, success := val.(string)
+			if success {
+				return stringVal
+			}
+
+			return ""
+		}
+	}
+
+	return ""
+}
+
+func (c eventBridgeDetailCarrier) Set(key, val string) {
+	c.eventAttributes[key] = val
+}
+
+func (c eventBridgeDetailCarrier) Keys() []string {
+	result := []string{}
+	for key := range c.eventAttributes {
+		result = append(result, key)
+	}
+
+	return result
+}
+
 func attributeSetter(ctx context.Context, ii middleware.InitializeInput) []attribute.KeyValue {
 	result := []attribute.KeyValue{}
+	switch castParams := ii.Parameters.(type) {
+	case *origin_eventbridge.PutEventsInput:
+		{
+			for index := range castParams.Entries {
+				entry := &castParams.Entries[index]
+				detail := entry.Detail
+				parsedDetail := map[string]interface{}{}
+				err := json.Unmarshal([]byte(*detail), &parsedDetail)
+				if err == nil {
+					carrier := eventBridgeDetailCarrier{parsedDetail}
+					otel.GetTextMapPropagator().Inject(ctx, carrier)
+				}
+			}
+		}
+	}
+
 	return result
 }
 

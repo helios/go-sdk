@@ -8,6 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	awsConfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/aws/aws-sdk-go-v2/service/eventbridge/types"
 	"github.com/stretchr/testify/assert"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
@@ -56,24 +57,35 @@ func TestListRules(t *testing.T) {
 	newCreds := credentials.NewStaticCredentialsProvider("test", "test", "")
 
 	customResolver := aws.EndpointResolverWithOptionsFunc(func(service, region string, options ...interface{}) (aws.Endpoint, error) {
-			return aws.Endpoint{
-				PartitionID:   "aws",
-				URL:           "http://localhost:4566",
-				SigningRegion: "us-east-1",
-			}, nil
-			})
-	cfg, err := awsConfig.LoadDefaultConfig(ctx, awsConfig.WithCredentialsProvider(newCreds) ,awsConfig.WithEndpointResolverWithOptions(customResolver))
+		return aws.Endpoint{
+			PartitionID:   "aws",
+			URL:           "http://localhost:4566",
+			SigningRegion: "us-east-1",
+		}, nil
+	})
+	cfg, err := awsConfig.LoadDefaultConfig(ctx, awsConfig.WithCredentialsProvider(newCreds), awsConfig.WithEndpointResolverWithOptions(customResolver))
 	if err != nil {
 		panic("configuration error, " + err.Error())
 	}
+
 	eventbridgeClient := NewFromConfig(cfg)
-	_, err = eventbridgeClient.ListRules(ctx, &ListRulesInput{
-		Limit: aws.Int32(5),
-	})
+	eventBusName := "abcd1234"
+	res, err := eventbridgeClient.CreateEventBus(ctx, &CreateEventBusInput{Name: &eventBusName})
 	if err != nil {
-		log.Fatalf("failed to list rules, %v", err)
-		return
+		log.Fatalf("failed creating event bus, %v", err)
 	}
+
+	arn := res.EventBusArn
+	detail := "{\"aaa\": \"bbb\"}"
+	eventbridgeClient.PutEvents(ctx, &PutEventsInput{Entries: []types.PutEventsRequestEntry{{EventBusName: arn, Detail: &detail}}})
+
+	// _, err = eventbridgeClient.ListRules(ctx, &ListRulesInput{
+	// 	Limit: aws.Int32(5),
+	// })
+	// if err != nil {
+	// 	log.Fatalf("failed to list rules, %v", err)
+	// 	return
+	// }
 	attributes := assertSpan(t, spanRecorder)
 	assertAttributes(t, attributes)
 }
