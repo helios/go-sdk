@@ -52,7 +52,7 @@ func TestObfuscationBlocklistDbStatement(t *testing.T) {
 
 func TestObfuscationBlocklistHttpRequestBody(t *testing.T) {
 	stringAttr := "{\"name\":\"Lior Govrin\",\"male\":true,\"age\":35,\"address\":\"New York\",\"null\":null,\"metadata\":{\"date\":\"2022-04-01T00:00:00.000Z\",\"count\":5}}"
-	obfuscatedDataExpectedValue := "{\"address\":\"New York\",\"age\":35,\"male\":true,\"metadata\":{\"count\":\"7337c795\",\"date\":\"c6e6d6c3\"},\"name\":\"Lior Govrin\",\"null\":null}"
+	obfuscatedDataExpectedValue := "{\"address\":\"New York\",\"age\":35,\"male\":true,\"metadata\":{\"count\":\"07eb9d8b\",\"date\":\"c6e6d6c3\"},\"name\":\"Lior Govrin\",\"null\":null}"
 	keyValueAttr := attribute.KeyValue{
 		Key:   "http.request.body",
 		Value: attribute.StringValue(stringAttr),
@@ -64,7 +64,7 @@ func TestObfuscationBlocklistHttpRequestBody(t *testing.T) {
 
 func TestObfuscationBlocklistMessagingPayload(t *testing.T) {
 	stringAttr := "{\"topic\":\"test\",\"information\":[{ \"name\":\"Lior Govrin\",\"male\":true,\"age\":35,\"address\":\"New York\",\"null\":null},{\"name\":\"Alice Smith\",\"male\":false,\"age\":42,\"address\":\"Jerusalem\",\"extra\":\"field\"},{\"name\":\"Bob Wilson\",\"male\":true,\"age\":100,\"address\":\"Unclassified\",\"extra\":\"field\"}]}"
-	obfuscatedDataExpectedValue := "{\"information\":[{\"address\":\"New York\",\"age\":\"8baca100\",\"male\":true,\"name\":\"Lior Govrin\",\"null\":null},{\"address\":\"Jerusalem\",\"age\":\"99f900ae\",\"extra\":\"field\",\"male\":false,\"name\":\"Alice Smith\"},{\"address\":\"119b419b\",\"age\":\"fde61109\",\"extra\":\"field\",\"male\":true,\"name\":\"Bob Wilson\"}],\"topic\":\"e031ba1c\"}"
+	obfuscatedDataExpectedValue := "{\"information\":[{\"address\":\"New York\",\"age\":\"2df9a61a\",\"male\":true,\"name\":\"Lior Govrin\",\"null\":null},{\"address\":\"Jerusalem\",\"age\":\"44343c77\",\"extra\":\"field\",\"male\":false,\"name\":\"Alice Smith\"},{\"address\":\"119b419b\",\"age\":\"960e14e3\",\"extra\":\"field\",\"male\":true,\"name\":\"Bob Wilson\"}],\"topic\":\"e031ba1c\"}"
 	keyValueAttr := attribute.KeyValue{
 		Key:   "messaging.payload",
 		Value: attribute.StringValue(stringAttr),
