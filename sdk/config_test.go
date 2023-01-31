@@ -12,6 +12,7 @@ const serviceName = "test_service"
 const token = "abcd1234"
 
 func TestBasicConfig(t *testing.T) {
+	heliosConfigSingleton = nil
 	config := createHeliosConfig(serviceName, token)
 	assert.Equal(t, config.serviceName, serviceName)
 	assert.Equal(t, config.apiToken, token)
@@ -25,6 +26,7 @@ func TestBasicConfig(t *testing.T) {
 }
 
 func TestConfigWithOptions(t *testing.T) {
+	heliosConfigSingleton = nil
 	testCollectorEndpoint := "aaa.bbb.com:1234"
 	testCollectorPath := "/sababa"
 	testSamplingRatio := 0.1234
@@ -39,6 +41,7 @@ func TestConfigWithOptions(t *testing.T) {
 }
 
 func TestConfigWithEnvVars(t *testing.T) {
+	heliosConfigSingleton = nil
 	testCollectorEndpoint := "aaa.bbb.com:1234"
 	testCollectorPath := "/sababa"
 	testSamplingRatio := 0.1234

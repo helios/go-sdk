@@ -1,7 +1,8 @@
 package sdk
 
 import (
-	"context"
+	"encoding/json"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -25,13 +26,11 @@ const testServiceNameObfuscator = "test_service_obfuscator"
 
 
 func initHelperObfuscator(samplingRatio float64) {
-	if provider != nil {
-		provider.Shutdown(context.Background())
-	}
-	providerSingelton = nil
-	provider, _ = Initialize(serviceName, "abcd1234", WithCollectorEndpoint(""), WithSamplingRatio(samplingRatio), WithObfuscationBlocklistRules(blocklistRules), WithhmacKey("12345"))
-	exporter = tracetest.NewInMemoryExporter()
-	provider.RegisterSpanProcessor(trace.NewSimpleSpanProcessor(exporter))
+	heliosConfigSingleton = nil
+	rulesAsJsonString, _ := json.Marshal(blocklistRules)
+	os.Setenv(hsDataObfuscationBlocklistEnvVar, string(rulesAsJsonString))
+	os.Setenv(hsDatahMacKeyEnvVar, "12345")
+	createHeliosConfig(testServiceNameObfuscator, "abcd1234")
 }
 
 func init() {
