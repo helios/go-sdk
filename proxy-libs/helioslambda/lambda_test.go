@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/aws/aws-lambda-go/events"
 	"github.com/stretchr/testify/assert"
 
 	"go.opentelemetry.io/otel"
@@ -22,6 +23,8 @@ var (
 	testEventBridgeEvent2 = eventBridgeEvent{TraceHeader: tracingHeader}
 	exporter              = tracetest.NewInMemoryExporter()
 	provider              = trace.NewTracerProvider(trace.WithBatcher(exporter))
+	testSqsMessage        = events.SQSMessage{MessageId: "1234", MessageAttributes: map[string]events.SQSMessageAttribute{"traceparent" : {DataType: "String", StringValue: &tracingHeader}}}
+	testSqsRecord         = events.SQSEvent{Records: []events.SQSMessage{testSqsMessage}}
 )
 
 const response = "hello world"
@@ -92,5 +95,29 @@ func TestEventbridgeContextPropagationInTraceHeader(t *testing.T) {
 
 	wrappedCallable := reflect.ValueOf(wrapped)
 	resp := wrappedCallable.Call([]reflect.Value{reflect.ValueOf(ctx), reflect.ValueOf(testEventBridgeEvent2)})
+	validateResults(t, resp)
+}
+
+func TestSqsContextPropagationInTraceHeader(t *testing.T) {
+	exporter.Reset()
+	ctx := context.Background()
+	otel.SetTracerProvider(provider)
+
+	innerMethod := func(lambdaContext context.Context, event events.SQSMessage) (any, error) {
+		_, customSpan := provider.Tracer("test").Start(lambdaContext, "custom_span")
+		customSpan.End()
+		return response, nil
+	}
+
+	newHandler := func(lambdaContext context.Context, event events.SQSEvent) {
+		for _, record := range event.Records {
+			HandleRecord(lambdaContext, record, innerMethod)
+		}
+	}
+
+	wrapped := instrumentHandler(newHandler)
+
+	wrappedCallable := reflect.ValueOf(wrapped)
+	resp := wrappedCallable.Call([]reflect.Value{reflect.ValueOf(ctx), reflect.ValueOf(testSqsRecord)})
 	validateResults(t, resp)
 }

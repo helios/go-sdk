@@ -4,14 +4,20 @@ import (
 	"context"
 	"encoding/json"
 
+	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	"go.opentelemetry.io/contrib/instrumentation/github.com/aws/aws-lambda-go/otellambda"
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/propagation"
-	"go.opentelemetry.io/otel/sdk/trace"
+	sdkTrace "go.opentelemetry.io/otel/sdk/trace"
+	semconv "go.opentelemetry.io/otel/semconv/v1.12.0"
+	"go.opentelemetry.io/otel/trace"
 )
 
 var InstrumentedSymbols = [...]string{"Start", "StartWithContext", "StartWithOptions"}
+
+const otellambdaTracerName = "go.opentelemetry.io/contrib/instrumentation/github.com/aws/aws-lambda-go/otellambda"
 
 type apiGatewayEvent struct {
 	Headers map[string]string `json:"headers"`
@@ -20,6 +26,58 @@ type apiGatewayEvent struct {
 type eventBridgeEvent struct {
 	Detail      map[string]string `json:"detail"`
 	TraceHeader string            `json:"trace-header"`
+}
+
+type sqsMessageCarrier struct {
+	messageAttrs map[string]events.SQSMessageAttribute
+}
+
+func (c sqsMessageCarrier) Get(key string) string {
+	if c.messageAttrs == nil {
+		return ""
+	}
+
+	for attrKey, val := range c.messageAttrs {
+		if attrKey == key {
+			return *val.StringValue
+		}
+	}
+
+	return ""
+}
+
+func (c sqsMessageCarrier) Set(key, val string) {
+	dataType := "String"
+	c.messageAttrs[key] = events.SQSMessageAttribute{DataType: dataType, StringValue: &val}
+}
+
+func (c sqsMessageCarrier) Keys() []string {
+	result := []string{}
+	for key := range c.messageAttrs {
+		result = append(result, key)
+	}
+
+	return result
+}
+
+func HandleRecord(ctx context.Context, record events.SQSMessage, handleRecordHelper func(ctx context.Context, message events.SQSMessage) (any, error)) (any, error) {
+	// otel.SetTextMapPropagator(sqsMessageCarrier)
+	recordCtx := otel.GetTextMapPropagator().Extract(ctx, sqsMessageCarrier{record.MessageAttributes})
+	tp := otel.GetTracerProvider()
+	messageId := attribute.KeyValue{
+		Key:   semconv.MessageIDKey,
+		Value: attribute.StringValue(record.MessageId),
+	}
+	messagingSystem := attribute.KeyValue{
+		Key:   semconv.MessagingSystemKey,
+		Value: attribute.StringValue("aws.sqs"),
+	}
+	messagingPayload := attribute.KeyValue{
+		Key:   "faas.event",
+		Value: attribute.StringValue(record.Body),
+	}
+	updatedCtx, _ := tp.Tracer(otellambdaTracerName).Start(recordCtx, "sqs message", trace.WithAttributes(messageId, messagingSystem, messagingPayload))
+	return handleRecordHelper(updatedCtx, record)
 }
 
 func heliosEventToCarrier(eventJSON []byte) propagation.TextMapCarrier {
@@ -61,7 +119,7 @@ func instrumentHandler(handler interface{}) interface{} {
 	provider := otel.GetTracerProvider()
 
 	options := []otellambda.Option{}
-	castProvider, success := provider.(*trace.TracerProvider)
+	castProvider, success := provider.(*sdkTrace.TracerProvider)
 	if success {
 		options = append(options, otellambda.WithFlusher(castProvider),
 			otellambda.WithEventToCarrier(heliosEventToCarrier),
