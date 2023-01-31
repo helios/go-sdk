@@ -1,0 +1,120 @@
+package sdk
+
+import (
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
+	"fmt"
+	"log"
+
+	"github.com/ohler55/ojg/jp"
+	"go.opentelemetry.io/otel/attribute"
+	semconv "go.opentelemetry.io/otel/semconv/v1.11.0"
+	"golang.org/x/exp/slices"
+)
+const lengthToObfuscatedByteArray = 8
+var DATA_TO_OBFUSCATE = []string{"http.request.body", "http.response.body", "db.query_result", string(semconv.DBStatementKey), "messaging.payload", "faas.event", "faas.res"}
+var hMacKey []byte
+
+func obfuscateMap(aMap map[string]interface{}) string {
+	var result string
+	for _, val := range aMap {
+		switch val.(type) {
+		case map[string]interface{}:
+			result = obfuscateMap(val.(map[string]interface{}))
+		case []interface{}:
+			result = obfuscateArray(val.([]interface{}))
+		default:
+			result = obfuscatePrimitives(val)
+		}
+	}
+	return result
+}
+
+func obfuscateArray(anArray []interface{}) string {
+	var result string
+	for _, val := range anArray {
+		switch val.(type) {
+		case map[string]interface{}:
+			result = obfuscateMap(val.(map[string]interface{}))
+		case []interface{}:
+			result = obfuscateArray(val.([]interface{}))
+		default:
+			result = obfuscatePrimitives(val)
+		}
+	}
+	return result
+}
+
+func modifyElement(element any) (any, bool) {
+	var result any
+	switch element.(type) {
+	case map[string]interface{}:
+		result = obfuscateMap(element.(map[string]interface{}))
+	case []interface{}:
+		result = obfuscateArray(element.([]interface{}))
+	default:
+		result = obfuscatePrimitives(element)
+	}
+
+	return result, true
+}
+
+func obfuscatePrimitives(val any) string {
+	var bs []byte
+	if val != nil {
+		h := hmac.New(sha256.New, gethMacKey())
+		switch val.(type) {
+		case string:
+			h.Write([]byte(val.(string)))
+			bs = h.Sum(nil)
+		default:
+			h.Write([]byte(fmt.Sprintf("%v", val)))
+			bs = h.Sum(nil)
+		}
+	}
+	return hex.EncodeToString(bs)[:lengthToObfuscatedByteArray]
+}
+
+func obfuscateDataHelper(value attribute.Value, obfuscationMode string, obfuscationRules []jp.Expr) attribute.Value {
+	var attrValueAsJson map[string]interface{}
+	if value.Type() == attribute.STRING {
+		err := json.Unmarshal([]byte(value.AsString()), &attrValueAsJson)
+		if err != nil {
+			obfuscatedPrimitiveValue := obfuscatePrimitives(value.AsString())
+			return attribute.StringValue(obfuscatedPrimitiveValue)
+			
+		}
+		var result any
+		switch obfuscationMode {
+		case "blocklist":
+			for _, rule := range obfuscationRules {
+				result, err = rule.Modify(attrValueAsJson, modifyElement)
+				if err != nil {
+					log.Printf("Failed applying obfuscation in blocklist mode")
+					return value
+				}
+			}
+			data, _ := json.Marshal(result)
+			return attribute.StringValue(string(data))
+		}
+	}
+	return value
+}
+
+func obfuscateAttributeValue(attribute attribute.KeyValue) attribute.Value {
+	heliosConfig := getHeliosConfig()
+	if heliosConfig != nil && heliosConfig.obfuscationConfig.obfuscationEnabled && slices.Contains(DATA_TO_OBFUSCATE, string(attribute.Key)) {
+		return obfuscateDataHelper(attribute.Value, heliosConfig.obfuscationConfig.obfuscationMode, heliosConfig.obfuscationConfig.obfuscationRules)
+	}
+	return attribute.Value
+}
+
+func gethMacKey() []byte {
+	heliosConfig := getHeliosConfig()
+	if hMacKey == nil {
+		hMacKey = []byte(heliosConfig.obfuscationConfig.obfuscationhmacKey)
+	}
+	return hMacKey
+}
