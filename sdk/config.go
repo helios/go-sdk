@@ -11,13 +11,13 @@ import (
 	"go.opentelemetry.io/otel/sdk/trace"
 )
 
-var heliosConfigSingletone *HeliosConfig
+var heliosConfigSingleton *HeliosConfig
 
 type HeliosObfuscationConfig struct {
 	obfuscationEnabled bool
 	obfuscationMode    string
 	obfuscationRules   []jp.Expr
-	obfuscationhmacKey int
+	obfuscationhmacKey string
 }
 
 type HeliosConfig struct {
@@ -188,21 +188,19 @@ func getObfuscationDetails(attrs []attribute.KeyValue) HeliosObfuscationConfig {
 	hsDataObfuscationAllowlist := getStringSliceConfig(hsDataObfuscationAllowlistEnvVAr, []string{}, hsDataObfuscationAllowlistConfig)
 	hsDatahMacKey := getStringConfig(hsDatahMacKeyEnvVar, "", hsDatahMacKeyConfig)
 	if hsDatahMacKey != "" {
-		hsDatahMacKeyAsInt, err := strconv.Atoi(hsDatahMacKey)
-		if err == nil {
+
 		if len(hsDataObfuscationBlocklist) > 0 {
-			return HeliosObfuscationConfig{true, "blocklist", parseObfuscationRules(hsDataObfuscationBlocklist), hsDatahMacKeyAsInt}
+			return HeliosObfuscationConfig{true, "blocklist", parseObfuscationRules(hsDataObfuscationBlocklist), hsDatahMacKey}
 		} else if len(hsDataObfuscationAllowlist) > 0 {
-			return HeliosObfuscationConfig{true, "allowlist", parseObfuscationRules(hsDataObfuscationAllowlist), hsDatahMacKeyAsInt}
+			return HeliosObfuscationConfig{true, "allowlist", parseObfuscationRules(hsDataObfuscationAllowlist), hsDatahMacKey}
 		}
 	}
-	}
-	return HeliosObfuscationConfig{false, "", []jp.Expr{}, 0}
+	return HeliosObfuscationConfig{false, "", []jp.Expr{}, "0"}
 }
 
-func getOrCreateHeliosConfig(serviceName string, apiToken string, attrs ...attribute.KeyValue) *HeliosConfig {
-	if heliosConfigSingletone != nil {
-		return heliosConfigSingletone
+func createHeliosConfig(serviceName string, apiToken string, attrs ...attribute.KeyValue) *HeliosConfig {
+	if heliosConfigSingleton != nil {
+		return heliosConfigSingleton
 	} else {
 		sampler := getSampler(attrs)
 		collectorInsecure := isCollectorInsecure(attrs)
@@ -213,14 +211,14 @@ func getOrCreateHeliosConfig(serviceName string, apiToken string, attrs ...attri
 		debug := isDebugMode(attrs)
 		metadataOnly := isMetadataOnlyMode(attrs)
 		obfuscationConfig := getObfuscationDetails(attrs)
-		heliosConfigSingletone = &HeliosConfig{serviceName, apiToken, sampler, collectorInsecure, collectorEndpoint, collectorPath, environment, commitHash, debug, metadataOnly, obfuscationConfig}
-		return heliosConfigSingletone
+		heliosConfigSingleton = &HeliosConfig{serviceName, apiToken, sampler, collectorInsecure, collectorEndpoint, collectorPath, environment, commitHash, debug, metadataOnly, obfuscationConfig}
+		return heliosConfigSingleton
 	}
 }
 
 func getHeliosConfig() *HeliosConfig {
-	if heliosConfigSingletone != nil {
-		return heliosConfigSingletone
+	if heliosConfigSingleton != nil {
+		return heliosConfigSingleton
 	}
-	return  nil
+	return nil
 }

@@ -29,7 +29,7 @@ func initHelperObfuscator(samplingRatio float64) {
 		provider.Shutdown(context.Background())
 	}
 	providerSingelton = nil
-	provider, _ = Initialize(serviceName, "abcd1234", WithCollectorEndpoint(""), WithSamplingRatio(samplingRatio), WithObfuscationBlocklistRules(blocklistRules), WithhmacKey("1234"))
+	provider, _ = Initialize(serviceName, "abcd1234", WithCollectorEndpoint(""), WithSamplingRatio(samplingRatio), WithObfuscationBlocklistRules(blocklistRules), WithhmacKey("12345"))
 	exporter = tracetest.NewInMemoryExporter()
 	provider.RegisterSpanProcessor(trace.NewSimpleSpanProcessor(exporter))
 }
@@ -39,9 +39,9 @@ func init() {
 }
 
 
-func TestObfuscationBlocklist(t *testing.T) {
+func TestObfuscationBlocklistDbStatement(t *testing.T) {
 	stringAttr := "{\"collection\":\"spec\",\"details\":[{ \"name\":\"Lior Govrin\",\"male\":true,\"age\":35,\"address\":\"New York\",\"null\":null},{\"name\":\"Alice Smith\",\"male\":false,\"age\":42,\"address\":\"Jerusalem\",\"extra\":\"field\"}]}"
-	obfuscatedDataExpectedValue := "{\"collection\":\"XHF3xRtbaOzWm4lxXtvBUi9HTArz+dw1Q7yxr5G7E0k=\",\"details\":[{\"address\":\"New York\",\"age\":35,\"male\":true,\"name\":\"n1IkECL7qb8VEcv9/7NUwFtabP6Gs8aW7fK7codetqE=\",\"null\":null},{\"address\":\"Jerusalem\",\"age\":42,\"extra\":\"field\",\"male\":false,\"name\":\"wEHZ1CbCELc6+Tv5RJgHetjYFeSZPvIh8KNIZcQZx7E=\"}]}"
+	obfuscatedDataExpectedValue := "{\"collection\":\"d3ae0dfc\",\"details\":[{\"address\":\"New York\",\"age\":35,\"male\":true,\"name\":\"dac02c19\",\"null\":null},{\"address\":\"Jerusalem\",\"age\":42,\"extra\":\"field\",\"male\":false,\"name\":\"f175ac0e\"}]}"
 	keyValueAttr := attribute.KeyValue{
 		Key:   "db.statement",
 		Value: attribute.StringValue(stringAttr),
@@ -49,4 +49,52 @@ func TestObfuscationBlocklist(t *testing.T) {
 	attrs := []attribute.KeyValue{keyValueAttr}
 	obfuscatedData := obfuscateAttributeValue(attrs[0]).AsString()
 	assert.Equal(t, obfuscatedDataExpectedValue, obfuscatedData)
+}
+
+func TestObfuscationBlocklistHttpRequestBody(t *testing.T) {
+	stringAttr := "{\"name\":\"Lior Govrin\",\"male\":true,\"age\":35,\"address\":\"New York\",\"null\":null,\"metadata\":{\"date\":\"2022-04-01T00:00:00.000Z\",\"count\":5}}"
+	obfuscatedDataExpectedValue := "{\"address\":\"New York\",\"age\":35,\"male\":true,\"metadata\":{\"count\":\"7337c795\",\"date\":\"c6e6d6c3\"},\"name\":\"Lior Govrin\",\"null\":null}"
+	keyValueAttr := attribute.KeyValue{
+		Key:   "http.request.body",
+		Value: attribute.StringValue(stringAttr),
+	}
+	attrs := []attribute.KeyValue{keyValueAttr}
+	obfuscatedData := obfuscateAttributeValue(attrs[0]).AsString()
+	assert.Equal(t, obfuscatedDataExpectedValue, obfuscatedData)
+}
+
+func TestObfuscationBlocklistMessagingPayload(t *testing.T) {
+	stringAttr := "{\"topic\":\"test\",\"information\":[{ \"name\":\"Lior Govrin\",\"male\":true,\"age\":35,\"address\":\"New York\",\"null\":null},{\"name\":\"Alice Smith\",\"male\":false,\"age\":42,\"address\":\"Jerusalem\",\"extra\":\"field\"},{\"name\":\"Bob Wilson\",\"male\":true,\"age\":100,\"address\":\"Unclassified\",\"extra\":\"field\"}]}"
+	obfuscatedDataExpectedValue := "{\"information\":[{\"address\":\"New York\",\"age\":\"8baca100\",\"male\":true,\"name\":\"Lior Govrin\",\"null\":null},{\"address\":\"Jerusalem\",\"age\":\"99f900ae\",\"extra\":\"field\",\"male\":false,\"name\":\"Alice Smith\"},{\"address\":\"119b419b\",\"age\":\"fde61109\",\"extra\":\"field\",\"male\":true,\"name\":\"Bob Wilson\"}],\"topic\":\"e031ba1c\"}"
+	keyValueAttr := attribute.KeyValue{
+		Key:   "messaging.payload",
+		Value: attribute.StringValue(stringAttr),
+	}
+	attrs := []attribute.KeyValue{keyValueAttr}
+	obfuscatedData := obfuscateAttributeValue(attrs[0]).AsString()
+	assert.Equal(t, obfuscatedDataExpectedValue, obfuscatedData)
+}
+
+func TestObfuscationBlocklistNonJsonVal(t *testing.T) {
+	stringAttr := "test"
+	obfuscatedDataExpectedValue := "e031ba1c"
+	keyValueAttr := attribute.KeyValue{
+		Key:   "faas.event",
+		Value: attribute.StringValue(stringAttr),
+	}
+	attrs := []attribute.KeyValue{keyValueAttr}
+	obfuscatedData := obfuscateAttributeValue(attrs[0]).AsString()
+	assert.Equal(t, obfuscatedDataExpectedValue, obfuscatedData)
+}
+
+func TestObfuscationBlocklistDontObfuscateNonRelevantKey(t *testing.T) {
+	stringAttr := "{\"collection\":\"spec\",\"details\":[{ \"name\":\"Lior Govrin\",\"male\":true,\"age\":35,\"address\":\"New York\",\"null\":null},{\"name\":\"Alice Smith\",\"male\":false,\"age\":42,\"address\":\"Jerusalem\",\"extra\":\"field\"}]}"
+
+	keyValueAttr := attribute.KeyValue{
+		Key:   "span.name",
+		Value: attribute.StringValue(stringAttr),
+	}
+	attrs := []attribute.KeyValue{keyValueAttr}
+	obfuscatedData := obfuscateAttributeValue(attrs[0]).AsString()
+	assert.Equal(t, stringAttr, obfuscatedData)
 }

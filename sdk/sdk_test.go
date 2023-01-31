@@ -107,6 +107,3 @@ func TestSamplerNoSampling(t *testing.T) {
 	assert.Equal(t, 1, len(exported))
 	assert.Equal(t, exported[0].Name, "sampled2")
 }
-
-
-	
