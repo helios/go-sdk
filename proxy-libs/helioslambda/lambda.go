@@ -64,7 +64,10 @@ func (c sqsMessageCarrier) Keys() []string {
 
 func extractQueueName(eventSourceArn string) string {
 	if eventSourceArn != "" {
-		return eventSourceArn[strings.LastIndex(":", eventSourceArn) + 1 :]
+		queueNameIndex := strings.LastIndex(":", eventSourceArn)
+		if queueNameIndex != -1 {
+			return eventSourceArn[strings.LastIndex(":", eventSourceArn)+1:]
+		}
 	}
 	return eventSourceArn
 }
