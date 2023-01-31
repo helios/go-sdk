@@ -3,6 +3,7 @@ package helioslambda
 import (
 	"context"
 	"encoding/json"
+	"strings"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
@@ -61,6 +62,13 @@ func (c sqsMessageCarrier) Keys() []string {
 	return result
 }
 
+func extractQueueName(eventSourceArn string) string {
+	if eventSourceArn != "" {
+		return eventSourceArn[strings.LastIndex(":", eventSourceArn) + 1 :]
+	}
+	return eventSourceArn
+}
+
 func HandleRecord(ctx context.Context, record events.SQSMessage, handleRecordHelper func(ctx context.Context, message events.SQSMessage) (any, error)) (any, error) {
 	recordCtx := propagator.Extract(ctx, sqsMessageCarrier{record.MessageAttributes})
 	tp := otel.GetTracerProvider()
@@ -76,7 +84,7 @@ func HandleRecord(ctx context.Context, record events.SQSMessage, handleRecordHel
 		Key:   "faas.event",
 		Value: attribute.StringValue(record.Body),
 	}
-	spanName := record.EventSourceARN
+	spanName := extractQueueName(record.EventSourceARN)
 	if spanName == "" {
 		spanName = "process SQS"
 	}
