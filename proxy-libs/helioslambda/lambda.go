@@ -76,7 +76,7 @@ func HandleRecord(ctx context.Context, record events.SQSMessage, handleRecordHel
 		Key:   "faas.event",
 		Value: attribute.StringValue(record.Body),
 	}
-	updatedCtx, span := tp.Tracer(otellambdaTracerName).Start(recordCtx, "sqs message", trace.WithAttributes(messageId, messagingSystem, messagingPayload))
+	updatedCtx, span := tp.Tracer(otellambdaTracerName).Start(recordCtx, "handle_sqs_record", trace.WithAttributes(messageId, messagingSystem, messagingPayload))
 	defer span.End()
 	return handleRecordHelper(updatedCtx, record)
 }

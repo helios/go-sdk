@@ -44,6 +44,21 @@ func validateResults(t *testing.T, resp []reflect.Value) {
 	assert.Equal(t, lambdaSpan.SpanContext.SpanID().String(), customSpan.Parent.SpanID().String())
 }
 
+func validateSqsTestResults(t *testing.T, resp []reflect.Value) {
+	assert.Len(t, resp, 2)
+	assert.Equal(t, response, resp[0].Interface())
+	assert.Nil(t, resp[1].Interface())
+
+	spans := exporter.GetSpans()
+	assert.Len(t, spans, 3)
+	lambdaSqsHandlerSpan := spans[1]
+	assert.Equal(t, traceId, lambdaSqsHandlerSpan.SpanContext.TraceID().String())
+	assert.Equal(t, parentSpanId, lambdaSqsHandlerSpan.Parent.SpanID().String())
+	customSpan := spans[0]
+	assert.Equal(t, traceId, customSpan.SpanContext.TraceID().String())
+	assert.Equal(t, lambdaSqsHandlerSpan.SpanContext.SpanID().String(), customSpan.Parent.SpanID().String())
+}
+
 func TestApiGatewayContextPropagation(t *testing.T) {
 	ctx := context.Background()
 	exporter.Reset()
@@ -109,15 +124,17 @@ func TestSqsContextPropagationInTraceHeader(t *testing.T) {
 		return response, nil
 	}
 
-	newHandler := func(lambdaContext context.Context, event events.SQSEvent) {
+	newHandler := func(lambdaContext context.Context, event events.SQSEvent) (any,error) {
+		var returnVal any
 		for _, record := range event.Records {
-			HandleRecord(lambdaContext, record, innerMethod)
+			returnVal,_ = HandleRecord(lambdaContext, record, innerMethod)
 		}
+		return returnVal,nil
 	}
 
 	wrapped := instrumentHandler(newHandler)
 
 	wrappedCallable := reflect.ValueOf(wrapped)
 	resp := wrappedCallable.Call([]reflect.Value{reflect.ValueOf(ctx), reflect.ValueOf(testSqsRecord)})
-	validateResults(t, resp)
+	validateSqsTestResults(t, resp)
 }
