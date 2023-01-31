@@ -16,6 +16,7 @@ import (
 )
 
 var InstrumentedSymbols = [...]string{"Start", "StartWithContext", "StartWithOptions"}
+var propagator = propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{})
 
 const otellambdaTracerName = "go.opentelemetry.io/contrib/instrumentation/github.com/aws/aws-lambda-go/otellambda"
 
@@ -61,8 +62,7 @@ func (c sqsMessageCarrier) Keys() []string {
 }
 
 func HandleRecord(ctx context.Context, record events.SQSMessage, handleRecordHelper func(ctx context.Context, message events.SQSMessage) (any, error)) (any, error) {
-	// otel.SetTextMapPropagator(sqsMessageCarrier)
-	recordCtx := otel.GetTextMapPropagator().Extract(ctx, sqsMessageCarrier{record.MessageAttributes})
+	recordCtx := propagator.Extract(ctx, sqsMessageCarrier{record.MessageAttributes})
 	tp := otel.GetTracerProvider()
 	messageId := attribute.KeyValue{
 		Key:   semconv.MessageIDKey,
@@ -76,7 +76,8 @@ func HandleRecord(ctx context.Context, record events.SQSMessage, handleRecordHel
 		Key:   "faas.event",
 		Value: attribute.StringValue(record.Body),
 	}
-	updatedCtx, _ := tp.Tracer(otellambdaTracerName).Start(recordCtx, "sqs message", trace.WithAttributes(messageId, messagingSystem, messagingPayload))
+	updatedCtx, span := tp.Tracer(otellambdaTracerName).Start(recordCtx, "sqs message", trace.WithAttributes(messageId, messagingSystem, messagingPayload))
+	defer span.End()
 	return handleRecordHelper(updatedCtx, record)
 }
 
@@ -123,7 +124,7 @@ func instrumentHandler(handler interface{}) interface{} {
 	if success {
 		options = append(options, otellambda.WithFlusher(castProvider),
 			otellambda.WithEventToCarrier(heliosEventToCarrier),
-			otellambda.WithPropagator(propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{})))
+			otellambda.WithPropagator(propagator))
 	}
 	return otellambda.InstrumentHandler(handler, options...)
 }
