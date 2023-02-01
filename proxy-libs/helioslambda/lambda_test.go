@@ -2,6 +2,9 @@ package helioslambda
 
 import (
 	"context"
+	"encoding/json"
+	"io/ioutil"
+	"os"
 	"reflect"
 	"testing"
 
@@ -113,7 +116,7 @@ func TestEventbridgeContextPropagationInTraceHeader(t *testing.T) {
 	validateResults(t, resp)
 }
 
-func TestSqsContextPropagationInTraceHeader(t *testing.T) {
+func TestSqsContextPropagationInMessageAttribute(t *testing.T) {
 	exporter.Reset()
 	ctx := context.Background()
 	otel.SetTracerProvider(provider)
@@ -136,5 +139,43 @@ func TestSqsContextPropagationInTraceHeader(t *testing.T) {
 
 	wrappedCallable := reflect.ValueOf(wrapped)
 	resp := wrappedCallable.Call([]reflect.Value{reflect.ValueOf(ctx), reflect.ValueOf(testSqsRecord)})
+	validateSqsTestResults(t, resp)
+}
+
+func TestSqsEventBridgeContextPropagaion(t *testing.T) {
+	jsonFile, err := os.Open("sqsMessage.json")
+	if err != nil {
+		assert.Fail(t, "could not open json file")
+	}
+	defer jsonFile.Close()
+	var record events.SQSEvent
+	byteValue, _ := ioutil.ReadAll(jsonFile)
+	err  = json.Unmarshal(byteValue, &record)
+	if err != nil {
+		assert.Fail(t, "could not parse json file")
+	}
+
+	exporter.Reset()
+	ctx := context.Background()
+	otel.SetTracerProvider(provider)
+
+	innerMethod := func(lambdaContext context.Context, event events.SQSMessage) (any, error) {
+		_, customSpan := provider.Tracer("test").Start(lambdaContext, "custom_span")
+		customSpan.End()
+		return response, nil
+	}
+
+	newHandler := func(lambdaContext context.Context, event events.SQSEvent) (any,error) {
+		var returnVal any
+		for _, record := range event.Records {
+			returnVal,_ = HandleRecord(lambdaContext, record, innerMethod)
+		}
+		return returnVal,nil
+	}
+
+	wrapped := instrumentHandler(newHandler)
+
+	wrappedCallable := reflect.ValueOf(wrapped)
+	resp := wrappedCallable.Call([]reflect.Value{reflect.ValueOf(ctx), reflect.ValueOf(record)})
 	validateSqsTestResults(t, resp)
 }

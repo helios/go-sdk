@@ -1,0 +1,12 @@
+{
+  "Records": [
+    {
+      "messageId": "9c3aeeeef-6eee-4a18-9abc-89753969a233",
+      "receiptHandle": "AQEBUjLMNIEkASgzMS9sSrfQdkZZa7tfH0sLH/KEXpr3P3c+Aen0WQ3x3gZoKXycvhkjU3F6vA+VwRky3JOCRxUN5o1d97y52Iqw0ID/HUflIXDoJWEUCRDUIRCONTEtbYW39EE5Fxxz+rc4YyBw5v8dlxCDtXdgdyEucUVIdQt4K+94YJdz3GTpQF2ASg0YdhRQvWQb4to+wfJLVW/C0f/cgY43zFTNHrRCSuRKBMNEUONSKntc0ubh7QHyBjNoIUC+2QXGq2ECdkBlBJ9BVDQZLXuObgjcoL1hi2XiLebTKCRT0Jo0rMEfs17giLHIFwy1ZrKeOqim",
+      "body": "{\"version\":\"0\",\"id\":\"5b2fcd39-5fd6-b4ef-51a6-7d5624ced5da\",\"detail-type\":\"CustomerPurchase\",\"source\":\"com.mycompany.events\",\"account\":\"3829362938291\",\"time\":\"2021-12-02T06:01:09Z\",\"region\":\"us-east-1\",\"resources\":[],\"detail\":{\"type\":\"order\",\"orderNumber\":\"2928\", \"traceparent\":\"00-83d8d6c5347593d092e9409f4978bd51-6f2a23d2d1e9159c-01\"}}",
+      "eventSource": "aws:sqs",
+      "eventSourceARN": "arn:aws:sqs:us-east-1:3829362938291:my-queue.fifo",
+      "awsRegion": "us-east-1"
+    }
+  ]
+}

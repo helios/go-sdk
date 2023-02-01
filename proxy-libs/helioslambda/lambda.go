@@ -21,6 +21,8 @@ var InstrumentedSymbols = [...]string{"Start", "StartWithContext", "StartWithOpt
 var propagator = propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{})
 
 const otellambdaTracerName = "go.opentelemetry.io/contrib/instrumentation/github.com/aws/aws-lambda-go/otellambda"
+const traceParentHeader = "Traceparent"
+const lowerCaseTraceParentHeader = "traceparent"
 
 type apiGatewayEvent struct {
 	Headers map[string]string `json:"headers"`
@@ -73,8 +75,33 @@ func extractQueueName(eventSourceArn string) string {
 	return eventSourceArn
 }
 
+func extractContextFromSqsMessage(ctx context.Context, attributes map[string]events.SQSMessageAttribute) context.Context {
+	return propagator.Extract(ctx, sqsMessageCarrier{attributes})
+}
+
+func extractContextFromEventBridgeSqsMessage(ctx context.Context, record events.SQSMessage) context.Context {
+	var messageBody map[string]interface{}
+	err := json.Unmarshal([]byte(record.Body), &messageBody)
+	if err != nil {
+		return ctx
+	}
+	if val, ok := messageBody["detail"]; ok {
+		var detail map[string]interface{}
+		detail = val.(map[string]interface{})
+		if traceparentVal, ok := detail[lowerCaseTraceParentHeader]; ok {
+			return propagator.Extract(ctx, propagation.MapCarrier{lowerCaseTraceParentHeader: traceparentVal.(string)})
+		}
+	}
+	return ctx
+}
+
 func HandleRecord(ctx context.Context, record events.SQSMessage, handleRecordHelper func(ctx context.Context, message events.SQSMessage) (any, error)) (any, error) {
-	recordCtx := propagator.Extract(ctx, sqsMessageCarrier{record.MessageAttributes})
+	var recordCtx context.Context
+	if _, ok := record.MessageAttributes[lowerCaseTraceParentHeader]; ok {
+		recordCtx = extractContextFromSqsMessage(ctx, record.MessageAttributes)
+	} else {
+		recordCtx = extractContextFromEventBridgeSqsMessage(ctx, record)
+	}
 	tp := otel.GetTracerProvider()
 	messageId := attribute.KeyValue{
 		Key:   semconv.MessageIDKey,
@@ -98,8 +125,6 @@ func HandleRecord(ctx context.Context, record events.SQSMessage, handleRecordHel
 }
 
 func heliosEventToCarrier(eventJSON []byte) propagation.TextMapCarrier {
-	const traceParentHeader = "Traceparent"
-	const lowerCaseTraceParentHeader = "traceparent"
 
 	// Try API Gateway context propagation
 	var headers apiGatewayEvent
