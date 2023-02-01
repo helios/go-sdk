@@ -65,14 +65,14 @@ func (c sqsMessageCarrier) Keys() []string {
 	return result
 }
 
-func extractQueueName(eventSourceArn string) string {
+func extractSpanNameFromQueueName(eventSourceArn string) string {
 	if eventSourceArn != "" {
-		queueNameIndex := strings.LastIndex(":", eventSourceArn)
+		queueNameIndex := strings.LastIndex(eventSourceArn, ":")
 		if queueNameIndex != -1 {
-			return eventSourceArn[queueNameIndex+1:]
+			return fmt.Sprintf("process %s", eventSourceArn[queueNameIndex+1:])
 		}
 	}
-	return eventSourceArn
+	return "process SQS"
 }
 
 func extractContextFromSqsMessage(ctx context.Context, attributes map[string]events.SQSMessageAttribute) context.Context {
@@ -115,10 +115,7 @@ func HandleRecord(ctx context.Context, record events.SQSMessage, handleRecordHel
 		Key:   "faas.event",
 		Value: attribute.StringValue(record.Body),
 	}
-	spanName := fmt.Sprintf("process %s", extractQueueName(record.EventSourceARN))
-	if spanName == "" {
-		spanName = "process SQS"
-	}
+	spanName := extractSpanNameFromQueueName(record.EventSource)
 	updatedCtx, span := tp.Tracer(otellambdaTracerName).Start(recordCtx, spanName, trace.WithAttributes(messageId, messagingSystem, messagingPayload))
 	defer span.End()
 	return handleRecordHelper(updatedCtx, record)
