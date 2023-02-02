@@ -77,6 +77,27 @@ func WithMetadataOnlyMode() attribute.KeyValue {
 	}
 }
 
+func WithObfuscationBlocklistRules(blocklistRules []string) attribute.KeyValue {
+	return attribute.KeyValue{
+		Key:   hsDataObfuscationBlocklistKey,
+		Value: attribute.StringSliceValue(blocklistRules),
+	}
+}
+
+func WithObfuscationAllowlistRules(allowlistRules []string) attribute.KeyValue {
+	return attribute.KeyValue{
+		Key:   hsDataObfuscationAllowlistKey,
+		Value: attribute.StringSliceValue(allowlistRules),
+	}
+}
+
+func WithhmacKey(hMacKey string) attribute.KeyValue {
+	return attribute.KeyValue{
+		Key:   hsDatahMacKey,
+		Value: attribute.StringValue(hMacKey),
+	}
+}
+
 func CreateCustomSpan(context context.Context, spanName string, attributes []attribute.KeyValue, callback func()) context.Context {
 	if providerSingelton == nil {
 		log.Print("Can't create custom span before Initialize is called")
@@ -105,7 +126,7 @@ func Initialize(serviceName string, apiToken string, attrs ...attribute.KeyValue
 	}
 
 	ctx := context.Background()
-	heliosConfig := getHeliosConfig(serviceName, apiToken, attrs...)
+	heliosConfig := createHeliosConfig(serviceName, apiToken, attrs...)
 	var exporter *otlptrace.Exporter
 	if heliosConfig.collectorEndpoint != "" {
 		options := []otlptracehttp.Option{
