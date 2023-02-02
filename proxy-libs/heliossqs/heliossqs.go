@@ -101,9 +101,6 @@ func attributeSetter(ctx context.Context, ii middleware.InitializeInput) []attri
 					carrier := sqsMessageCarrier{attrs}
 					otel.GetTextMapPropagator().Inject(ctx, carrier)
 				}
-
-				carrier := sqsMessageCarrier{attrs}
-				otel.GetTextMapPropagator().Inject(ctx, carrier)
 			}
 		}
 	case *origin_sqs.ReceiveMessageInput:
