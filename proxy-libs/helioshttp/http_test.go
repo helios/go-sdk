@@ -6,6 +6,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
+	"log"
 	"net/http"
 	"os"
 	"testing"
@@ -25,10 +27,17 @@ const requestBody = "{\"id\":123,\"name\":\"Lior Govrin\",\"role\":\"Software En
 const responseBody = "hello1234"
 
 func getHello(responseWriter ResponseWriter, request *Request) {
+	body, _ := ioutil.ReadAll(request.Body)
+	if string(body) != requestBody {
+		log.Fatal("Invalid request body")
+	}
 	io.WriteString(responseWriter, responseBody)
 }
 
 func validateAttributes(attrs []attribute.KeyValue, path string, metadataOnly bool, t *testing.T) {
+	requestBodyFound := false
+	requestHeadersFound := false
+	responseBodyFound := false
 	for _, value := range attrs {
 		key := value.Key
 		if key == semconv.HTTPMethodKey {
@@ -38,18 +47,22 @@ func validateAttributes(attrs []attribute.KeyValue, path string, metadataOnly bo
 		} else if key == semconv.HTTPStatusCodeKey {
 			assert.Equal(t, 200, int(value.Value.AsInt64()))
 		} else if key == "http.response.body" {
-			assert.False(t, metadataOnly)
+			responseBodyFound = true
 			assert.Equal(t, responseBody, value.Value.AsString())
 		} else if key == "http.request.headers" {
-			assert.False(t, metadataOnly)
+			requestHeadersFound = true
 			headers := map[string][]string{}
 			json.Unmarshal([]byte(value.Value.AsString()), &headers)
 			assert.Equal(t, "application/json", headers["Content-Type"][0])
 		} else if key == "http.request.body" {
-			assert.False(t, metadataOnly)
+			requestBodyFound = true
 			assert.Equal(t, requestBody, value.Value.AsString())
 		}
 	}
+
+	assert.Equal(t, metadataOnly, !requestBodyFound)
+	assert.Equal(t, metadataOnly, !requestHeadersFound)
+	assert.Equal(t, metadataOnly, !responseBodyFound)
 }
 
 func testHelper(t *testing.T, port int, path string, metadataOnly bool) {
