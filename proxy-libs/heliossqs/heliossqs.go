@@ -2,6 +2,7 @@ package heliossqs
 
 import (
 	"context"
+	"encoding/json"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	origin_sqs "github.com/aws/aws-sdk-go-v2/service/sqs"
@@ -101,6 +102,11 @@ func attributeSetter(ctx context.Context, ii middleware.InitializeInput) []attri
 					carrier := sqsMessageCarrier{attrs}
 					otel.GetTextMapPropagator().Inject(ctx, carrier)
 				}
+			}
+
+			res, err := json.Marshal(castParams.Entries)
+			if err == nil {
+				result = append(result, attribute.KeyValue{Key: "messaging.payload", Value: attribute.StringValue(string(res))})
 			}
 		}
 	case *origin_sqs.ReceiveMessageInput:
