@@ -10,7 +10,7 @@ import (
 	"net/url"
 	"time"
 
-	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"github.com/helios/opentelemetry-go-contrib/instrumentation/net/http/otelhttp"
 )
 
 var ErrBodyNotAllowed = realHttp.ErrBodyNotAllowed
