@@ -26,13 +26,30 @@ var (
 	testEventBridgeEvent2 = eventBridgeEvent{TraceHeader: tracingHeader}
 	exporter              = tracetest.NewInMemoryExporter()
 	provider              = trace.NewTracerProvider(trace.WithBatcher(exporter))
-	testSqsMessage        = events.SQSMessage{MessageId: "1234", MessageAttributes: map[string]events.SQSMessageAttribute{"traceparent" : {DataType: "String", StringValue: &tracingHeader}}}
+	testSqsMessage        = events.SQSMessage{MessageId: "1234", MessageAttributes: map[string]events.SQSMessageAttribute{"traceparent": {DataType: "String", StringValue: &tracingHeader}}}
 	testSqsRecord         = events.SQSEvent{Records: []events.SQSMessage{testSqsMessage}}
 )
 
 const response = "hello world"
 
-func validateResults(t *testing.T, resp []reflect.Value) {
+func assertPayloads(t *testing.T, span tracetest.SpanStub, expectedEvent string) {
+	foundRes := false
+	foundEvent := false
+	for _, attr := range span.Attributes {
+		if attr.Key == "faas.res" {
+			foundRes = true
+			assert.Equal(t, response, attr.Value.AsString())
+		} else if attr.Key == "faas.event" {
+			foundEvent = true
+			assert.Equal(t, expectedEvent, attr.Value.AsString())
+		}
+	}
+
+	assert.True(t, foundRes)
+	assert.True(t, foundEvent)
+}
+
+func validateResults(t *testing.T, resp []reflect.Value, expectedEvent string) {
 	assert.Len(t, resp, 2)
 	assert.Equal(t, response, resp[0].Interface())
 	assert.Nil(t, resp[1].Interface())
@@ -42,6 +59,7 @@ func validateResults(t *testing.T, resp []reflect.Value) {
 	lambdaSpan := spans[1]
 	assert.Equal(t, traceId, lambdaSpan.SpanContext.TraceID().String())
 	assert.Equal(t, parentSpanId, lambdaSpan.Parent.SpanID().String())
+	assertPayloads(t, lambdaSpan, expectedEvent)
 	customSpan := spans[0]
 	assert.Equal(t, traceId, customSpan.SpanContext.TraceID().String())
 	assert.Equal(t, lambdaSpan.SpanContext.SpanID().String(), customSpan.Parent.SpanID().String())
@@ -77,7 +95,8 @@ func TestApiGatewayContextPropagation(t *testing.T) {
 
 	wrappedCallable := reflect.ValueOf(wrapped)
 	resp := wrappedCallable.Call([]reflect.Value{reflect.ValueOf(ctx), reflect.ValueOf(testApiGatewayEvent)})
-	validateResults(t, resp)
+	rawEvent, _ := json.Marshal(testApiGatewayEvent)
+	validateResults(t, resp, string(rawEvent))
 }
 
 func TestEventbridgeContextPropagationInDetail(t *testing.T) {
@@ -95,7 +114,8 @@ func TestEventbridgeContextPropagationInDetail(t *testing.T) {
 
 	wrappedCallable := reflect.ValueOf(wrapped)
 	resp := wrappedCallable.Call([]reflect.Value{reflect.ValueOf(ctx), reflect.ValueOf(testEventBridgeEvent1)})
-	validateResults(t, resp)
+	rawEvent, _ := json.Marshal(testEventBridgeEvent1)
+	validateResults(t, resp, string(rawEvent))
 }
 
 func TestEventbridgeContextPropagationInTraceHeader(t *testing.T) {
@@ -113,7 +133,8 @@ func TestEventbridgeContextPropagationInTraceHeader(t *testing.T) {
 
 	wrappedCallable := reflect.ValueOf(wrapped)
 	resp := wrappedCallable.Call([]reflect.Value{reflect.ValueOf(ctx), reflect.ValueOf(testEventBridgeEvent2)})
-	validateResults(t, resp)
+	rawEvent, _ := json.Marshal(testEventBridgeEvent2)
+	validateResults(t, resp, string(rawEvent))
 }
 
 func TestSqsContextPropagationInMessageAttribute(t *testing.T) {
@@ -127,12 +148,12 @@ func TestSqsContextPropagationInMessageAttribute(t *testing.T) {
 		return response, nil
 	}
 
-	newHandler := func(lambdaContext context.Context, event events.SQSEvent) (any,error) {
+	newHandler := func(lambdaContext context.Context, event events.SQSEvent) (any, error) {
 		var returnVal any
 		for _, record := range event.Records {
-			returnVal,_ = HandleRecord(lambdaContext, record, innerMethod)
+			returnVal, _ = HandleRecord(lambdaContext, record, innerMethod)
 		}
-		return returnVal,nil
+		return returnVal, nil
 	}
 
 	wrapped := instrumentHandler(newHandler)
@@ -150,7 +171,7 @@ func TestSqsEventBridgeContextPropagaion(t *testing.T) {
 	defer jsonFile.Close()
 	var record events.SQSEvent
 	byteValue, _ := ioutil.ReadAll(jsonFile)
-	err  = json.Unmarshal(byteValue, &record)
+	err = json.Unmarshal(byteValue, &record)
 	if err != nil {
 		assert.Fail(t, "could not parse json file")
 	}
@@ -165,12 +186,12 @@ func TestSqsEventBridgeContextPropagaion(t *testing.T) {
 		return response, nil
 	}
 
-	newHandler := func(lambdaContext context.Context, event events.SQSEvent) (any,error) {
+	newHandler := func(lambdaContext context.Context, event events.SQSEvent) (any, error) {
 		var returnVal any
 		for _, record := range event.Records {
-			returnVal,_ = HandleRecord(lambdaContext, record, innerMethod)
+			returnVal, _ = HandleRecord(lambdaContext, record, innerMethod)
 		}
-		return returnVal,nil
+		return returnVal, nil
 	}
 
 	wrapped := instrumentHandler(newHandler)
