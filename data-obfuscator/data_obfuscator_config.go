@@ -9,11 +9,9 @@ import (
 	"github.com/ohler55/ojg/jp"
 )
 
-
 const hsDatahMacKeyEnvVar = "HS_DATA_OBFUSCATION_HMAC_KEY"
 const hsDataObfuscationBlocklistEnvVar = "HS_DATA_OBFUSCATION_BLOCKLIST"
 const hsDataObfuscationAllowlistEnvVAr = "HS_DATA_OBFUSCATION_ALLOWLIST"
-
 
 type HeliosObfuscationConfig struct {
 	obfuscationEnabled bool
@@ -48,8 +46,7 @@ func parseObfuscationRules(rules []string) []jp.Expr {
 	return parsedRules
 }
 
-
-func createObfuscationConfig()  HeliosObfuscationConfig{
+func createObfuscationConfig() HeliosObfuscationConfig {
 	hsDataObfuscationBlocklist := getStringSliceConfig(hsDataObfuscationBlocklistEnvVar, []string{})
 	hsDataObfuscationAllowlist := getStringSliceConfig(hsDataObfuscationAllowlistEnvVAr, []string{})
 	hsDatahMacKey := os.Getenv(hsDatahMacKeyEnvVar)

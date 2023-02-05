@@ -19,7 +19,6 @@ const lengthToObfuscatedByteArray = 8
 var DATA_TO_OBFUSCATE = []string{"http.request.body", "http.response.body", "db.query_result", string(semconv.DBStatementKey), "messaging.payload", "faas.event", "faas.res"}
 var hMacKey []byte
 
-
 func obfuscateMap(aMap map[string]interface{}) map[string]interface{} {
 	result := make(map[string]interface{}, len(aMap))
 	for key, val := range aMap {

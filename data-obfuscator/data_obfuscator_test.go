@@ -7,12 +7,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/sdk/trace"
-	"go.opentelemetry.io/otel/sdk/trace/tracetest"
 )
-
-var exporterObfuscatorTest *tracetest.InMemoryExporter
-var providerObfuscatorTest *trace.TracerProvider
 
 var blocklistRules = []string{
 	"$.metadata.*",
@@ -22,9 +17,6 @@ var blocklistRules = []string{
 	"$.topic",
 	"$.information[*].age",
 	"$..information[?(@.address=='Unclassified')].address"}
-
-const testServiceNameObfuscator = "test_service_obfuscator"
-
 
 func initHelperObfuscator(samplingRatio float64) {
 	rulesAsJsonString, _ := json.Marshal(blocklistRules)
@@ -36,7 +28,6 @@ func initHelperObfuscator(samplingRatio float64) {
 func init() {
 	initHelperObfuscator(1)
 }
-
 
 func TestObfuscationBlocklistDbStatement(t *testing.T) {
 	stringAttr := "{\"collection\":\"spec\",\"details\":[{ \"name\":\"Lior Govrin\",\"male\":true,\"age\":35,\"address\":\"New York\",\"null\":null},{\"name\":\"Alice Smith\",\"male\":false,\"age\":42,\"address\":\"Jerusalem\",\"extra\":\"field\"}]}"
