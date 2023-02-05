@@ -1,4 +1,4 @@
-module github.com/helios/go-sdk/data_obfuscator
+module github.com/helios/go-sdk/data-obfuscator
 
 go 1.18
 

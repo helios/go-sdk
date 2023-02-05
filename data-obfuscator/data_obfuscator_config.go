@@ -1,4 +1,4 @@
-package data_obfuscator
+package data-obfuscator
 
 import (
 	"encoding/json"
