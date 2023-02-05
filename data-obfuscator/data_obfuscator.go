@@ -1,4 +1,4 @@
-package sdk
+package dataobfuscator
 
 import (
 	"crypto/hmac"
@@ -13,35 +13,37 @@ import (
 	semconv "go.opentelemetry.io/otel/semconv/v1.11.0"
 	"golang.org/x/exp/slices"
 )
+
 const lengthToObfuscatedByteArray = 8
+
 var DATA_TO_OBFUSCATE = []string{"http.request.body", "http.response.body", "db.query_result", string(semconv.DBStatementKey), "messaging.payload", "faas.event", "faas.res"}
 var hMacKey []byte
 
-func obfuscateMap(aMap map[string]interface{}) string {
-	var result string
-	for _, val := range aMap {
+func obfuscateMap(aMap map[string]interface{}) map[string]interface{} {
+	result := make(map[string]interface{}, len(aMap))
+	for key, val := range aMap {
 		switch val.(type) {
 		case map[string]interface{}:
-			result = obfuscateMap(val.(map[string]interface{}))
+			result[key] = obfuscateMap(val.(map[string]interface{}))
 		case []interface{}:
-			result = obfuscateArray(val.([]interface{}))
+			result[key] = obfuscateArray(val.([]interface{}))
 		default:
-			result = obfuscatePrimitives(val)
+			result[key] = obfuscatePrimitives(val)
 		}
 	}
 	return result
 }
 
-func obfuscateArray(anArray []interface{}) string {
-	var result string
-	for _, val := range anArray {
+func obfuscateArray(anArray []interface{}) []interface{} {
+	result := make([]interface{}, len(anArray))
+	for i, val := range anArray {
 		switch val.(type) {
 		case map[string]interface{}:
-			result = obfuscateMap(val.(map[string]interface{}))
+			result[i] = obfuscateMap(val.(map[string]interface{}))
 		case []interface{}:
-			result = obfuscateArray(val.([]interface{}))
+			result[i] = obfuscateArray(val.([]interface{}))
 		default:
-			result = obfuscatePrimitives(val)
+			result[i] = obfuscatePrimitives(val)
 		}
 	}
 	return result
@@ -61,19 +63,22 @@ func modifyElement(element any) (any, bool) {
 	return result, true
 }
 
-func obfuscatePrimitives(val any) string {
-	var bs []byte
-	if val != nil {
-		h := hmac.New(sha256.New, gethMacKey())
-		switch val.(type) {
-		case string:
-			h.Write([]byte(val.(string)))
-			bs = h.Sum(nil)
-		default:
-			h.Write([]byte(fmt.Sprintf("%v", val)))
-			bs = h.Sum(nil)
-		}
+func obfuscatePrimitives(val any) any {
+	_, isbool := val.(bool)
+	if val == nil || isbool {
+		return val
 	}
+	var bs []byte
+	h := hmac.New(sha256.New, hMacKey)
+	switch val.(type) {
+	case string:
+		h.Write([]byte(val.(string)))
+		bs = h.Sum(nil)
+	default:
+		h.Write([]byte(fmt.Sprintf("%v", val)))
+		bs = h.Sum(nil)
+	}
+
 	return hex.EncodeToString(bs)[:lengthToObfuscatedByteArray]
 }
 
@@ -83,8 +88,8 @@ func obfuscateDataHelper(value attribute.Value, obfuscationMode string, obfuscat
 		err := json.Unmarshal([]byte(value.AsString()), &attrValueAsJson)
 		if err != nil {
 			obfuscatedPrimitiveValue := obfuscatePrimitives(value.AsString())
-			return attribute.StringValue(obfuscatedPrimitiveValue)
-			
+			return attribute.StringValue(obfuscatedPrimitiveValue.(string))
+
 		}
 		var result any
 		switch obfuscationMode {
@@ -104,17 +109,10 @@ func obfuscateDataHelper(value attribute.Value, obfuscationMode string, obfuscat
 }
 
 func obfuscateAttributeValue(attribute attribute.KeyValue) attribute.Value {
-	heliosConfig := getHeliosConfig()
-	if heliosConfig != nil && heliosConfig.obfuscationConfig.obfuscationEnabled && slices.Contains(DATA_TO_OBFUSCATE, string(attribute.Key)) {
-		return obfuscateDataHelper(attribute.Value, heliosConfig.obfuscationConfig.obfuscationMode, heliosConfig.obfuscationConfig.obfuscationRules)
+	obfuscationConfig := getObfuscationConfig()
+	hMacKey = []byte(obfuscationConfig.obfuscationhmacKey)
+	if obfuscationConfig.obfuscationEnabled && slices.Contains(DATA_TO_OBFUSCATE, string(attribute.Key)) {
+		return obfuscateDataHelper(attribute.Value, obfuscationConfig.obfuscationMode, obfuscationConfig.obfuscationRules)
 	}
 	return attribute.Value
-}
-
-func gethMacKey() []byte {
-	heliosConfig := getHeliosConfig()
-	if hMacKey == nil {
-		hMacKey = []byte(heliosConfig.obfuscationConfig.obfuscationhmacKey)
-	}
-	return hMacKey
 }

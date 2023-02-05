@@ -182,3 +182,7 @@ jobs:
           - name: Run sdk unit tests
             working-directory: sdk
             run: go test
+
+          - name: Run data obfuscator unit tests
+            working-directory: data-obfuscator
+            run: go test  

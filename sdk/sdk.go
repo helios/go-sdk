@@ -2,6 +2,7 @@ package sdk
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"os"
 
@@ -78,6 +79,7 @@ func WithMetadataOnlyMode() attribute.KeyValue {
 }
 
 func WithObfuscationBlocklistRules(blocklistRules []string) attribute.KeyValue {
+	os.Setenv(hsDataObfuscationBlocklistEnvVar, fmt.Sprint(blocklistRules))
 	return attribute.KeyValue{
 		Key:   hsDataObfuscationBlocklistKey,
 		Value: attribute.StringSliceValue(blocklistRules),
@@ -85,6 +87,7 @@ func WithObfuscationBlocklistRules(blocklistRules []string) attribute.KeyValue {
 }
 
 func WithObfuscationAllowlistRules(allowlistRules []string) attribute.KeyValue {
+	os.Setenv(hsDataObfuscationAllowlistEnvVAr, fmt.Sprint(allowlistRules))
 	return attribute.KeyValue{
 		Key:   hsDataObfuscationAllowlistKey,
 		Value: attribute.StringSliceValue(allowlistRules),
@@ -92,6 +95,7 @@ func WithObfuscationAllowlistRules(allowlistRules []string) attribute.KeyValue {
 }
 
 func WithhmacKey(hMacKey string) attribute.KeyValue {
+	os.Setenv(hsDatahMacKeyEnvVar, hMacKey)
 	return attribute.KeyValue{
 		Key:   hsDatahMacKey,
 		Value: attribute.StringValue(hMacKey),
