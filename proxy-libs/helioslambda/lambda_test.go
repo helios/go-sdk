@@ -99,6 +99,30 @@ func TestApiGatewayContextPropagation(t *testing.T) {
 	validateResults(t, resp, string(rawEvent))
 }
 
+func TestApiGatewayContextPropagationWithObfuscation(t *testing.T) {
+	ctx := context.Background()
+	exporter.Reset()
+	otel.SetTracerProvider(provider)
+
+	blocklistRules,_ := json.Marshal([]string{"$.headers.*"})
+	obfuscatedExpectedPayload := "{\"headers\":{\"traceparent\":\"4161107f\"}}"
+
+	os.Setenv("HS_DATA_OBFUSCATION_HMAC_KEY", "12345")
+	os.Setenv("HS_DATA_OBFUSCATION_BLOCKLIST", string(blocklistRules))
+
+	customerHandler := func(lambdaContext context.Context, event apiGatewayEvent) (string, error) {
+		_, customSpan := provider.Tracer("test").Start(lambdaContext, "custom_span")
+		customSpan.End()
+		return response, nil
+	}
+
+	wrapped := instrumentHandler(customerHandler)
+
+	wrappedCallable := reflect.ValueOf(wrapped)
+	resp := wrappedCallable.Call([]reflect.Value{reflect.ValueOf(ctx), reflect.ValueOf(testApiGatewayEvent)})
+	validateResults(t, resp, string(obfuscatedExpectedPayload))
+}
+
 func TestEventbridgeContextPropagationInDetail(t *testing.T) {
 	exporter.Reset()
 	ctx := context.Background()
