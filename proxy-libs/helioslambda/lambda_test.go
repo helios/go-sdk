@@ -104,7 +104,7 @@ func TestApiGatewayContextPropagationWithObfuscation(t *testing.T) {
 	exporter.Reset()
 	otel.SetTracerProvider(provider)
 
-	blocklistRules,_ := json.Marshal([]string{"$.headers.*"})
+	blocklistRules, _ := json.Marshal([]string{"$.headers.*"})
 	obfuscatedExpectedPayload := "{\"headers\":{\"traceparent\":\"4161107f\"}}"
 
 	os.Setenv("HS_DATA_OBFUSCATION_HMAC_KEY", "12345")
