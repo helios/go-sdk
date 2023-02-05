@@ -2,23 +2,14 @@ package sdk
 
 import (
 	"encoding/json"
-	"log"
 	"os"
 	"strconv"
 
-	"github.com/ohler55/ojg/jp"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/sdk/trace"
 )
 
 var heliosConfigSingleton *HeliosConfig
-
-type HeliosObfuscationConfig struct {
-	obfuscationEnabled bool
-	obfuscationMode    string
-	obfuscationRules   []jp.Expr
-	obfuscationhmacKey string
-}
 
 type HeliosConfig struct {
 	serviceName       string
@@ -31,7 +22,6 @@ type HeliosConfig struct {
 	commitHash        string
 	debug             bool
 	metadataOnly      bool
-	obfuscationConfig HeliosObfuscationConfig
 }
 
 // Keys and their matching env vars
@@ -166,38 +156,6 @@ func getCommitHash(attrs []attribute.KeyValue) string {
 	return getStringConfig(commitHashEnvVar, "", commitHashConfig)
 }
 
-func parseObfuscationRules(rules []string) []jp.Expr {
-	parsedRules := []jp.Expr{}
-
-	for _, rule := range rules {
-		ruleAsExpr, err := jp.ParseString(rule)
-		if err != nil {
-			log.Printf("Failed parsing obfuscation rule %s", rule)
-			continue
-		}
-		parsedRules = append(parsedRules, ruleAsExpr)
-	}
-	return parsedRules
-}
-
-func getObfuscationDetails(attrs []attribute.KeyValue) HeliosObfuscationConfig {
-	hsDataObfuscationBlocklistConfig := getConfigByKey(hsDataObfuscationBlocklistKey, attrs)
-	hsDataObfuscationAllowlistConfig := getConfigByKey(hsDataObfuscationAllowlistKey, attrs)
-	hsDatahMacKeyConfig := getConfigByKey(hsDatahMacKey, attrs)
-	hsDataObfuscationBlocklist := getStringSliceConfig(hsDataObfuscationBlocklistEnvVar, []string{}, hsDataObfuscationBlocklistConfig)
-	hsDataObfuscationAllowlist := getStringSliceConfig(hsDataObfuscationAllowlistEnvVAr, []string{}, hsDataObfuscationAllowlistConfig)
-	hsDatahMacKey := getStringConfig(hsDatahMacKeyEnvVar, "", hsDatahMacKeyConfig)
-	if hsDatahMacKey != "" {
-
-		if len(hsDataObfuscationBlocklist) > 0 {
-			return HeliosObfuscationConfig{true, "blocklist", parseObfuscationRules(hsDataObfuscationBlocklist), hsDatahMacKey}
-		} else if len(hsDataObfuscationAllowlist) > 0 {
-			return HeliosObfuscationConfig{true, "allowlist", parseObfuscationRules(hsDataObfuscationAllowlist), hsDatahMacKey}
-		}
-	}
-	return HeliosObfuscationConfig{false, "", []jp.Expr{}, "0"}
-}
-
 func createHeliosConfig(serviceName string, apiToken string, attrs ...attribute.KeyValue) *HeliosConfig {
 	if heliosConfigSingleton != nil {
 		return heliosConfigSingleton
@@ -210,8 +168,7 @@ func createHeliosConfig(serviceName string, apiToken string, attrs ...attribute.
 		commitHash := getCommitHash(attrs)
 		debug := isDebugMode(attrs)
 		metadataOnly := isMetadataOnlyMode(attrs)
-		obfuscationConfig := getObfuscationDetails(attrs)
-		heliosConfigSingleton = &HeliosConfig{serviceName, apiToken, sampler, collectorInsecure, collectorEndpoint, collectorPath, environment, commitHash, debug, metadataOnly, obfuscationConfig}
+		heliosConfigSingleton = &HeliosConfig{serviceName, apiToken, sampler, collectorInsecure, collectorEndpoint, collectorPath, environment, commitHash, debug, metadataOnly}
 		return heliosConfigSingleton
 	}
 }

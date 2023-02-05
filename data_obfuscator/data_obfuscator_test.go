@@ -1,4 +1,4 @@
-package sdk
+package data_obfuscator
 
 import (
 	"encoding/json"
@@ -18,6 +18,7 @@ var blocklistRules = []string{
 	"$.metadata.*",
 	"$.collection",
 	"$.details[*].name",
+	"$.nestedDetails",
 	"$.topic",
 	"$.information[*].age",
 	"$..information[?(@.address=='Unclassified')].address"}
@@ -26,11 +27,10 @@ const testServiceNameObfuscator = "test_service_obfuscator"
 
 
 func initHelperObfuscator(samplingRatio float64) {
-	heliosConfigSingleton = nil
 	rulesAsJsonString, _ := json.Marshal(blocklistRules)
 	os.Setenv(hsDataObfuscationBlocklistEnvVar, string(rulesAsJsonString))
 	os.Setenv(hsDatahMacKeyEnvVar, "12345")
-	createHeliosConfig(testServiceNameObfuscator, "abcd1234")
+	getObfuscationConfig()
 }
 
 func init() {
@@ -41,6 +41,18 @@ func init() {
 func TestObfuscationBlocklistDbStatement(t *testing.T) {
 	stringAttr := "{\"collection\":\"spec\",\"details\":[{ \"name\":\"Lior Govrin\",\"male\":true,\"age\":35,\"address\":\"New York\",\"null\":null},{\"name\":\"Alice Smith\",\"male\":false,\"age\":42,\"address\":\"Jerusalem\",\"extra\":\"field\"}]}"
 	obfuscatedDataExpectedValue := "{\"collection\":\"d3ae0dfc\",\"details\":[{\"address\":\"New York\",\"age\":35,\"male\":true,\"name\":\"dac02c19\",\"null\":null},{\"address\":\"Jerusalem\",\"age\":42,\"extra\":\"field\",\"male\":false,\"name\":\"f175ac0e\"}]}"
+	keyValueAttr := attribute.KeyValue{
+		Key:   "db.statement",
+		Value: attribute.StringValue(stringAttr),
+	}
+	attrs := []attribute.KeyValue{keyValueAttr}
+	obfuscatedData := obfuscateAttributeValue(attrs[0]).AsString()
+	assert.Equal(t, obfuscatedDataExpectedValue, obfuscatedData)
+}
+
+func TestNestedObfuscationBlocklistDbStatement(t *testing.T) {
+	stringAttr := "{\"collection\":\"spec\",\"details\":[{ \"name\":\"Lior Govrin\",\"male\":true,\"age\":35,\"address\":\"New York\",\"null\":null},{\"name\":\"Alice Smith\",\"male\":false,\"age\":42,\"address\":\"Jerusalem\",\"extra\":\"field\"}], \"nestedDetails\":[{ \"name\":\"Lior Govrin\",\"male\":true,\"age\":35,\"address\":\"New York\",\"null\":null},{\"name\":\"Alice Smith\",\"male\":false,\"age\":42,\"address\":\"Jerusalem\",\"extra\":\"field\"}]}"
+	obfuscatedDataExpectedValue := "{\"collection\":\"d3ae0dfc\",\"details\":[{\"address\":\"New York\",\"age\":35,\"male\":true,\"name\":\"dac02c19\",\"null\":null},{\"address\":\"Jerusalem\",\"age\":42,\"extra\":\"field\",\"male\":false,\"name\":\"f175ac0e\"}],\"nestedDetails\":[{\"address\":\"7d639f21\",\"age\":\"2df9a61a\",\"male\":true,\"name\":\"dac02c19\",\"null\":null},{\"address\":\"7d7ae621\",\"age\":\"44343c77\",\"extra\":\"f08b0238\",\"male\":false,\"name\":\"f175ac0e\"}]}"
 	keyValueAttr := attribute.KeyValue{
 		Key:   "db.statement",
 		Value: attribute.StringValue(stringAttr),
