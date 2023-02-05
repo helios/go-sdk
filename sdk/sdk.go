@@ -79,7 +79,7 @@ func WithMetadataOnlyMode() attribute.KeyValue {
 }
 
 func WithObfuscationBlocklistRules(blocklistRules []string) attribute.KeyValue {
-	blocklistRulesAsJson,_ := json.Marshal(blocklistRules)
+	blocklistRulesAsJson, _ := json.Marshal(blocklistRules)
 	os.Setenv(hsDataObfuscationBlocklistEnvVar, string(blocklistRulesAsJson))
 	return attribute.KeyValue{
 		Key:   hsDataObfuscationBlocklistKey,
@@ -88,7 +88,7 @@ func WithObfuscationBlocklistRules(blocklistRules []string) attribute.KeyValue {
 }
 
 func WithObfuscationAllowlistRules(allowlistRules []string) attribute.KeyValue {
-	allowlistRulesAsJson,_ := json.Marshal(allowlistRules)
+	allowlistRulesAsJson, _ := json.Marshal(allowlistRules)
 	os.Setenv(hsDataObfuscationBlocklistEnvVar, string(allowlistRulesAsJson))
 	return attribute.KeyValue{
 		Key:   hsDataObfuscationAllowlistKey,
