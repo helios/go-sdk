@@ -108,11 +108,12 @@ func obfuscateDataHelper(value attribute.Value, obfuscationMode string, obfuscat
 	return value
 }
 
-func ObfuscateAttributeValue(attribute attribute.KeyValue) attribute.Value {
+func ObfuscateAttributeValue(spanAttribute attribute.KeyValue) attribute.KeyValue {
 	obfuscationConfig := getObfuscationConfig()
 	hMacKey = []byte(obfuscationConfig.obfuscationhmacKey)
-	if obfuscationConfig.obfuscationEnabled && slices.Contains(DATA_TO_OBFUSCATE, string(attribute.Key)) {
-		return obfuscateDataHelper(attribute.Value, obfuscationConfig.obfuscationMode, obfuscationConfig.obfuscationRules)
+	if obfuscationConfig.obfuscationEnabled && slices.Contains(DATA_TO_OBFUSCATE, string(spanAttribute.Key)) {
+		attributeObfuscatedVal := obfuscateDataHelper(spanAttribute.Value, obfuscationConfig.obfuscationMode, obfuscationConfig.obfuscationRules)
+		return attribute.KeyValue{Key: spanAttribute.Key, Value: attributeObfuscatedVal}
 	}
-	return attribute.Value
+	return spanAttribute
 }

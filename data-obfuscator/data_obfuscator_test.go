@@ -29,6 +29,12 @@ func init() {
 	initHelperObfuscator(1)
 }
 
+func validateObfusactedAttribute(t *testing.T, keyValueAttr attribute.KeyValue, obfuscatedDataExpectedValue string) {
+	attrs := []attribute.KeyValue{keyValueAttr}
+	obfuscatedData := ObfuscateAttributeValue(attrs[0])
+	assert.Equal(t, obfuscatedDataExpectedValue, obfuscatedData.Value.AsString())
+}
+
 func TestObfuscationBlocklistDbStatement(t *testing.T) {
 	stringAttr := "{\"collection\":\"spec\",\"details\":[{ \"name\":\"Lior Govrin\",\"male\":true,\"age\":35,\"address\":\"New York\",\"null\":null},{\"name\":\"Alice Smith\",\"male\":false,\"age\":42,\"address\":\"Jerusalem\",\"extra\":\"field\"}]}"
 	obfuscatedDataExpectedValue := "{\"collection\":\"d3ae0dfc\",\"details\":[{\"address\":\"New York\",\"age\":35,\"male\":true,\"name\":\"dac02c19\",\"null\":null},{\"address\":\"Jerusalem\",\"age\":42,\"extra\":\"field\",\"male\":false,\"name\":\"f175ac0e\"}]}"
@@ -36,9 +42,7 @@ func TestObfuscationBlocklistDbStatement(t *testing.T) {
 		Key:   "db.statement",
 		Value: attribute.StringValue(stringAttr),
 	}
-	attrs := []attribute.KeyValue{keyValueAttr}
-	obfuscatedData := ObfuscateAttributeValue(attrs[0]).AsString()
-	assert.Equal(t, obfuscatedDataExpectedValue, obfuscatedData)
+	validateObfusactedAttribute(t, keyValueAttr, obfuscatedDataExpectedValue)
 }
 
 func TestNestedObfuscationBlocklistDbStatement(t *testing.T) {
@@ -48,9 +52,7 @@ func TestNestedObfuscationBlocklistDbStatement(t *testing.T) {
 		Key:   "db.statement",
 		Value: attribute.StringValue(stringAttr),
 	}
-	attrs := []attribute.KeyValue{keyValueAttr}
-	obfuscatedData := ObfuscateAttributeValue(attrs[0]).AsString()
-	assert.Equal(t, obfuscatedDataExpectedValue, obfuscatedData)
+	validateObfusactedAttribute(t, keyValueAttr, obfuscatedDataExpectedValue)
 }
 
 func TestObfuscationBlocklistHttpRequestBody(t *testing.T) {
@@ -60,9 +62,7 @@ func TestObfuscationBlocklistHttpRequestBody(t *testing.T) {
 		Key:   "http.request.body",
 		Value: attribute.StringValue(stringAttr),
 	}
-	attrs := []attribute.KeyValue{keyValueAttr}
-	obfuscatedData := ObfuscateAttributeValue(attrs[0]).AsString()
-	assert.Equal(t, obfuscatedDataExpectedValue, obfuscatedData)
+	validateObfusactedAttribute(t, keyValueAttr, obfuscatedDataExpectedValue)
 }
 
 func TestObfuscationBlocklistMessagingPayload(t *testing.T) {
@@ -72,9 +72,7 @@ func TestObfuscationBlocklistMessagingPayload(t *testing.T) {
 		Key:   "messaging.payload",
 		Value: attribute.StringValue(stringAttr),
 	}
-	attrs := []attribute.KeyValue{keyValueAttr}
-	obfuscatedData := ObfuscateAttributeValue(attrs[0]).AsString()
-	assert.Equal(t, obfuscatedDataExpectedValue, obfuscatedData)
+	validateObfusactedAttribute(t, keyValueAttr, obfuscatedDataExpectedValue)
 }
 
 func TestObfuscationBlocklistNonJsonVal(t *testing.T) {
@@ -84,9 +82,7 @@ func TestObfuscationBlocklistNonJsonVal(t *testing.T) {
 		Key:   "faas.event",
 		Value: attribute.StringValue(stringAttr),
 	}
-	attrs := []attribute.KeyValue{keyValueAttr}
-	obfuscatedData := ObfuscateAttributeValue(attrs[0]).AsString()
-	assert.Equal(t, obfuscatedDataExpectedValue, obfuscatedData)
+	validateObfusactedAttribute(t, keyValueAttr, obfuscatedDataExpectedValue)
 }
 
 func TestObfuscationBlocklistDontObfuscateNonRelevantKey(t *testing.T) {
@@ -96,7 +92,5 @@ func TestObfuscationBlocklistDontObfuscateNonRelevantKey(t *testing.T) {
 		Key:   "span.name",
 		Value: attribute.StringValue(stringAttr),
 	}
-	attrs := []attribute.KeyValue{keyValueAttr}
-	obfuscatedData := ObfuscateAttributeValue(attrs[0]).AsString()
-	assert.Equal(t, stringAttr, obfuscatedData)
+	validateObfusactedAttribute(t, keyValueAttr, stringAttr)
 }
