@@ -37,7 +37,7 @@ func TestObfuscationBlocklistDbStatement(t *testing.T) {
 		Value: attribute.StringValue(stringAttr),
 	}
 	attrs := []attribute.KeyValue{keyValueAttr}
-	obfuscatedData := obfuscateAttributeValue(attrs[0]).AsString()
+	obfuscatedData := ObfuscateAttributeValue(attrs[0]).AsString()
 	assert.Equal(t, obfuscatedDataExpectedValue, obfuscatedData)
 }
 
@@ -49,7 +49,7 @@ func TestNestedObfuscationBlocklistDbStatement(t *testing.T) {
 		Value: attribute.StringValue(stringAttr),
 	}
 	attrs := []attribute.KeyValue{keyValueAttr}
-	obfuscatedData := obfuscateAttributeValue(attrs[0]).AsString()
+	obfuscatedData := ObfuscateAttributeValue(attrs[0]).AsString()
 	assert.Equal(t, obfuscatedDataExpectedValue, obfuscatedData)
 }
 
@@ -61,7 +61,7 @@ func TestObfuscationBlocklistHttpRequestBody(t *testing.T) {
 		Value: attribute.StringValue(stringAttr),
 	}
 	attrs := []attribute.KeyValue{keyValueAttr}
-	obfuscatedData := obfuscateAttributeValue(attrs[0]).AsString()
+	obfuscatedData := ObfuscateAttributeValue(attrs[0]).AsString()
 	assert.Equal(t, obfuscatedDataExpectedValue, obfuscatedData)
 }
 
@@ -73,7 +73,7 @@ func TestObfuscationBlocklistMessagingPayload(t *testing.T) {
 		Value: attribute.StringValue(stringAttr),
 	}
 	attrs := []attribute.KeyValue{keyValueAttr}
-	obfuscatedData := obfuscateAttributeValue(attrs[0]).AsString()
+	obfuscatedData := ObfuscateAttributeValue(attrs[0]).AsString()
 	assert.Equal(t, obfuscatedDataExpectedValue, obfuscatedData)
 }
 
@@ -85,7 +85,7 @@ func TestObfuscationBlocklistNonJsonVal(t *testing.T) {
 		Value: attribute.StringValue(stringAttr),
 	}
 	attrs := []attribute.KeyValue{keyValueAttr}
-	obfuscatedData := obfuscateAttributeValue(attrs[0]).AsString()
+	obfuscatedData := ObfuscateAttributeValue(attrs[0]).AsString()
 	assert.Equal(t, obfuscatedDataExpectedValue, obfuscatedData)
 }
 
@@ -97,6 +97,6 @@ func TestObfuscationBlocklistDontObfuscateNonRelevantKey(t *testing.T) {
 		Value: attribute.StringValue(stringAttr),
 	}
 	attrs := []attribute.KeyValue{keyValueAttr}
-	obfuscatedData := obfuscateAttributeValue(attrs[0]).AsString()
+	obfuscatedData := ObfuscateAttributeValue(attrs[0]).AsString()
 	assert.Equal(t, stringAttr, obfuscatedData)
 }
