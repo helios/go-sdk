@@ -110,6 +110,9 @@ func TestApiGatewayContextPropagationWithObfuscation(t *testing.T) {
 	os.Setenv("HS_DATA_OBFUSCATION_HMAC_KEY", "12345")
 	os.Setenv("HS_DATA_OBFUSCATION_BLOCKLIST", string(blocklistRules))
 
+	defer os.Setenv("HS_DATA_OBFUSCATION_HMAC_KEY", "")
+	defer os.Setenv("HS_DATA_OBFUSCATION_BLOCKLIST", "")
+
 	customerHandler := func(lambdaContext context.Context, event apiGatewayEvent) (string, error) {
 		_, customSpan := provider.Tracer("test").Start(lambdaContext, "custom_span")
 		customSpan.End()
