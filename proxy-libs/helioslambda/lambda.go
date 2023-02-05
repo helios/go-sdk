@@ -24,10 +24,6 @@ const otellambdaTracerName = "go.opentelemetry.io/contrib/instrumentation/github
 const traceParentHeader = "Traceparent"
 const lowerCaseTraceParentHeader = "traceparent"
 
-type apiGatewayEvent struct {
-	Headers map[string]string `json:"headers"`
-}
-
 type eventBridgeEvent struct {
 	Detail      map[string]string `json:"detail"`
 	TraceHeader string            `json:"trace-header"`
@@ -122,14 +118,13 @@ func HandleRecord(ctx context.Context, record events.SQSMessage, handleRecordHel
 }
 
 func heliosEventToCarrier(eventJSON []byte) propagation.TextMapCarrier {
-
 	// Try API Gateway context propagation
-	var headers apiGatewayEvent
-	err := json.Unmarshal(eventJSON, &headers)
-	if err == nil && headers.Headers != nil {
-		if val, ok := headers.Headers[traceParentHeader]; ok {
+	var apiGatewayEvent events.APIGatewayV2HTTPRequest
+	err := json.Unmarshal(eventJSON, &apiGatewayEvent)
+	if err == nil && apiGatewayEvent.Headers != nil {
+		if val, ok := apiGatewayEvent.Headers[traceParentHeader]; ok {
 			return propagation.HeaderCarrier{traceParentHeader: []string{val}}
-		} else if val, ok = headers.Headers[lowerCaseTraceParentHeader]; ok {
+		} else if val, ok = apiGatewayEvent.Headers[lowerCaseTraceParentHeader]; ok {
 			return propagation.HeaderCarrier{traceParentHeader: []string{val}}
 		}
 	}

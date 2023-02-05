@@ -21,7 +21,7 @@ var (
 	parentSpanId          = "6f2a23d2d1e9159c"
 	tracingHeader         = "00" + "-" + traceId + "-" + parentSpanId + "-" + "01"
 	traceCarrier          = map[string]string{"traceparent": tracingHeader}
-	testApiGatewayEvent   = apiGatewayEvent{Headers: traceCarrier}
+	testApiGatewayEvent   = events.APIGatewayV2HTTPRequest{Headers: traceCarrier, Body: "sababa"}
 	testEventBridgeEvent1 = eventBridgeEvent{Detail: traceCarrier}
 	testEventBridgeEvent2 = eventBridgeEvent{TraceHeader: tracingHeader}
 	exporter              = tracetest.NewInMemoryExporter()
@@ -32,13 +32,22 @@ var (
 
 const response = "hello world"
 
-func assertPayloads(t *testing.T, span tracetest.SpanStub, expectedEvent string) {
+const obfuscatedExpectedPayload = "{\"body\":\"9e22b0a5\",\"headers\":{\"traceparent\":\"00-83d8d6c5347593d092e9409f4978bd51-6f2a23d2d1e9159c-01\"},\"isBase64Encoded\":false,\"rawPath\":\"\",\"rawQueryString\":\"\",\"requestContext\":{\"accountId\":\"\",\"apiId\":\"\",\"authentication\":{\"clientCert\":{\"clientCertPem\":\"\",\"issuerDN\":\"\",\"serialNumber\":\"\",\"subjectDN\":\"\",\"validity\":{\"notAfter\":\"\",\"notBefore\":\"\"}}},\"domainName\":\"\",\"domainPrefix\":\"\",\"http\":{\"method\":\"\",\"path\":\"\",\"protocol\":\"\",\"sourceIp\":\"\",\"userAgent\":\"\"},\"requestId\":\"\",\"routeKey\":\"\",\"stage\":\"\",\"time\":\"\",\"timeEpoch\":0},\"routeKey\":\"\",\"version\":\"\"}"
+const obfuscatedRes = "9dce2609"
+
+func init() {
+	blocklistRules, _ := json.Marshal([]string{"$.body"})
+	os.Setenv("HS_DATA_OBFUSCATION_HMAC_KEY", "12345")
+	os.Setenv("HS_DATA_OBFUSCATION_BLOCKLIST", string(blocklistRules))
+}
+
+func assertPayloads(t *testing.T, span tracetest.SpanStub, expectedEvent, expectedResponse string) {
 	foundRes := false
 	foundEvent := false
 	for _, attr := range span.Attributes {
 		if attr.Key == "faas.res" {
 			foundRes = true
-			assert.Equal(t, response, attr.Value.AsString())
+			assert.Equal(t, expectedResponse, attr.Value.AsString())
 		} else if attr.Key == "faas.event" {
 			foundEvent = true
 			assert.Equal(t, expectedEvent, attr.Value.AsString())
@@ -49,7 +58,7 @@ func assertPayloads(t *testing.T, span tracetest.SpanStub, expectedEvent string)
 	assert.True(t, foundEvent)
 }
 
-func validateResults(t *testing.T, resp []reflect.Value, expectedEvent string) {
+func validateResults(t *testing.T, resp []reflect.Value, expectedEvent, expectedResponse string) {
 	assert.Len(t, resp, 2)
 	assert.Equal(t, response, resp[0].Interface())
 	assert.Nil(t, resp[1].Interface())
@@ -59,7 +68,7 @@ func validateResults(t *testing.T, resp []reflect.Value, expectedEvent string) {
 	lambdaSpan := spans[1]
 	assert.Equal(t, traceId, lambdaSpan.SpanContext.TraceID().String())
 	assert.Equal(t, parentSpanId, lambdaSpan.Parent.SpanID().String())
-	assertPayloads(t, lambdaSpan, expectedEvent)
+	assertPayloads(t, lambdaSpan, expectedEvent, expectedResponse)
 	customSpan := spans[0]
 	assert.Equal(t, traceId, customSpan.SpanContext.TraceID().String())
 	assert.Equal(t, lambdaSpan.SpanContext.SpanID().String(), customSpan.Parent.SpanID().String())
@@ -85,7 +94,7 @@ func TestApiGatewayContextPropagation(t *testing.T) {
 	exporter.Reset()
 	otel.SetTracerProvider(provider)
 
-	customerHandler := func(lambdaContext context.Context, event apiGatewayEvent) (string, error) {
+	customerHandler := func(lambdaContext context.Context, event events.APIGatewayV2HTTPRequest) (string, error) {
 		_, customSpan := provider.Tracer("test").Start(lambdaContext, "custom_span")
 		customSpan.End()
 		return response, nil
@@ -95,8 +104,25 @@ func TestApiGatewayContextPropagation(t *testing.T) {
 
 	wrappedCallable := reflect.ValueOf(wrapped)
 	resp := wrappedCallable.Call([]reflect.Value{reflect.ValueOf(ctx), reflect.ValueOf(testApiGatewayEvent)})
-	rawEvent, _ := json.Marshal(testApiGatewayEvent)
-	validateResults(t, resp, string(rawEvent))
+	validateResults(t, resp, string(obfuscatedExpectedPayload), obfuscatedRes)
+}
+
+func TestApiGatewayContextPropagationWithObfuscation(t *testing.T) {
+	ctx := context.Background()
+	exporter.Reset()
+	otel.SetTracerProvider(provider)
+
+	customerHandler := func(lambdaContext context.Context, event events.APIGatewayV2HTTPRequest) (string, error) {
+		_, customSpan := provider.Tracer("test").Start(lambdaContext, "custom_span")
+		customSpan.End()
+		return response, nil
+	}
+
+	wrapped := instrumentHandler(customerHandler)
+
+	wrappedCallable := reflect.ValueOf(wrapped)
+	resp := wrappedCallable.Call([]reflect.Value{reflect.ValueOf(ctx), reflect.ValueOf(testApiGatewayEvent)})
+	validateResults(t, resp, string(obfuscatedExpectedPayload), obfuscatedRes)
 }
 
 func TestEventbridgeContextPropagationInDetail(t *testing.T) {
@@ -115,7 +141,7 @@ func TestEventbridgeContextPropagationInDetail(t *testing.T) {
 	wrappedCallable := reflect.ValueOf(wrapped)
 	resp := wrappedCallable.Call([]reflect.Value{reflect.ValueOf(ctx), reflect.ValueOf(testEventBridgeEvent1)})
 	rawEvent, _ := json.Marshal(testEventBridgeEvent1)
-	validateResults(t, resp, string(rawEvent))
+	validateResults(t, resp, string(rawEvent), obfuscatedRes)
 }
 
 func TestEventbridgeContextPropagationInTraceHeader(t *testing.T) {
@@ -134,7 +160,7 @@ func TestEventbridgeContextPropagationInTraceHeader(t *testing.T) {
 	wrappedCallable := reflect.ValueOf(wrapped)
 	resp := wrappedCallable.Call([]reflect.Value{reflect.ValueOf(ctx), reflect.ValueOf(testEventBridgeEvent2)})
 	rawEvent, _ := json.Marshal(testEventBridgeEvent2)
-	validateResults(t, resp, string(rawEvent))
+	validateResults(t, resp, string(rawEvent), obfuscatedRes)
 }
 
 func TestSqsContextPropagationInMessageAttribute(t *testing.T) {
