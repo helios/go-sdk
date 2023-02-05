@@ -108,7 +108,7 @@ func obfuscateDataHelper(value attribute.Value, obfuscationMode string, obfuscat
 	return value
 }
 
-func obfuscateAttributeValue(attribute attribute.KeyValue) attribute.Value {
+func ObfuscateAttributeValue(attribute attribute.KeyValue) attribute.Value {
 	obfuscationConfig := getObfuscationConfig()
 	hMacKey = []byte(obfuscationConfig.obfuscationhmacKey)
 	if obfuscationConfig.obfuscationEnabled && slices.Contains(DATA_TO_OBFUSCATE, string(attribute.Key)) {
