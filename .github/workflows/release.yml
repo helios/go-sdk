@@ -1,0 +1,25 @@
+name: Release
+
+on:
+    workflow_dispatch:
+      inputs:
+        tag_name:
+          description: 'Proxy lib tag name + version'
+          required: true
+
+jobs:
+    tag:
+        needs: Test
+        runs-on: ubuntu-latest
+        env:
+          GH_ACCESS_TOKEN: ${{ secrets.ACTIONS_GITHUB_TOKEN }}
+
+        steps:
+          - name: Checkout Repo
+            uses: actions/checkout@v3
+
+          - name: tag and push
+            uses: actions-ecosystem/action-push-tag@v1
+            with:
+              tag: ${{ github.event.inputs.tag_name }}
+        
