@@ -108,7 +108,14 @@ func obfuscateDataHelper(value attribute.Value, obfuscationMode string, obfuscat
 	return value
 }
 
+func handlePanic() {
+	if r := recover(); r != nil {
+		fmt.Println("Recovering from panic:", r)
+	}
+}
+
 func ObfuscateAttributeValue(spanAttribute attribute.KeyValue) attribute.KeyValue {
+	defer handlePanic() // Let's be safe
 	obfuscationConfig := getObfuscationConfig()
 	hMacKey = []byte(obfuscationConfig.obfuscationhmacKey)
 	if obfuscationConfig.obfuscationEnabled && slices.Contains(DATA_TO_OBFUSCATE, string(spanAttribute.Key)) {
