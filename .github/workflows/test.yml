@@ -141,17 +141,6 @@ jobs:
         env:
           GH_ACCESS_TOKEN: ${{ secrets.ACTIONS_GITHUB_TOKEN }}
 
-        services:
-            mongodb:
-                image: mongo@sha256:845fd775d7a58f564fae7c17a4eec7ff038e1c4004ebe05cc1cb5fc3767cf6cc
-                options: >-
-                  --health-cmd="echo 'db.runCommand(\"ping\").ok' | mongo localhost:27017/test --quiet"
-                  --health-interval=10s
-                  --health-retries=3
-                  --health-timeout=5s
-                ports:
-                  - 27017:27017
-
         steps:
           - name: Checkout Repo
             uses: actions/checkout@v3
