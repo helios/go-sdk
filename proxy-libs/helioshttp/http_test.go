@@ -24,7 +24,15 @@ import (
 )
 
 const requestBody = "{\"id\":123,\"name\":\"Lior Govrin\",\"role\":\"Software Engineer\"}"
+const obfuscatedRequestBody = "{\"id\":123,\"name\":\"dac02c19\",\"role\":\"Software Engineer\"}"
 const responseBody = "hello1234"
+const obfuscatedResponseBody = "87468e56"
+
+func init() {
+	blocklistRules, _ := json.Marshal([]string{"$.name"})
+	os.Setenv("HS_DATA_OBFUSCATION_HMAC_KEY", "12345")
+	os.Setenv("HS_DATA_OBFUSCATION_BLOCKLIST", string(blocklistRules))
+}
 
 func getHello(responseWriter ResponseWriter, request *Request) {
 	body, _ := ioutil.ReadAll(request.Body)
@@ -48,7 +56,7 @@ func validateAttributes(attrs []attribute.KeyValue, path string, metadataOnly bo
 			assert.Equal(t, 200, int(value.Value.AsInt64()))
 		} else if key == "http.response.body" {
 			responseBodyFound = true
-			assert.Equal(t, responseBody, value.Value.AsString())
+			assert.Equal(t, obfuscatedResponseBody, value.Value.AsString())
 		} else if key == "http.request.headers" {
 			requestHeadersFound = true
 			headers := map[string][]string{}
@@ -56,7 +64,7 @@ func validateAttributes(attrs []attribute.KeyValue, path string, metadataOnly bo
 			assert.Equal(t, "application/json", headers["Content-Type"][0])
 		} else if key == "http.request.body" {
 			requestBodyFound = true
-			assert.Equal(t, requestBody, value.Value.AsString())
+			assert.Equal(t, obfuscatedRequestBody, value.Value.AsString())
 		}
 	}
 
