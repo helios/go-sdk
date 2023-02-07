@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	originalMux "github.com/gorilla/mux"
-	"go.opentelemetry.io/contrib/instrumentation/github.com/gorilla/mux/otelmux"
+	"github.com/helios/opentelemetry-go-contrib/instrumentation/github.com/gorilla/mux/otelmux"
 )
 
 type BuildVarsFunc = originalMux.BuildVarsFunc
