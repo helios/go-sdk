@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -48,13 +49,13 @@ func validateAttributes(attrs []attribute.KeyValue, path string, metadataOnly bo
 		case semconv.HTTPMethodKey:
 			assert.Equal(t, "POST", value)
 		case semconv.HTTPRouteKey:
-			assert.Equal(t, "/users", value)
+			assert.Equal(t, path, value)
 		case semconv.HTTPSchemeKey:
 			assert.Equal(t, "http", value)
 		case semconv.HTTPServerNameKey:
 			assert.Equal(t, "opentelemetry-middleware", value)
 		case semconv.HTTPTargetKey:
-			assert.Equal(t, "/users", value)
+			assert.Equal(t, path, value)
 		case "http.request.body":
 			requestBodyFound = true
 			assert.Equal(t, obfuscatedRequestResponseBody, value)
@@ -88,18 +89,18 @@ func postUser(responseWriter http.ResponseWriter, request *http.Request) {
 	json.NewEncoder(responseWriter).Encode(user)
 }
 
-func TestNewRouterInstrumentation(t *testing.T) {
+func testHelper(t *testing.T, metadataOnly bool, path string) {
 	spanRecorder := tracetest.NewSpanRecorder()
 	otel.SetTracerProvider(sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(spanRecorder)))
 	propagator := propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{})
 	otel.SetTextMapPropagator(propagator)
 
 	router := NewRouter()
-	router.HandleFunc("/users", http.HandlerFunc(postUser))
-	http.Handle("/", router)
+	router.HandleFunc(fmt.Sprintf("/%s", path), http.HandlerFunc(postUser))
+	http.Handle(fmt.Sprintf("/%s", path), router)
 	go func() { http.ListenAndServe(":8000", nil) }()
 
-	response, _ := http.Post("http://localhost:8000/users", "application/json", bytes.NewBuffer([]byte(requestResponseBody)))
+	response, _ := http.Post(fmt.Sprintf("http://localhost:8000/%s", path), "application/json", bytes.NewBuffer([]byte(requestResponseBody)))
 	statusCode := response.StatusCode
 	body, _ := io.ReadAll(response.Body)
 
@@ -113,9 +114,18 @@ func TestNewRouterInstrumentation(t *testing.T) {
 	assert.False(t, span.Parent().HasSpanID())
 	assert.True(t, span.SpanContext().HasTraceID())
 	assert.True(t, span.SpanContext().HasSpanID())
-	assert.Equal(t, "/users", span.Name())
+	assert.Equal(t, fmt.Sprintf("/%s", path), span.Name())
 	assert.Equal(t, trace.SpanKindServer, span.SpanKind())
 
-	validateAttributes(span.Attributes(), "http://localhost:8000/users", false, t)
+	validateAttributes(span.Attributes(), fmt.Sprintf("/%s", path), metadataOnly, t)
+}
 
+func TestNewRouterInstrumentation(t *testing.T) {
+	testHelper(t, false, "allData")
+}
+
+
+func TestNewRouterInstrumentationMetadataOnly(t *testing.T) {
+	os.Setenv("HS_METADATA_ONLY", "true")
+	testHelper(t, true, "metadataOnly")
 }
