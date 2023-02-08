@@ -9,6 +9,9 @@ on:
 
     workflow_dispatch:
     workflow_call:
+        secrets:
+          ACTIONS_GITHUB_TOKEN:
+              required: true
       
 
 jobs:
@@ -16,6 +19,7 @@ jobs:
         runs-on: ubuntu-latest
         env:
           GH_ACCESS_TOKEN: ${{ secrets.ACTIONS_GITHUB_TOKEN }}
+        
         
         services:
             localstack:

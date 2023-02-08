@@ -3,13 +3,21 @@ name: Release
 on:
     workflow_dispatch:
       inputs:
-        tag_name:
-          description: 'Proxy lib tag name + version'
+        proxy_lib:
+          description: 'Proxy lib name'
           required: true
+        proxy_lib_version:
+          description: 'Proxy lib version'
+          required: true  
+        min_version_supported:
+          description: 'Original package last supported version'
+          required: true    
 
 jobs:
     test:
         uses: ./.github/workflows/test.yml
+        secrets:
+          ACTIONS_GITHUB_TOKEN: ${{ secrets.ACTIONS_GITHUB_TOKEN }}
     tag:
         runs-on: ubuntu-latest
         needs: [test]
@@ -23,5 +31,28 @@ jobs:
           - name: tag and push
             uses: actions-ecosystem/action-push-tag@v1
             with:
-              tag: ${{ github.event.inputs.tag_name }}
-        
+              tag: proxy-libs/${{ github.event.inputs.proxy_lib }}/${{ github.event.inputs.version }}
+          
+          - name: Configure AWS credentials
+            uses: aws-actions/configure-aws-credentials@13d241b293754004c80624b5567555c4a39ffbe3
+            with:
+              aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+              aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+              aws-region: us-east-1
+
+          - name: Get current proxy_libs_version.json
+            run: |
+              aws s3 cp s3://helios-proxy-libs/proxy_libs_versions.json ./proxy-libs
+
+          - name: Set up Python 3.7          
+            uses: actions/setup-python@v2
+            with:
+              python-version: '3.7'
+
+          - name: Update proxy-libs version json
+            run: |
+              python3 ./proxy-libs/version_helper.py
+          
+          - name: Upload updated proxy_libs_version.json to s3
+            run: |
+              aws s3 cp ./proxy-libs/proxy_libs_versions.json s3://helios-proxy-libs/proxy_libs_versions.json
