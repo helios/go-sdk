@@ -31,10 +31,6 @@ jobs:
           - name: Tag and push
             run: |
               git tag proxy-libs/${{ github.event.inputs.proxy_lib }}/${{ github.event.inputs.proxy_lib_version }} && git push origin proxy-libs/${{ github.event.inputs.proxy_lib }}/${{ github.event.inputs.proxy_lib_version }}
-          # - name: tag and push
-          #   uses: actions-ecosystem/action-push-tag@v1
-          #   with:
-          #     tag: proxy-libs/${{ github.event.inputs.proxy_lib }}/${{ github.event.inputs.proxy_lib_version }}
           
           - name: Configure AWS credentials
             uses: aws-actions/configure-aws-credentials@13d241b293754004c80624b5567555c4a39ffbe3
@@ -54,7 +50,7 @@ jobs:
 
           - name: Update proxy-libs version json
             run: |
-              python3 ./proxy-libs/version_helper.py
+              python3 ./proxy-libs/version_helper.py ${{ github.event.inputs.proxy_lib }} ${{ github.event.inputs.proxy_lib_version }} ${{ github.event.inputs.min_version_supported }}
           
           - name: Upload updated proxy_libs_version.json to s3
             run: |
