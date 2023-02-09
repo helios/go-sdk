@@ -7,6 +7,10 @@ import (
 	"os"
 
 	"github.com/go-logr/stdr"
+	ec2Detector "go.opentelemetry.io/contrib/detectors/aws/ec2"
+	ecsDetector "go.opentelemetry.io/contrib/detectors/aws/ecs"
+	eksDetector "go.opentelemetry.io/contrib/detectors/aws/eks"
+	lambdaDetector "go.opentelemetry.io/contrib/detectors/aws/lambda"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace"
@@ -126,6 +130,48 @@ func CreateCustomSpan(context context.Context, spanName string, attributes []att
 	return ctx
 }
 
+func getServerResource(serviceName string, heliosConfig HeliosConfig) *resource.Resource {
+	serviceAttributes := []attribute.KeyValue{semconv.ServiceNameKey.String(serviceName), semconv.TelemetrySDKVersionKey.String(version), semconv.TelemetrySDKNameKey.String(sdkName), semconv.TelemetrySDKLanguageGo}
+	if heliosConfig.environment != "" {
+		serviceAttributes = append(serviceAttributes, semconv.DeploymentEnvironmentKey.String(heliosConfig.environment))
+	}
+	if heliosConfig.commitHash != "" {
+		serviceAttributes = append(serviceAttributes, semconv.ServiceVersionKey.String(heliosConfig.commitHash))
+	}
+
+	return resource.NewWithAttributes(semconv.SchemaURL, serviceAttributes...)
+}
+
+func getResourceOptions(ctx context.Context, serviceName string, heliosConfig HeliosConfig) []trace.TracerProviderOption {
+	resources := []trace.TracerProviderOption{trace.WithResource(getServerResource(serviceName, heliosConfig))}
+
+	lambdaDetector := lambdaDetector.NewResourceDetector()
+	res, err := lambdaDetector.Detect(ctx)
+	if err == nil {
+		resources = append(resources, trace.WithResource(res))
+	}
+
+	eksDetector := eksDetector.NewResourceDetector()
+	res, err = eksDetector.Detect(ctx)
+	if err == nil {
+		resources = append(resources, trace.WithResource(res))
+	}
+
+	ecsDetector := ecsDetector.NewResourceDetector()
+	res, err = ecsDetector.Detect(ctx)
+	if err == nil {
+		resources = append(resources, trace.WithResource(res))
+	}
+
+	ec2Detector := ec2Detector.NewResourceDetector()
+	res, err = ec2Detector.Detect(ctx)
+	if err == nil {
+		resources = append(resources, trace.WithResource(res))
+	}
+
+	return resources
+}
+
 func Initialize(serviceName string, apiToken string, attrs ...attribute.KeyValue) (*trace.TracerProvider, error) {
 	if providerSingelton != nil {
 		return providerSingelton, nil
@@ -160,19 +206,12 @@ func Initialize(serviceName string, apiToken string, attrs ...attribute.KeyValue
 		os.Setenv("HS_METADATA_ONLY", "true")
 	}
 
-	serviceAttributes := []attribute.KeyValue{semconv.ServiceNameKey.String(serviceName), semconv.TelemetrySDKVersionKey.String(version), semconv.TelemetrySDKNameKey.String(sdkName), semconv.TelemetrySDKLanguageGo}
-	if heliosConfig.environment != "" {
-		serviceAttributes = append(serviceAttributes, semconv.DeploymentEnvironmentKey.String(heliosConfig.environment))
-	}
-	if heliosConfig.commitHash != "" {
-		serviceAttributes = append(serviceAttributes, semconv.ServiceVersionKey.String(heliosConfig.commitHash))
-	}
-
-	serviceResource := resource.NewWithAttributes(semconv.SchemaURL, serviceAttributes...)
+	resourceOptions := getResourceOptions(ctx, serviceName, *heliosConfig)
 	providerParams := []trace.TracerProviderOption{
-		trace.WithResource(serviceResource),
 		trace.WithSampler(heliosConfig.sampler),
 	}
+	providerParams = append(providerParams, resourceOptions...)
+
 	if exporter != nil {
 		providerParams = append(providerParams, trace.WithBatcher(exporter))
 	}
