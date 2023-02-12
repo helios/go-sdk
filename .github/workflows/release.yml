@@ -3,14 +3,40 @@ name: Release
 on:
     workflow_dispatch:
       inputs:
-        tag_name:
-          description: 'Proxy lib tag name + version'
+        proxy_lib:
+          type: choice
+          description: 'Proxy lib name'
+          options:
+            - helioshttp
+            - heliosgrpc
+            - heliosmongo
+            - heliosgin
+            - heliosmux
+            - heliosecho
+            - helioschi
+            - heliosmacaron
+            - heliossarama
+            - helioslambda
+            - helioss3
+            - heliosdynamodb
+            - heliossqs
+            - helioseventbridge
           required: true
+        proxy_lib_version:
+          description: 'Proxy lib version'
+          required: true  
+        min_version_supported:
+          description: 'Original package last supported version'
+          required: true    
 
 jobs:
+    test:
+        uses: ./.github/workflows/test.yml
+        secrets:
+          ACTIONS_GITHUB_TOKEN: ${{ secrets.ACTIONS_GITHUB_TOKEN }}
     tag:
-        needs: Test
         runs-on: ubuntu-latest
+        needs: [test]
         env:
           GH_ACCESS_TOKEN: ${{ secrets.ACTIONS_GITHUB_TOKEN }}
 
@@ -18,8 +44,31 @@ jobs:
           - name: Checkout Repo
             uses: actions/checkout@v3
 
-          - name: tag and push
-            uses: actions-ecosystem/action-push-tag@v1
+          - name: Get current proxy_libs_version.json
+            run: |
+              curl -X GET https://d1wp6iv35l684a.cloudfront.net/go-proxy-libs/proxy_libs_versions.json > ./proxy-libs/proxy_libs_versions.json
+
+          - name: Set up Python 3.11         
+            uses: actions/setup-python@v2
             with:
-              tag: ${{ github.event.inputs.tag_name }}
-        
+              python-version: '3.11'
+
+          - name: Update proxy-libs version json
+            working-directory: proxy-libs
+            run: |
+              python3 version_helper.py ${{ github.event.inputs.proxy_lib }} ${{ github.event.inputs.proxy_lib_version }} ${{ github.event.inputs.min_version_supported }}
+          
+          - name: Tag and push
+            run: |
+              git tag proxy-libs/${{ github.event.inputs.proxy_lib }}/${{ github.event.inputs.proxy_lib_version }} && git push origin proxy-libs/${{ github.event.inputs.proxy_lib }}/${{ github.event.inputs.proxy_lib_version }}
+          
+          - name: Configure AWS credentials
+            uses: aws-actions/configure-aws-credentials@13d241b293754004c80624b5567555c4a39ffbe3
+            with:
+              aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+              aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+              aws-region: us-east-1
+          
+          - name: Upload updated proxy_libs_version.json to s3
+            run: |
+              aws s3 cp ./proxy-libs/proxy_libs_versions.json s3://www.heliosphere.io/proxy_libs_versions.json
