@@ -22,5 +22,5 @@ def main():
         json.dump(proxy_libs_versions, output)
 
 if __name__ == "__main__":
-    main()   
- 
+    main()  
+    
