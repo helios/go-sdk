@@ -16,9 +16,6 @@ def main():
     with open(PROXY_LIBS_FILE_NAME, 'w') as output:
         json.dump(proxy_libs_versions, output)
 
-            
-
-
-
 if __name__ == "__main__":
-    main()    
+    main()   
+ 
