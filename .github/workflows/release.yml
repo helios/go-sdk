@@ -7,20 +7,20 @@ on:
           type: choice
           description: 'Proxy lib name'
           options:
-            - github.com/helios/go-sdk/proxy-libs/helioshttp
-            - github.com/helios/go-sdk/proxy-libs/heliosgrpc
-            - github.com/helios/go-sdk/proxy-libs/heliosmongo
-            - github.com/helios/go-sdk/proxy-libs/heliosgin
-            - github.com/helios/go-sdk/proxy-libs/heliosmux
-            - github.com/helios/go-sdk/proxy-libs/heliosecho
-            - github.com/helios/go-sdk/proxy-libs/helioschi
-            - github.com/helios/go-sdk/proxy-libs/heliosmacaron
-            - github.com/helios/go-sdk/proxy-libs/heliossarama
-            - github.com/helios/go-sdk/proxy-libs/helioslambda
-            - github.com/helios/go-sdk/proxy-libs/helioss3
-            - github.com/helios/go-sdk/proxy-libs/heliosdynamodb
-            - github.com/helios/go-sdk/proxy-libs/heliossqs
-            - github.com/helios/go-sdk/proxy-libs/helioseventbridge
+            - helioshttp
+            - heliosgrpc
+            - heliosmongo
+            - heliosgin
+            - heliosmux
+            - heliosecho
+            - helioschi
+            - heliosmacaron
+            - heliossarama
+            - helioslambda
+            - helioss3
+            - heliosdynamodb
+            - heliossqs
+            - helioseventbridge
           required: true
         proxy_lib_version:
           description: 'Proxy lib version'
@@ -57,7 +57,7 @@ jobs:
 
           - name: Get current proxy_libs_version.json
             run: |
-              aws s3 cp https://d1wp6iv35l684a.cloudfront.net/proxy_libs_versions.json ./proxy-libs
+              curl -X GET https://d1wp6iv35l684a.cloudfront.net/proxy_libs_versions.json >> ./proxy-libs
 
           - name: Set up Python 3.7          
             uses: actions/setup-python@v2
