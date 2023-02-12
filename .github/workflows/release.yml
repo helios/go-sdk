@@ -43,17 +43,10 @@ jobs:
         steps:
           - name: Checkout Repo
             uses: actions/checkout@v3
-          
-          - name: Configure AWS credentials
-            uses: aws-actions/configure-aws-credentials@13d241b293754004c80624b5567555c4a39ffbe3
-            with:
-              aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-              aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-              aws-region: us-east-1
 
           - name: Get current proxy_libs_version.json
             run: |
-              curl -X GET https://d1wp6iv35l684a.cloudfront.net/go-proxy-libs/proxy_libs_versions.json >> ./proxy-libs/proxy_libs_versions.json
+              curl -X GET https://d1wp6iv35l684a.cloudfront.net/go-proxy-libs/proxy_libs_versions.json > ./proxy-libs/proxy_libs_versions.json
 
           - name: Set up Python 3.11         
             uses: actions/setup-python@v2
@@ -71,4 +64,4 @@ jobs:
           
           - name: Upload updated proxy_libs_version.json to s3
             run: |
-              aws s3 cp ./proxy-libs/proxy_libs_versions.json s3://www.heliosphere.io/proxy_libs_versions.json
+               curl -X PUT ./proxy-libs/proxy_libs_versions.json s3://www.heliosphere.io/go-proxy-libs/proxy_libs_versions.json
