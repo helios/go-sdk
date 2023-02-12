@@ -57,7 +57,7 @@ jobs:
 
           - name: Get current proxy_libs_version.json
             run: |
-              curl -X GET https://d1wp6iv35l684a.cloudfront.net/proxy_libs_versions.json >> ./proxy-libs
+              curl -X GET https://d1wp6iv35l684a.cloudfront.net/proxy_libs_versions.json >> ./proxy-libs/proxy_libs_versions.json
 
           - name: Set up Python 3.7          
             uses: actions/setup-python@v2
