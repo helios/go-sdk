@@ -12,8 +12,10 @@ github.com/go-logr/logr v1.2.3/go.mod h1:jdQByPbusPIv2/zmleS9BjJVeZ6kBagPoEUsqbV
 github.com/go-logr/stdr v1.2.2 h1:hSWxHoqTgW2S2qGc0LTAI563KZ5YKYRhT3MFKZMbjag=
 github.com/go-logr/stdr v1.2.2/go.mod h1:mMo/vtBO5dYbehREoey6XUKy/eSumjCCveDpRre4VKE=
 github.com/google/go-cmp v0.5.9 h1:O2Tfq5qg4qc4AmwVlvv0oLiVAGB7enBSJ2x2DqQFi38=
-github.com/helios/otelchi v0.1.0 h1:bLiX0506XptS9Au4L/U/1LtjMZAl4hkZJDyXLHJ2td8=
-github.com/helios/otelchi v0.1.0/go.mod h1:PBEuNzUulN3r3mFGqDD4mQD7Dm+KX1R6soHollc+39E=
+github.com/helios/otelchi v0.1.1 h1:+5e1eTFcKESOVeFEYQxnfMv3uLqhIK5HMy0wjfaCXEo=
+github.com/helios/otelchi v0.1.1/go.mod h1:PBEuNzUulN3r3mFGqDD4mQD7Dm+KX1R6soHollc+39E=
+github.com/helios/otelchi v0.1.2 h1:WZXv/85kA82geqrwni/GmYsXdo30GoWZCVu9rR28JbE=
+github.com/helios/otelchi v0.1.2/go.mod h1:PBEuNzUulN3r3mFGqDD4mQD7Dm+KX1R6soHollc+39E=
 github.com/kr/pretty v0.1.0/go.mod h1:dAy3ld7l9f0ibDNOQOHHMYYIIbhfbHSm3C4ZsoJORNo=
 github.com/kr/pretty v0.2.1/go.mod h1:ipq/a2n7PKx3OHsz4KJII5eveXtPO4qwEXGdVfWzfnI=
 github.com/kr/pretty v0.3.0 h1:WgNl7dwNpEZ6jJ9k1snq4pZsg7DOEN8hP9Xw0Tsjwk0=

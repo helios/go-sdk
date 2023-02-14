@@ -97,6 +97,7 @@ func testHelper(t *testing.T, port int, path string, metadataOnly bool) {
 	assert.False(t, clientSpan.Parent().HasTraceID())
 	validateAttributes(clientSpan.Attributes(), path, metadataOnly, t)
 	assert.Equal(t, serverSpan.Parent().SpanID(), clientSpan.SpanContext().SpanID())
+	assert.Equal(t, res.Header.Get("traceresponse"), fmt.Sprintf("00-%s-%s-01", serverSpan.SpanContext().TraceID().String(), serverSpan.SpanContext().SpanID().String()))
 }
 
 func TestServerInstrumentation(t *testing.T) {

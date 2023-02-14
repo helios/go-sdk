@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/gorilla/mux v1.8.0
-	github.com/helios/opentelemetry-go-contrib/instrumentation/github.com/gorilla/mux/otelmux v0.1.1
+	github.com/helios/opentelemetry-go-contrib/instrumentation/github.com/gorilla/mux/otelmux v0.1.2-0.20230214110730-f22584783536
 	github.com/stretchr/testify v1.8.1
 	go.opentelemetry.io/otel v1.11.2
 	go.opentelemetry.io/otel/sdk v1.11.2
