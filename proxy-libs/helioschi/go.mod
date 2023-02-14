@@ -3,7 +3,7 @@ module github.com/helios/go-sdk/proxy-libs/helioschi
 go 1.18
 
 require (
-	github.com/helios/otelchi v0.1.0
+	github.com/helios/otelchi v0.1.2
 	github.com/stretchr/testify v1.8.1
 	go.opentelemetry.io/otel/trace v1.11.2
 )
