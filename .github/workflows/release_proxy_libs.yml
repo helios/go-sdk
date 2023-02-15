@@ -71,4 +71,4 @@ jobs:
           
           - name: Upload updated proxy_libs_version.json to s3
             run: |
-              aws s3 cp ./proxy-libs/proxy_libs_versions.json s3://www.heliosphere.io/proxy_libs_versions.json
+              aws s3 cp ./proxy-libs/proxy_libs_versions.json s3://www.heliosphere.io/go-proxy-libs/proxy_libs_versions.json
