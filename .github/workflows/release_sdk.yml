@@ -37,28 +37,28 @@ jobs:
                   script: |
                       core.setFailed('Version is not updated')
 
-            # - name: Notify Slack
-            #   if: ${{ success() }}
-            #   uses: rtCamp/action-slack-notify@v2
-            #   env:
-            #       SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
-            #       SLACK_USERNAME: heliosphere-ci-bot
-            #       SLACK_TITLE: A new Go SDK version was successfully released!
-            #       SLACK_MESSAGE: Version ${{ steps.package-version.outputs.current-version }}
-            #       SLACK_COLOR: ${{ job.status }}
+            - name: Notify Slack
+              if: ${{ success() }}
+              uses: rtCamp/action-slack-notify@v2
+              env:
+                  SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+                  SLACK_USERNAME: heliosphere-ci-bot
+                  SLACK_TITLE: A new Go SDK version was successfully released!
+                  SLACK_MESSAGE: Version ${{ steps.package-version.outputs.current-version }}
+                  SLACK_COLOR: ${{ job.status }}
 
-            # - name: Push tag
-            #   id: tag_version
-            #   uses: mathieudutour/github-tag-action@v6.0
-            #   with:
-            #       github_token: ${{ secrets.GITHUB_TOKEN }}
-            #       custom_tag: ${{ steps.current_version.outputs.version }}
+            - name: Push tag
+              id: tag_version
+              uses: mathieudutour/github-tag-action@v6.0
+              with:
+                  github_token: ${{ secrets.GITHUB_TOKEN }}
+                  custom_tag: ${{ steps.current_version.outputs.version }}
 
-            # - name: Create a GitHub release
-            #   uses: ncipollo/release-action@v1.9.0
-            #   with:
-            #       token: ${{ secrets.GITHUB_TOKEN }}
-            #       tag: ${{ steps.tag_version.outputs.new_tag }}
-            #       name: Release ${{ steps.tag_version.outputs.new_tag }}
-            #       body: ${{ steps.tag_version.outputs.changelog }}
-            #       generateReleaseNotes: true
+            - name: Create a GitHub release
+              uses: ncipollo/release-action@v1.9.0
+              with:
+                  token: ${{ secrets.GITHUB_TOKEN }}
+                  tag: ${{ steps.tag_version.outputs.new_tag }}
+                  name: Release ${{ steps.tag_version.outputs.new_tag }}
+                  body: ${{ steps.tag_version.outputs.changelog }}
+                  generateReleaseNotes: true
