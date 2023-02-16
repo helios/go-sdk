@@ -24,7 +24,7 @@ func TestLogInstrumentation(t *testing.T) {
 	otel.SetTextMapPropagator(propagator)
 	tracer := tp.Tracer("TestLogrus")
 	ctx, span := tracer.Start(context.Background(), "hello-span")
-	
+
 	l := logrus.New()
 	b := &bytes.Buffer{}
 	l.Formatter = &logrus.JSONFormatter{}
@@ -33,7 +33,7 @@ func TestLogInstrumentation(t *testing.T) {
 	l.WithContext(ctx).Warn("test")
 	data := map[string]string{}
 	json.Unmarshal(b.Bytes(), &data)
-	
+
 	span.End()
 	sr.ForceFlush(ctx)
 	spans := sr.Ended()
