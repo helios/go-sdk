@@ -26,11 +26,10 @@ func TestLogInstrumentation(t *testing.T) {
 	tracer := tp.Tracer("TestLogrus")
 	ctx, span := tracer.Start(context.Background(), "hello-span")
 
-	l := logrus.New()
+	l := New()
 	b := &bytes.Buffer{}
 	l.Formatter = &logrus.JSONFormatter{}
 	l.Out = b
-	l.AddHook(NewHook(WithLevels(logrus.WarnLevel)))
 	l.WithContext(ctx).Warn("test")
 	data := map[string]string{}
 	json.Unmarshal(b.Bytes(), &data)
