@@ -12,24 +12,10 @@ type heliosHook struct {
 	levels []logrus.Level
 }
 
-// var _ logrus.Hook = (*Hook)(nil)
+const hsApiEndpoint = "https://app.gethelios.dev"
 
-const hs_api_endpoint = "https://app.gethelios.dev"
 
-// Option applies a configuration to the given config.
-type option func(h *heliosHook)
-
-// WithLevels sets the logrus logging levels on which the hook is fired.
-//
-// The default is all levels between logrus.PanicLevel and logrus.WarnLevel inclusive.
-func withLevels(levels ...logrus.Level) option {
-	return func(h *heliosHook) {
-		h.levels = levels
-	}
-}
-
-// NewHook returns a logrus hook.
-func NewHook(opts ...option) *heliosHook {
+func AddHeliosHook() *heliosHook {
 	hook := &heliosHook{
 		levels: []logrus.Level{
 			logrus.PanicLevel,
@@ -37,10 +23,6 @@ func NewHook(opts ...option) *heliosHook {
 			logrus.ErrorLevel,
 			logrus.WarnLevel,
 		}}
-
-	for _, fn := range opts {
-		fn(hook)
-	}
 
 	return hook
 }
@@ -56,7 +38,7 @@ func (hook *heliosHook) Fire(entry *logrus.Entry) error {
 	if !span.IsRecording() {
 		return nil
 	}
-	entry.Data["go_to_helios"] = fmt.Sprintf("%s?actionTraceId=%s&spanId=%s&source=logrus&timestamp=%s}", hs_api_endpoint, span.SpanContext().TraceID(), span.SpanContext().SpanID(), fmt.Sprint(time.Now().UnixNano()))
+	entry.Data["go_to_helios"] = fmt.Sprintf("%s?actionTraceId=%s&spanId=%s&source=logrus&timestamp=%s", hsApiEndpoint, span.SpanContext().TraceID(), span.SpanContext().SpanID(), fmt.Sprint(time.Now().UnixNano()))
 	return nil
 }
 
