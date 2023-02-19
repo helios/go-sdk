@@ -2,6 +2,7 @@ package helioslogrus
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/sirupsen/logrus"
 	"go.opentelemetry.io/otel/trace"
@@ -13,7 +14,7 @@ type Hook struct {
 
 var _ logrus.Hook = (*Hook)(nil)
 
-const HS_API_ENDPOINT = "https://app.gethelios.dev"
+const hs_api_endpoint = "https://app.gethelios.dev"
 
 // Option applies a configuration to the given config.
 type Option func(h *Hook)
@@ -55,7 +56,7 @@ func (hook *Hook) Fire(entry *logrus.Entry) error {
 	if !span.IsRecording() {
 		return nil
 	}
-	entry.Data["go_to_helios"] = fmt.Sprintf("%s?actionTraceId=%s&spanId=%s", HS_API_ENDPOINT, span.SpanContext().TraceID(), span.SpanContext().SpanID())
+	entry.Data["go_to_helios"] = fmt.Sprintf("%s?actionTraceId=%s&spanId=%s&source=logrus&timestamp=%s}", hs_api_endpoint, span.SpanContext().TraceID(), span.SpanContext().SpanID(), time.Now())
 	return nil
 }
 
