@@ -56,7 +56,7 @@ func (hook *Hook) Fire(entry *logrus.Entry) error {
 	if !span.IsRecording() {
 		return nil
 	}
-	entry.Data["go_to_helios"] = fmt.Sprintf("%s?actionTraceId=%s&spanId=%s&source=logrus&timestamp=%s}", hs_api_endpoint, span.SpanContext().TraceID(), span.SpanContext().SpanID(), time.Now())
+	entry.Data["go_to_helios"] = fmt.Sprintf("%s?actionTraceId=%s&spanId=%s&source=logrus&timestamp=%s}", hs_api_endpoint, span.SpanContext().TraceID(), span.SpanContext().SpanID(), fmt.Sprint(time.Now().UnixNano()))
 	return nil
 }
 

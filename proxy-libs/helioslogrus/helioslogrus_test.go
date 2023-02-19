@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"strings"
 	"testing"
 
 	"encoding/json"
@@ -40,5 +41,6 @@ func TestLogInstrumentation(t *testing.T) {
 	assert.Equal(t, 1, len(spans))
 	value, ok := data["go_to_helios"]
 	assert.True(t, ok)
-	assert.Equal(t, fmt.Sprintf("https://app.gethelios.dev?actionTraceId=%s&spanId=%s", span.SpanContext().TraceID(), span.SpanContext().SpanID()), value)
+	testedVal := fmt.Sprintf("https://app.gethelios.dev?actionTraceId=%s&spanId=%s&source=logrus", span.SpanContext().TraceID(), span.SpanContext().SpanID())
+	assert.True(t, strings.Contains(value, testedVal))
 }
