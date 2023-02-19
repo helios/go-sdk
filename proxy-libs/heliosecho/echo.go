@@ -5,8 +5,8 @@ import (
 	"net"
 	"net/http"
 
+	"github.com/helios/opentelemetry-go-contrib/instrumentation/github.com/labstack/echo/otelecho"
 	origin_echo "github.com/labstack/echo/v4"
-	"go.opentelemetry.io/contrib/instrumentation/github.com/labstack/echo/otelecho"
 )
 
 type Context = origin_echo.Context
