@@ -19,9 +19,9 @@ jobs:
 
             - name: Get latest tag
               id: latest_tag
-              uses: WyriHaximus/github-action-get-previous-tag@v1
-              with:
-                  path: ${{ github.event.inputs.packageName }}
+              run: |
+                latest_tag=$(git tag | grep sdk | sort -V | tail -1)
+                echo "tag=$latest_tag" >> "$GITHUB_OUTPUT"
 
             - name: Get current version
               id: current_version
@@ -31,11 +31,11 @@ jobs:
                 schema: major.minor.build
 
             - name: Version check result
-              if: steps.latest_tag.outputs.tag == steps.current_version.outputs.version
+              if: contains(${{ steps.latest_tag.outputs.tag }}, ${{ steps.current_version.outputs.version }})
               uses: actions/github-script@v3
               with:
                   script: |
-                      core.setFailed('Version is not updated')
+                      core.setFailed('Version is not updated - please bump on `version.go`')
 
             - name: Notify Slack
               if: ${{ success() }}
@@ -44,7 +44,7 @@ jobs:
                   SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
                   SLACK_USERNAME: heliosphere-ci-bot
                   SLACK_TITLE: A new Go SDK version was successfully released!
-                  SLACK_MESSAGE: Version ${{ steps.package-version.outputs.current-version }}
+                  SLACK_MESSAGE: Version ${{ steps.current_version.outputs.version }}
                   SLACK_COLOR: ${{ job.status }}
 
             - name: Push tag
@@ -52,7 +52,7 @@ jobs:
               uses: mathieudutour/github-tag-action@v6.0
               with:
                   github_token: ${{ secrets.GITHUB_TOKEN }}
-                  custom_tag: ${{ steps.current_version.outputs.version }}
+                  custom_tag: sdk/v${{ steps.current_version.outputs.version }}
 
             - name: Create a GitHub release
               uses: ncipollo/release-action@v1.9.0
