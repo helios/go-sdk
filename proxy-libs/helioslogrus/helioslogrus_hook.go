@@ -8,7 +8,7 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
-type HeliosHook struct {
+type heliosHook struct {
 	levels []logrus.Level
 }
 
@@ -17,20 +17,20 @@ type HeliosHook struct {
 const hs_api_endpoint = "https://app.gethelios.dev"
 
 // Option applies a configuration to the given config.
-type Option func(h *HeliosHook)
+type option func(h *heliosHook)
 
 // WithLevels sets the logrus logging levels on which the hook is fired.
 //
 // The default is all levels between logrus.PanicLevel and logrus.WarnLevel inclusive.
-func WithLevels(levels ...logrus.Level) Option {
-	return func(h *HeliosHook) {
+func withLevels(levels ...logrus.Level) option {
+	return func(h *heliosHook) {
 		h.levels = levels
 	}
 }
 
 // NewHook returns a logrus hook.
-func NewHook(opts ...Option) *HeliosHook {
-	hook := &HeliosHook{
+func NewHook(opts ...option) *heliosHook {
+	hook := &heliosHook{
 		levels: []logrus.Level{
 			logrus.PanicLevel,
 			logrus.FatalLevel,
@@ -46,7 +46,7 @@ func NewHook(opts ...Option) *HeliosHook {
 }
 
 // Fire is a logrus hook that is fired on a new log entry.
-func (hook *HeliosHook) Fire(entry *logrus.Entry) error {
+func (hook *heliosHook) Fire(entry *logrus.Entry) error {
 	ctx := entry.Context
 	if ctx == nil {
 		return nil
@@ -61,6 +61,6 @@ func (hook *HeliosHook) Fire(entry *logrus.Entry) error {
 }
 
 // Levels returns logrus levels on which this hook is fired.
-func (hook *HeliosHook) Levels() []logrus.Level {
+func (hook *heliosHook) Levels() []logrus.Level {
 	return hook.levels
 }

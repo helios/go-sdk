@@ -288,7 +288,7 @@ type MutexWrap = origin_logrus.MutexWrap
 
 func New() *Logger {
 	l := origin_logrus.New()
-	l.AddHook(NewHook(WithLevels(origin_logrus.AllLevels...)))
+	l.AddHook(NewHook(withLevels(origin_logrus.AllLevels...)))
 	return l
 }
 

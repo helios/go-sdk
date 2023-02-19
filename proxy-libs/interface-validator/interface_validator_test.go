@@ -178,3 +178,13 @@ func TestAwsLambdaInterfaceMatch(t *testing.T) {
 
 	assert.EqualValues(t, originalExports, heliosExports)
 }
+
+func TestLogrusInterfaceMatch(t *testing.T) {
+	originalExports := cloneRepositoryAndExtractExports("https://github.com/sirupsen/logrus", "v1.8.2", "logrus", "")
+	heliosExports := extractProxyLibExports("helioslogrus")
+
+	//Helios methods
+	heliosExports = deleteByName(heliosExports, "NewHook")
+	
+	assert.EqualValues(t, originalExports, heliosExports)
+}
