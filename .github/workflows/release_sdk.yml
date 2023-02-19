@@ -21,6 +21,7 @@ jobs:
               id: latest_tag
               run: |
                 latest_tag=$(git tag | grep sdk | sort -V | tail -1)
+                echo $latest_tag
                 echo "tag=$latest_tag" >> "$GITHUB_OUTPUT"
 
             - name: Get current version
@@ -30,8 +31,15 @@ jobs:
                 version-file: ./sdk/version.go
                 schema: major.minor.build
 
+            - name: Set tag candidate
+              id: set_tag
+              run: |
+                new_tag=sdk/v${{ steps.current_version.outputs.version }}
+                echo $new_tag
+                echo "new_tag=$new_tag" >> "$GITHUB_OUTPUT"
+
             - name: Version check result
-              if: contains(${{ steps.latest_tag.outputs.tag }}, ${{ steps.current_version.outputs.version }})
+              if: ${{ steps.latest_tag.outputs.tag }} == ${{ steps.set_tag.outputs.new_tag }}
               uses: actions/github-script@v3
               with:
                   script: |
@@ -52,7 +60,7 @@ jobs:
               uses: mathieudutour/github-tag-action@v6.0
               with:
                   github_token: ${{ secrets.GITHUB_TOKEN }}
-                  custom_tag: sdk/v${{ steps.current_version.outputs.version }}
+                  custom_tag: ${{ steps.set_tag.outputs.new_tag }}
 
             - name: Create a GitHub release
               uses: ncipollo/release-action@v1.9.0
