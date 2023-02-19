@@ -184,7 +184,7 @@ func TestLogrusInterfaceMatch(t *testing.T) {
 	heliosExports := extractProxyLibExports("helioslogrus")
 
 	//Helios methods
-	heliosExports = deleteByName(heliosExports, "NewHook")
-	
+	heliosExports = deleteByName(heliosExports, "AddHeliosHook")
+
 	assert.EqualValues(t, originalExports, heliosExports)
 }

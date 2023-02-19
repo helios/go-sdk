@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/sirupsen/logrus"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -38,7 +39,12 @@ func (hook *heliosHook) Fire(entry *logrus.Entry) error {
 	if !span.IsRecording() {
 		return nil
 	}
-	entry.Data["go_to_helios"] = fmt.Sprintf("%s?actionTraceId=%s&spanId=%s&source=logrus&timestamp=%s", hsApiEndpoint, span.SpanContext().TraceID(), span.SpanContext().SpanID(), fmt.Sprint(time.Now().UnixNano()))
+	traceId := span.SpanContext().TraceID().String()
+	spanId := span.SpanContext().SpanID().String()
+	entry.Data["go_to_helios"] = fmt.Sprintf("%s?actionTraceId=%s&spanId=%s&source=logrus&timestamp=%s", hsApiEndpoint, traceId, spanId, fmt.Sprint(time.Now().UnixNano()))
+	entry.Data["traceId"] = traceId
+	entry.Data["spanId"] = spanId
+	span.SetAttributes(attribute.Bool("heliosLogInstrumented", true))
 	return nil
 }
 

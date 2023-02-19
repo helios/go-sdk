@@ -37,9 +37,18 @@ func TestLogInstrumentation(t *testing.T) {
 	span.End()
 	sr.ForceFlush(ctx)
 	spans := sr.Ended()
+	resultedSpan := spans[0]
 	assert.Equal(t, 1, len(spans))
 	value, ok := data["go_to_helios"]
 	assert.True(t, ok)
-	testedVal := fmt.Sprintf("https://app.gethelios.dev?actionTraceId=%s&spanId=%s&source=logrus", span.SpanContext().TraceID(), span.SpanContext().SpanID())
-	assert.True(t, strings.Contains(value, testedVal))
+	traceId := resultedSpan.SpanContext().TraceID().String()
+	spanId := resultedSpan.SpanContext().SpanID().String()
+	testedVal := fmt.Sprintf("https://app.gethelios.dev?actionTraceId=%s&spanId=%s&source=logrus", traceId, spanId)
+	assert.True(t, strings.HasPrefix(value, testedVal))
+	value, ok = data["traceId"]
+	assert.True(t, ok)
+	assert.Equal(t, traceId, value)
+	value, ok = data["spanId"]
+	assert.True(t, ok)
+	assert.Equal(t, spanId, value)
 }
