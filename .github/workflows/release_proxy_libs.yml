@@ -21,6 +21,7 @@ on:
             - heliosdynamodb
             - heliossqs
             - helioseventbridge
+            - helioslogrus
           required: true
         proxy_lib_version:
           description: 'Proxy lib version'
