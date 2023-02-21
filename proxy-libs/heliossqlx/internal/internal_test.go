@@ -65,7 +65,7 @@ func assertAttributes(t *testing.T, attributes []attribute.KeyValue) bool {
 
 func TestSqlxInstrumentation(t *testing.T) {
 	spanRecorder := getSpanRecorder()
-	db, err := heliossqlx.Open("sqlite", "file::memory:?cache=shared", otelsql.WithAttributes(semconv.DBSystemSqlite),
+	db, err := heliossqlx.Open("sqlite", "file::memory:?cache=shared",
 		otelsql.WithDBName("test"))
 	if err != nil {
 		panic(err)
