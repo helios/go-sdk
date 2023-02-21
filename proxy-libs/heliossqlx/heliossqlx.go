@@ -52,6 +52,7 @@ func NamedExecContext(ctx context.Context, e ExtContext, query string, arg inter
 }
 
 func ConnectContext(ctx context.Context, driverName, dataSourceName string, opts ...otelsql.Option) (*DB, error) {
+	opts = append(opts, otelsql.WithDBSystem(driverName))
 	return otelsqlx.ConnectContext(ctx, driverName, dataSourceName, opts...)
 }
 
@@ -122,10 +123,12 @@ func NewDb(db *sql.DB, driverName string) *DB {
 }
 
 func Open(driverName, dataSourceName string, opts ...otelsql.Option) (*DB, error) {
+	opts = append(opts, otelsql.WithDBSystem(driverName))
 	return otelsqlx.Open(driverName, dataSourceName, opts...)
 }
 
 func MustOpen(driverName, dataSourceName string, opts ...otelsql.Option) *DB {
+	opts = append(opts, otelsql.WithDBSystem(driverName))
 	return otelsqlx.MustOpen(driverName, dataSourceName, opts...)
 }
 
@@ -138,10 +141,12 @@ type Stmt = origin_sqlx.Stmt
 type Rows = origin_sqlx.Rows
 
 func Connect(driverName, dataSourceName string, opts ...otelsql.Option) (*DB, error) {
+	opts = append(opts, otelsql.WithDBSystem(driverName))
 	return otelsqlx.Connect(driverName, dataSourceName, opts ...)
 }
 
 func MustConnect(driverName, dataSourceName string, opts ...otelsql.Option) *DB {
+	opts = append(opts, otelsql.WithDBSystem(driverName))
 	return otelsqlx.MustConnect(driverName, dataSourceName, opts...)
 }
 

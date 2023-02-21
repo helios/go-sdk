@@ -22,6 +22,7 @@ on:
             - heliossqs
             - helioseventbridge
             - helioslogrus
+            - heliossqlx
           required: true
         proxy_lib_version:
           description: 'Proxy lib version'
