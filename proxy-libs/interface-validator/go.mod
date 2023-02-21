@@ -3,6 +3,7 @@ module github.com/helios/go-sdk/proxy-libs/interface-validator
 go 1.18
 
 require (
+	github.com/helios/go-instrumentor/exports_extractor v0.1.2
 	github.com/stretchr/testify v1.8.1
 )
 
