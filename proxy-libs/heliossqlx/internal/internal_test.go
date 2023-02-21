@@ -1,4 +1,4 @@
-package heliossqlx
+package internal
 
 import (
 	"context"
@@ -6,6 +6,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/uptrace/opentelemetry-go-extra/otelsql"
+	// "github.com/uptrace/opentelemetry-go-extra/otelsql"
+	"github.com/helios/go-sdk/proxy-libs/heliossqlx"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/propagation"
@@ -38,35 +40,41 @@ func assertSpan(t *testing.T, spanRecorder *tracetest.SpanRecorder) []attribute.
 	return spanDbQuery.Attributes()
 }
 
-func assertAttributes(t *testing.T, attributes []attribute.KeyValue) {
+func assertAttributes(t *testing.T, attributes []attribute.KeyValue) bool {
+	dbNameExists := false
+	dbSystemExists := false
+	dbStatementExists := false
 	for _, attribute := range attributes {
 		key := attribute.Key
 		value := attribute.Value.AsString()
 
 		switch key {
 		case semconv.DBNameKey:
+			dbNameExists = true
 			assert.Equal(t, "test", value)
 		case semconv.DBSystemKey:
+			dbSystemExists = true
 			assert.Equal(t, semconv.DBSystemSqlite.Value.AsString(), value)
 		case semconv.DBStatementKey:
-			assert.Equal(t, "SELECT 42", value)	
+			dbStatementExists = true
+			assert.Equal(t, "SELECT 42", value)
 		}
 	}
+	return dbNameExists && dbSystemExists && dbStatementExists
 }
 
 func TestSqlxInstrumentation(t *testing.T) {
 	spanRecorder := getSpanRecorder()
-	db, err := Open("sqlite", "file::memory:?cache=shared",
-		otelsql.WithAttributes(semconv.DBSystemSqlite),
+	db, err := heliossqlx.Open("sqlite", "file::memory:?cache=shared", otelsql.WithAttributes(semconv.DBSystemSqlite),
 		otelsql.WithDBName("test"))
 	if err != nil {
 		panic(err)
 	}
-	
+
 	var num int
 	if err := db.QueryRowContext(context.Background(), "SELECT 42").Scan(&num); err != nil {
 		panic(err)
 	}
 	attributes := assertSpan(t, spanRecorder)
-	assertAttributes(t, attributes)
+	assert.True(t, assertAttributes(t, attributes))
 }
