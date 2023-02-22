@@ -118,12 +118,12 @@ func testHelper(t *testing.T, metadataOnly bool, path string) {
 	assert.Equal(t, trace.SpanKindServer, span.SpanKind())
 
 	validateAttributes(span.Attributes(), fmt.Sprintf("/%s", path), metadataOnly, t)
+	assert.Equal(t, response.Header.Get("traceresponse"), fmt.Sprintf("00-%s-%s-01", span.SpanContext().TraceID().String(), span.SpanContext().SpanID().String()))
 }
 
 func TestNewRouterInstrumentation(t *testing.T) {
 	testHelper(t, false, "allData")
 }
-
 
 func TestNewRouterInstrumentationMetadataOnly(t *testing.T) {
 	os.Setenv("HS_METADATA_ONLY", "true")

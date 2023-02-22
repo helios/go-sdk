@@ -1,4 +1,4 @@
-name: Release
+name: Release Proxy Libs
 
 on:
     workflow_dispatch:
@@ -21,6 +21,8 @@ on:
             - heliosdynamodb
             - heliossqs
             - helioseventbridge
+            - helioslogrus
+            - heliossqlx
           required: true
         proxy_lib_version:
           description: 'Proxy lib version'
@@ -71,4 +73,4 @@ jobs:
           
           - name: Upload updated proxy_libs_version.json to s3
             run: |
-              aws s3 cp ./proxy-libs/proxy_libs_versions.json s3://www.heliosphere.io/proxy_libs_versions.json
+              aws s3 cp ./proxy-libs/proxy_libs_versions.json s3://www.heliosphere.io/go-proxy-libs/proxy_libs_versions.json
