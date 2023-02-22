@@ -93,14 +93,10 @@ func (l *Logger) Log() *Event {
 	return event
 }
 
-// Print sends a log event using debug level and no extra field.
-// Arguments are handled in the manner of fmt.Print.
 func (l *Logger) Print(v ...interface{}) {
 	l.WrappedLogger.Print(v...)
 }
 
-// Printf sends a log event using debug level and no extra field.
-// Arguments are handled in the manner of fmt.Printf.
 func (l *Logger) Printf(format string, v ...interface{}) {
 	l.WrappedLogger.Printf(format, v...)
 }
