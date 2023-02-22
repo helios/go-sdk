@@ -13,9 +13,9 @@ import (
 )
 const hsApiEndpoint = "https://app.gethelios.dev"
 
-func extractDataFromContext(otelContext context.Context, event *Event) {
+func extractDataFromContext(otelContext *context.Context, event *Event) {
 	if otelContext != nil {
-		span := trace.SpanFromContext(otelContext)
+		span := trace.SpanFromContext(*otelContext)
 		if span.IsRecording() {
 			traceId := span.SpanContext().TraceID().String()
 			spanId := span.SpanContext().SpanID().String()
@@ -37,49 +37,49 @@ func (l *Logger) UpdateContext(update func(c zerolog.Context) zerolog.Context) {
 
 func (l *Logger) Trace() *Event {
 	event := l.WrappedLogger.Trace()
-	extractDataFromContext(*l.otelContext, event)
+	extractDataFromContext(l.otelContext, event)
 	return event
 }
 
 func (l *Logger) Debug() *Event {
 	event := l.WrappedLogger.Debug()
-	extractDataFromContext(*l.otelContext, event)
+	extractDataFromContext(l.otelContext, event)
 	return event
 }
 
 func (l *Logger) Info() *Event {
 	event := l.WrappedLogger.Info()
-	extractDataFromContext(*l.otelContext, event)
+	extractDataFromContext(l.otelContext, event)
 	return event
 }
 
 func (l *Logger) Warn() *Event {
 	event := l.WrappedLogger.Warn()
-	extractDataFromContext(*l.otelContext, event)
+	extractDataFromContext(l.otelContext, event)
 	return event
 }
 
 func (l *Logger) Error() *Event {
 	event := l.WrappedLogger.Error()
-	extractDataFromContext(*l.otelContext, event)
+	extractDataFromContext(l.otelContext, event)
 	return event
 }
 
 func (l *Logger) Err(err error) *Event {
 	event := l.WrappedLogger.Err(err)
-	extractDataFromContext(*l.otelContext, event)
+	extractDataFromContext(l.otelContext, event)
 	return event
 }
 
 func (l *Logger) Fatal() *Event {
 	event := l.WrappedLogger.Fatal()
-	extractDataFromContext(*l.otelContext, event)
+	extractDataFromContext(l.otelContext, event)
 	return event
 }
 
 func (l *Logger) Panic() *Event {
 	event := l.WrappedLogger.Panic()
-	extractDataFromContext(*l.otelContext, event)
+	extractDataFromContext(l.otelContext, event)
 	return event
 }
 
@@ -89,7 +89,7 @@ func (l *Logger) WithLevel(level Level) *Event {
 
 func (l *Logger) Log() *Event {
 	event := l.WrappedLogger.Log()
-	extractDataFromContext(*l.otelContext, event)
+	extractDataFromContext(l.otelContext, event)
 	return event
 }
 
