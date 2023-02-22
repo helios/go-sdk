@@ -6,11 +6,6 @@ import (
 
 	origin_zerolog "github.com/rs/zerolog"
 )
-type Array = origin_zerolog.Array
-
-func Arr() (*Array) {
-	return origin_zerolog.Arr()
- }
 
 type Level = origin_zerolog.Level
 
@@ -32,79 +27,67 @@ const Disabled = origin_zerolog.Disabled
 
 const TraceLevel = origin_zerolog.TraceLevel
 
-func ParseLevel(levelStr string) (Level,error) {
+func ParseLevel(levelStr string) (Level, error) {
 	return origin_zerolog.ParseLevel(levelStr)
- }
+}
 
 func New(w io.Writer) Logger {
-	return Logger{origin_zerolog.New(w)}
- }
+	logger := origin_zerolog.New(w)
+	return Logger{&logger, nil}
+}
 
 func Nop() Logger {
-	return Logger{origin_zerolog.Nop()}
- }
+	logger := origin_zerolog.Nop()
+	return Logger{&logger, nil}
+}
 
 type LevelWriter = origin_zerolog.LevelWriter
 
-func SyncWriter(w io.Writer) (io.Writer) {
+func SyncWriter(w io.Writer) io.Writer {
 	return origin_zerolog.SyncWriter(w)
- }
+}
 
-func MultiLevelWriter(writers ...io.Writer) (LevelWriter) {
+func MultiLevelWriter(writers ...io.Writer) LevelWriter {
 	return origin_zerolog.MultiLevelWriter(writers...)
- }
+}
 
 type TestingLog = origin_zerolog.TestingLog
 
 type TestWriter = origin_zerolog.TestWriter
 
-func NewTestWriter(t TestingLog) (TestWriter) {
+func NewTestWriter(t TestingLog) TestWriter {
 	return origin_zerolog.NewTestWriter(t)
- }
+}
 
-func ConsoleTestWriter(t TestingLog) (func(*ConsoleWriter) ) {
+func ConsoleTestWriter(t TestingLog) func(*ConsoleWriter) {
 	return origin_zerolog.ConsoleTestWriter(t)
- }
+}
 
-func Ctx(ctx context.Context) (*Logger) {
-	return &Logger{*origin_zerolog.Ctx(ctx)}
- }
+type Array = origin_zerolog.Array
 
-type Hook = origin_zerolog.Hook
+func Arr() *Array {
+	return origin_zerolog.Arr()
+}
 
-type HookFunc = origin_zerolog.HookFunc
+func Ctx(ctx context.Context) *Logger {
+	if l, ok := ctx.Value(ctxKey{}).(*origin_zerolog.Logger); ok {
+		return &Logger{l, &ctx}
+	} else if l = DefaultContextLogger; l != nil {
+		return &Logger{l, nil}
+	}
+	logger := origin_zerolog.Nop()
+	return &Logger{&logger, nil}
+}
 
-type LevelHook = origin_zerolog.LevelHook
+type SyslogWriter = origin_zerolog.SyslogWriter
 
-func NewLevelHook() (LevelHook) {
-	return origin_zerolog.NewLevelHook()
- }
+func SyslogLevelWriter(w SyslogWriter) LevelWriter {
+	return origin_zerolog.SyslogLevelWriter(w)
+}
 
-var Often = origin_zerolog.Often
-
-var Sometimes = origin_zerolog.Sometimes
-
-var Rarely = origin_zerolog.Rarely
-
-type Sampler = origin_zerolog.Sampler
-
-type RandomSampler = origin_zerolog.RandomSampler
-
-type BasicSampler = origin_zerolog.BasicSampler
-
-type BurstSampler = origin_zerolog.BurstSampler
-
-type LevelSampler = origin_zerolog.LevelSampler
-
-type Event = origin_zerolog.Event
-
-type LogObjectMarshaler = origin_zerolog.LogObjectMarshaler
-
-type LogArrayMarshaler = origin_zerolog.LogArrayMarshaler
-
-func Dict() (*Event) {
-	return origin_zerolog.Dict()
- }
+func SyslogCEEWriter(w SyslogWriter) LevelWriter {
+	return origin_zerolog.SyslogCEEWriter(w)
+}
 
 const TimeFormatUnix = origin_zerolog.TimeFormatUnix
 
@@ -166,33 +149,58 @@ var DefaultContextLogger = origin_zerolog.DefaultContextLogger
 
 func SetGlobalLevel(l Level) {
 	origin_zerolog.SetGlobalLevel(l)
- }
+}
 
-func GlobalLevel() (Level) {
+func GlobalLevel() Level {
 	return origin_zerolog.GlobalLevel()
- }
+}
 
 func DisableSampling(v bool) {
 	origin_zerolog.DisableSampling(v)
- }
+}
 
-type SyslogWriter = origin_zerolog.SyslogWriter
+type Hook = origin_zerolog.Hook
 
-func SyslogLevelWriter(w SyslogWriter) (LevelWriter) {
-	return origin_zerolog.SyslogLevelWriter(w)
- }
+type HookFunc = origin_zerolog.HookFunc
 
-func SyslogCEEWriter(w SyslogWriter) (LevelWriter) {
-	return origin_zerolog.SyslogCEEWriter(w)
- }
+type LevelHook = origin_zerolog.LevelHook
+
+func NewLevelHook() LevelHook {
+	return origin_zerolog.NewLevelHook()
+}
+
+var Often = origin_zerolog.Often
+
+var Sometimes = origin_zerolog.Sometimes
+
+var Rarely = origin_zerolog.Rarely
+
+type Sampler = origin_zerolog.Sampler
+
+type RandomSampler = origin_zerolog.RandomSampler
+
+type BasicSampler = origin_zerolog.BasicSampler
+
+type BurstSampler = origin_zerolog.BurstSampler
+
+type LevelSampler = origin_zerolog.LevelSampler
 
 type Formatter = origin_zerolog.Formatter
 
 type ConsoleWriter = origin_zerolog.ConsoleWriter
 
-func NewConsoleWriter(options ...func(*ConsoleWriter) ) (ConsoleWriter) {
+func NewConsoleWriter(options ...func(*ConsoleWriter)) ConsoleWriter {
 	return origin_zerolog.NewConsoleWriter(options...)
- }
+}
 
 type Context = origin_zerolog.Context
 
+type Event = origin_zerolog.Event
+
+type LogObjectMarshaler = origin_zerolog.LogObjectMarshaler
+
+type LogArrayMarshaler = origin_zerolog.LogArrayMarshaler
+
+func Dict() *Event {
+	return origin_zerolog.Dict()
+}

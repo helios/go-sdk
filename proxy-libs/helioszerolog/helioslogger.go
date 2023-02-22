@@ -2,100 +2,147 @@ package helioszerolog
 
 import (
 	"context"
+	"fmt"
 	"io"
+	"time"
 
 	"github.com/rs/zerolog"
+	"go.opentelemetry.io/otel/trace"
 
 	origin_zerolog "github.com/rs/zerolog"
 )
+const hsApiEndpoint = "https://app.gethelios.dev"
+
+func extractDataFromContext(otelContext context.Context, event *Event) {
+	if otelContext != nil {
+		span := trace.SpanFromContext(otelContext)
+		if span.IsRecording() {
+			traceId := span.SpanContext().TraceID().String()
+			spanId := span.SpanContext().SpanID().String()
+			event.Str("spanId", spanId)
+			event.Str("traceId", traceId)
+			event.Str("go_to_helios", fmt.Sprintf("%s?actionTraceId=%s&spanId=%s&source=zerolog&timestamp=%s",hsApiEndpoint, traceId, spanId, fmt.Sprint(time.Now().UnixNano())))
+		}
+	}
+}
 
 type Logger struct {
-	realLogger origin_zerolog.Logger
+	WrappedLogger *origin_zerolog.Logger
+	otelContext   *context.Context
 }
 
 func (l *Logger) UpdateContext(update func(c zerolog.Context) zerolog.Context) {
-	l.realLogger.UpdateContext(update)
+	l.WrappedLogger.UpdateContext(update)
 }
 
-func (l *Logger) Trace(ctx context.Context) *Event {
-	l.UpdateContext(func(c zerolog.Context) zerolog.Context {
-		return c.Str("traceparent", ctx.Value("traceparent").(string))
-	})
-	return l.realLogger.wTrace()
+func (l *Logger) Trace() *Event {
+	event := l.WrappedLogger.Trace()
+	extractDataFromContext(*l.otelContext, event)
+	return event
 }
 
 func (l *Logger) Debug() *Event {
-	return l.realLogger.Debug()
+	event := l.WrappedLogger.Debug()
+	extractDataFromContext(*l.otelContext, event)
+	return event
 }
 
 func (l *Logger) Info() *Event {
-	return l.realLogger.Debug()
+	event := l.WrappedLogger.Info()
+	extractDataFromContext(*l.otelContext, event)
+	return event
 }
 
 func (l *Logger) Warn() *Event {
-	return l.realLogger.Warn()
+	event := l.WrappedLogger.Warn()
+	extractDataFromContext(*l.otelContext, event)
+	return event
 }
 
 func (l *Logger) Error() *Event {
-	return l.realLogger.Error()
+	event := l.WrappedLogger.Error()
+	extractDataFromContext(*l.otelContext, event)
+	return event
 }
 
 func (l *Logger) Err(err error) *Event {
-	return l.realLogger.Err(err)
+	event := l.WrappedLogger.Err(err)
+	extractDataFromContext(*l.otelContext, event)
+	return event
 }
 
 func (l *Logger) Fatal() *Event {
-	return l.realLogger.Fatal()
+	event := l.WrappedLogger.Fatal()
+	extractDataFromContext(*l.otelContext, event)
+	return event
 }
 
 func (l *Logger) Panic() *Event {
-	return l.realLogger.Panic()
+	event := l.WrappedLogger.Panic()
+	extractDataFromContext(*l.otelContext, event)
+	return event
 }
 
 func (l *Logger) WithLevel(level Level) *Event {
-	return l.realLogger.WithLevel(level)
+	return l.WrappedLogger.WithLevel(level)
 }
 
 func (l *Logger) Log() *Event {
-	return l.realLogger.Log()
+	event := l.WrappedLogger.Log()
+	extractDataFromContext(*l.otelContext, event)
+	return event
 }
 
 // Print sends a log event using debug level and no extra field.
 // Arguments are handled in the manner of fmt.Print.
 func (l *Logger) Print(v ...interface{}) {
-	l.realLogger.Print(v...)
+	l.WrappedLogger.Print(v...)
 }
 
 // Printf sends a log event using debug level and no extra field.
 // Arguments are handled in the manner of fmt.Printf.
 func (l *Logger) Printf(format string, v ...interface{}) {
-	l.realLogger.Printf(format, v...)
+	l.WrappedLogger.Printf(format, v...)
 }
 
 func (l Logger) Output(w io.Writer) Logger {
-	return l.realLogger.Output(w)
+	internalLogger := l.WrappedLogger.Output(w)
+	return Logger{&internalLogger, l.otelContext}
 }
 
 func (l Logger) With() Context {
-	return l.With()
+	return l.WrappedLogger.With()
 }
 
 func (l Logger) Level(lvl Level) Logger {
-	return l.realLogger.Level(lvl)
+	internalLogger := l.WrappedLogger.Level(lvl)
+	return Logger{&internalLogger, l.otelContext}
 }
 
 func (l Logger) GetLevel() Level {
-	return l.realLogger.GetLevel()
+	return l.WrappedLogger.GetLevel()
 }
 
 func (l Logger) Sample(s Sampler) Logger {
-	return l.realLogger.Sample(s)
+	internalLogger := l.WrappedLogger.Sample(s)
+	return Logger{&internalLogger, l.otelContext}
 }
 
 func (l Logger) Hook(h Hook) Logger {
-	return l.realLogger.Hook(h)
+	internalLogger := l.WrappedLogger.Hook(h)
+	return Logger{&internalLogger, l.otelContext}
 }
 
 func (l Logger) Write(p []byte) (n int, err error) {
-	return l.realLogger.Write(p)
+	return l.WrappedLogger.Write(p)
+}
+
+type ctxKey struct{}
+
+func (l Logger) WithContext(ctx context.Context) context.Context {
+	if _, ok := ctx.Value(ctxKey{}).(*Logger); !ok && l.WrappedLogger.GetLevel() == Disabled {
+		// Do not store disabled logger.
+		return ctx
+	}
+	return context.WithValue(ctx, ctxKey{}, l.WrappedLogger)
 }
