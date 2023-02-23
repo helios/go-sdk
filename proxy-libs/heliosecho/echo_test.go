@@ -88,4 +88,10 @@ func TestInstrumentation(t *testing.T) {
 	assert.Equal(t, 1, len(spans))
 	serverSpan := spans[0]
 	validateAttributes(t, serverSpan.Attributes())
+
+	// Send again
+	http.Post(url, "application/json", bytes.NewBuffer([]byte(requestBody)))
+	sr.ForceFlush(context.Background())
+	serverSpan = sr.Ended()[1]
+	validateAttributes(t, serverSpan.Attributes())
 }

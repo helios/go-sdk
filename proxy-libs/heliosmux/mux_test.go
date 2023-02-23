@@ -119,6 +119,12 @@ func testHelper(t *testing.T, metadataOnly bool, path string) {
 
 	validateAttributes(span.Attributes(), fmt.Sprintf("/%s", path), metadataOnly, t)
 	assert.Equal(t, response.Header.Get("traceresponse"), fmt.Sprintf("00-%s-%s-01", span.SpanContext().TraceID().String(), span.SpanContext().SpanID().String()))
+
+	// Send again
+	http.Post(fmt.Sprintf("http://localhost:8000/%s", path), "application/json", bytes.NewBuffer([]byte(requestResponseBody)))
+	spanRecorder.ForceFlush(context.Background())
+	span = spanRecorder.Ended()[1]
+	validateAttributes(span.Attributes(), fmt.Sprintf("/%s", path), metadataOnly, t)
 }
 
 func TestNewRouterInstrumentation(t *testing.T) {
