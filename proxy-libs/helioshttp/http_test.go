@@ -23,10 +23,11 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
-const requestBody = "{\"id\":123,\"name\":\"Lior Govrin\",\"role\":\"Software Engineer\"}"
-const obfuscatedRequestBody = "{\"id\":123,\"name\":\"dac02c19\",\"role\":\"Software Engineer\"}"
-const responseBody = "hello1234"
-const obfuscatedResponseBody = "87468e56"
+const expectedRequestBody = "{\"id\":123,\"name\":\"Lior Govrin\",\"role\":\"Software Engineer\"}"
+const expectedObfuscatedRequestBody = "{\"id\":123,\"name\":\"dac02c19\",\"role\":\"Software Engineer\"}"
+const expectedResponseBody = "hello1234"
+const expectedCssResponseBody = "body {\n  font-size: 16px;\n  font-family: 'Lato', sans-serif;\n  background-size: cover;\n  background-color: black;\n}\n"
+const expectedObfuscatedResponseBody = "87468e56"
 
 func init() {
 	blocklistRules, _ := json.Marshal([]string{"$.name"})
@@ -36,10 +37,15 @@ func init() {
 
 func getHello(responseWriter ResponseWriter, request *Request) {
 	body, _ := ioutil.ReadAll(request.Body)
-	if string(body) != requestBody {
+	if string(body) != expectedRequestBody {
 		log.Fatal("Invalid request body")
 	}
-	io.WriteString(responseWriter, responseBody)
+	io.WriteString(responseWriter, expectedResponseBody)
+}
+
+func getCss(responseWriter ResponseWriter, request *Request) {
+	http.ServeFile(responseWriter, request, "style.css")
+	// io.WriteString(responseWriter, expectedCssResponseBody)
 }
 
 func validateAttributes(attrs []attribute.KeyValue, path string, metadataOnly bool, t *testing.T) {
@@ -56,7 +62,7 @@ func validateAttributes(attrs []attribute.KeyValue, path string, metadataOnly bo
 			assert.Equal(t, 200, int(value.Value.AsInt64()))
 		} else if key == "http.response.body" {
 			responseBodyFound = true
-			assert.Equal(t, obfuscatedResponseBody, value.Value.AsString())
+			assert.Equal(t, expectedObfuscatedResponseBody, value.Value.AsString())
 		} else if key == "http.request.headers" {
 			requestHeadersFound = true
 			headers := map[string][]string{}
@@ -64,13 +70,70 @@ func validateAttributes(attrs []attribute.KeyValue, path string, metadataOnly bo
 			assert.Equal(t, "application/json", headers["Content-Type"][0])
 		} else if key == "http.request.body" {
 			requestBodyFound = true
-			assert.Equal(t, obfuscatedRequestBody, value.Value.AsString())
+			assert.Equal(t, expectedObfuscatedRequestBody, value.Value.AsString())
 		}
 	}
 
 	assert.Equal(t, metadataOnly, !requestBodyFound)
 	assert.Equal(t, metadataOnly, !requestHeadersFound)
 	assert.Equal(t, metadataOnly, !responseBodyFound)
+}
+
+func validateStaticContentAttributes(attrs []attribute.KeyValue, metadataOnly bool, t *testing.T) {
+	requestHeadersFound := false
+	for _, value := range attrs {
+		key := value.Key
+		assert.NotEqual(t, key, "http.request.body")
+		assert.NotEqual(t, key, "http.response.body")
+
+		if key == semconv.HTTPMethodKey {
+			assert.Equal(t, "GET", value.Value.AsString())
+		} else if key == semconv.HTTPTargetKey {
+			assert.Equal(t, "/style.css", value.Value.AsString())
+		} else if key == semconv.HTTPStatusCodeKey {
+			assert.Equal(t, 200, int(value.Value.AsInt64()))
+		} else if key == "http.request.headers" {
+			requestHeadersFound = true
+			headers := map[string][]string{}
+			json.Unmarshal([]byte(value.Value.AsString()), &headers)
+			if headers["Content-Type"] != nil {
+				assert.Equal(t, "text/css", headers["Content-Type"][0])
+			}
+		}
+	}
+
+	assert.Equal(t, metadataOnly, !requestHeadersFound)
+}
+
+func staticContentTestHelper(t *testing.T, port int, metadataOnly bool) {
+	sr := tracetest.NewSpanRecorder()
+	otel.SetTracerProvider(sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(sr)))
+	propagator := propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{})
+	otel.SetTextMapPropagator(propagator)
+	Handle("/style.css", HandlerFunc(getCss))
+	go func() {
+		ListenAndServe(fmt.Sprintf(":%d", port), nil)
+	}()
+
+	res, _ := Get(fmt.Sprintf("http://localhost:%d/style.css", port))
+	body, _ := io.ReadAll(res.Body)
+	assert.Equal(t, expectedCssResponseBody, string(body))
+
+	sr.ForceFlush(context.Background())
+	spans := sr.Ended()
+	assert.Equal(t, 2, len(spans))
+	
+	serverSpan := spans[0]
+	assert.Equal(t, trace.SpanKind(2), serverSpan.SpanKind())
+	validateStaticContentAttributes(serverSpan.Attributes(), metadataOnly, t)
+	
+	clientSpan := spans[1]
+	assert.Equal(t, trace.SpanKind(3), clientSpan.SpanKind())
+	assert.False(t, clientSpan.Parent().HasTraceID())
+	validateStaticContentAttributes(clientSpan.Attributes(), metadataOnly, t)
+
+	assert.Equal(t, serverSpan.Parent().SpanID(), clientSpan.SpanContext().SpanID())
+	assert.Equal(t, res.Header.Get("traceresponse"), fmt.Sprintf("00-%s-%s-01", serverSpan.SpanContext().TraceID().String(), serverSpan.SpanContext().SpanID().String()))
 }
 
 func testHelper(t *testing.T, port int, path string, metadataOnly bool) {
@@ -83,9 +146,9 @@ func testHelper(t *testing.T, port int, path string, metadataOnly bool) {
 		ListenAndServe(fmt.Sprintf(":%d", port), nil)
 	}()
 
-	res, _ := Post(fmt.Sprintf("http://localhost:%d/%s", port, path), "application/json", bytes.NewBuffer([]byte(requestBody)))
+	res, _ := Post(fmt.Sprintf("http://localhost:%d/%s", port, path), "application/json", bytes.NewBuffer([]byte(expectedRequestBody)))
 	body, _ := io.ReadAll(res.Body)
-	assert.Equal(t, responseBody, string(body))
+	assert.Equal(t, expectedResponseBody, string(body))
 	sr.ForceFlush(context.Background())
 	spans := sr.Ended()
 	assert.Equal(t, 2, len(spans))
@@ -110,4 +173,8 @@ func TestServerInstrumentationMetadataOnly(t *testing.T) {
 	otelhttp.DefaultClient = &http.Client{Transport: otelhttp.NewTransport(http.DefaultTransport)}
 	DefaultClient = &Client{}
 	testHelper(t, 8001, "test2", true)
+}
+
+func TestServerInstrumentationWithSkippedContent(t *testing.T) {
+	staticContentTestHelper(t, 8000, false)
 }
