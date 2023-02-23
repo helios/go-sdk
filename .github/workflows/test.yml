@@ -131,7 +131,11 @@ jobs:
 
           - name: Run logrus proxy unit tests
             working-directory: proxy-libs/helioslogrus
-            run: go mod tidy && go test .       
+            run: go mod tidy && go test .   
+
+          - name: Run sqlx proxy unit tests
+            working-directory: proxy-libs/heliossqlx/internal
+            run: go mod tidy && go test .     
 
           - name: Set GOPRIVATE
             run: go env -w GOPRIVATE=github.com/helios/\*

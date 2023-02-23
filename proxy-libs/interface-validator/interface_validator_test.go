@@ -188,3 +188,25 @@ func TestLogrusInterfaceMatch(t *testing.T) {
 
 	assert.EqualValues(t, originalExports, heliosExports)
 }
+
+func TestSqlxInterfaceMatch(t *testing.T) {
+	originalExports := cloneRepositoryAndExtractExports("https://github.com/jmoiron/sqlx", "v1.3.4", "sqlx", "")
+	heliosExports := extractProxyLibExports("heliossqlx")
+
+	//Edited methods
+	originalExports = deleteByName(originalExports, "Open")
+	originalExports = deleteByName(originalExports, "MustOpen")
+	originalExports = deleteByName(originalExports, "Connect")
+	originalExports = deleteByName(originalExports, "MustConnect")
+	originalExports = deleteByName(originalExports, "ConnectContext")
+
+
+	heliosExports = deleteByName(heliosExports, "rowi")
+	heliosExports = deleteByName(heliosExports, "Open")
+	heliosExports = deleteByName(heliosExports, "MustOpen")
+	heliosExports = deleteByName(heliosExports, "Connect")
+	heliosExports = deleteByName(heliosExports, "MustConnect")
+	heliosExports = deleteByName(heliosExports, "ConnectContext")
+
+	assert.EqualValues(t, originalExports, heliosExports)
+}
