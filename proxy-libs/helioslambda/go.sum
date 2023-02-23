@@ -11,8 +11,8 @@ github.com/go-logr/stdr v1.2.2/go.mod h1:mMo/vtBO5dYbehREoey6XUKy/eSumjCCveDpRre
 github.com/google/go-cmp v0.5.9 h1:O2Tfq5qg4qc4AmwVlvv0oLiVAGB7enBSJ2x2DqQFi38=
 github.com/helios/go-sdk/data-obfuscator v1.0.1 h1:cNqAe+fhMBp/jWrSy1VPywVWx4FHjo4eBGvvp0yTw88=
 github.com/helios/go-sdk/data-obfuscator v1.0.1/go.mod h1:n3MuH/koBrEvdddLC06KXNBcInOv96yNkgLMa/pVJ1M=
-github.com/helios/opentelemetry-go-contrib/instrumentation/github.com/aws/aws-lambda-go/otellambda v0.1.2 h1:k9DWD20abGjX9qzum2R+D/mQs2TZ8QpD7+6YT5BS+RE=
-github.com/helios/opentelemetry-go-contrib/instrumentation/github.com/aws/aws-lambda-go/otellambda v0.1.2/go.mod h1:gQlerWuiq+VaAc5jlEPufoJPwPa9lKzKF2CjdRFRcpg=
+github.com/helios/opentelemetry-go-contrib/instrumentation/github.com/aws/aws-lambda-go/otellambda v0.1.3 h1:CEW3+s9Q/UM5c7AgFymkaEjouk8YTBjN0gqsTfIE4zs=
+github.com/helios/opentelemetry-go-contrib/instrumentation/github.com/aws/aws-lambda-go/otellambda v0.1.3/go.mod h1:gQlerWuiq+VaAc5jlEPufoJPwPa9lKzKF2CjdRFRcpg=
 github.com/ohler55/ojg v1.17.4 h1:6Ss87DyAZHU0ODZu6Cmuahj5UiVaRD1n8C4KNm0qMYg=
 github.com/ohler55/ojg v1.17.4/go.mod h1:7Ghirupn8NC8hSSDpI0gcjorPxj+vSVIONDWfliHR1k=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
