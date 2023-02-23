@@ -3,7 +3,7 @@ package helioslambda
 import (
 	"context"
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"os"
 	"reflect"
 	"testing"
@@ -196,7 +196,7 @@ func TestSqsEventBridgeContextPropagaion(t *testing.T) {
 	}
 	defer jsonFile.Close()
 	var record events.SQSEvent
-	byteValue, _ := ioutil.ReadAll(jsonFile)
+	byteValue, _ := io.ReadAll(jsonFile)
 	err = json.Unmarshal(byteValue, &record)
 	if err != nil {
 		assert.Fail(t, "could not parse json file")
