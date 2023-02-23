@@ -210,3 +210,10 @@ func TestSqlxInterfaceMatch(t *testing.T) {
 
 	assert.EqualValues(t, originalExports, heliosExports)
 }
+
+func TestZerologInterfaceMatch(t *testing.T) {
+	originalExports := cloneRepositoryAndExtractExports("https://github.com/rs/zerolog", "v1.29.0", "zerolog", "")
+	heliosExports := extractProxyLibExports("helioszerolog")
+
+	assert.EqualValues(t, originalExports, heliosExports)
+}
