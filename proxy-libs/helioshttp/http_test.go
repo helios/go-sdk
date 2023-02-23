@@ -44,8 +44,8 @@ func getHello(responseWriter ResponseWriter, request *Request) {
 }
 
 func getCss(responseWriter ResponseWriter, request *Request) {
+	responseWriter.Header().Add("Content-Type", "text/css")
 	http.ServeFile(responseWriter, request, "style.css")
-	// io.WriteString(responseWriter, expectedCssResponseBody)
 }
 
 func validateAttributes(attrs []attribute.KeyValue, path string, metadataOnly bool, t *testing.T) {
