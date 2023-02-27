@@ -200,7 +200,6 @@ func TestSqlxInterfaceMatch(t *testing.T) {
 	originalExports = deleteByName(originalExports, "MustConnect")
 	originalExports = deleteByName(originalExports, "ConnectContext")
 
-
 	heliosExports = deleteByName(heliosExports, "rowi")
 	heliosExports = deleteByName(heliosExports, "Open")
 	heliosExports = deleteByName(heliosExports, "MustOpen")
@@ -215,5 +214,11 @@ func TestZerologInterfaceMatch(t *testing.T) {
 	originalExports := cloneRepositoryAndExtractExports("https://github.com/rs/zerolog", "v1.29.0", "zerolog", "")
 	heliosExports := extractProxyLibExports("helioszerolog")
 
+	assert.EqualValues(t, originalExports, heliosExports)
+}
+
+func TestHttpTestInteraceMatch(t *testing.T) {
+	originalExports := cloneRepositoryAndExtractExports("https://github.com/golang/go", "go1.19.5", "httptest", "/src/net/http/httptest")
+	heliosExports := extractProxyLibExports("helioshttptest")
 	assert.EqualValues(t, originalExports, heliosExports)
 }

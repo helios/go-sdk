@@ -142,7 +142,7 @@ jobs:
             run: go mod tidy && go test .       
 
           - name: Run httptest proxy unit tests
-            working-directory: proxy-libs/httptest
+            working-directory: proxy-libs/helioshttptest
             run: go mod tidy && go test .
 
           - name: Set GOPRIVATE
