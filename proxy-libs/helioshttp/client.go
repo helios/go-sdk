@@ -10,7 +10,7 @@ import (
 )
 
 type Client struct {
-	realClient    realHttp.Client
+	RealClient    realHttp.Client
 	initialized   bool
 	Transport     RoundTripper
 	CheckRedirect func(req *Request, via []*Request) error
@@ -40,46 +40,46 @@ func copyClientRealToProxy(from *realHttp.Client, to *Client) {
 }
 
 func (c *Client) CloseIdleConnections() {
-	copyClientProxyToReal(c, &c.realClient)
-	c.realClient.CloseIdleConnections()
+	copyClientProxyToReal(c, &c.RealClient)
+	c.RealClient.CloseIdleConnections()
 }
 
 func (c *Client) Do(req *Request) (resp *Response, err error) {
-	copyClientProxyToReal(c, &c.realClient)
-	resp, err = c.realClient.Do(req)
-	copyClientRealToProxy(&c.realClient, c)
+	copyClientProxyToReal(c, &c.RealClient)
+	resp, err = c.RealClient.Do(req)
+	copyClientRealToProxy(&c.RealClient, c)
 
 	return resp, err
 }
 
 func (c *Client) Get(url string) (resp *Response, err error) {
-	copyClientProxyToReal(c, &c.realClient)
-	resp, err = c.realClient.Get(url)
-	copyClientRealToProxy(&c.realClient, c)
+	copyClientProxyToReal(c, &c.RealClient)
+	resp, err = c.RealClient.Get(url)
+	copyClientRealToProxy(&c.RealClient, c)
 
 	return resp, err
 }
 
 func (c *Client) Head(url string) (resp *Response, err error) {
-	copyClientProxyToReal(c, &c.realClient)
-	resp, err = c.realClient.Head(url)
-	copyClientRealToProxy(&c.realClient, c)
+	copyClientProxyToReal(c, &c.RealClient)
+	resp, err = c.RealClient.Head(url)
+	copyClientRealToProxy(&c.RealClient, c)
 
 	return resp, err
 }
 
 func (c *Client) Post(url, contentType string, body io.Reader) (resp *Response, err error) {
-	copyClientProxyToReal(c, &c.realClient)
-	resp, err = c.realClient.Post(url, contentType, body)
-	copyClientRealToProxy(&c.realClient, c)
+	copyClientProxyToReal(c, &c.RealClient)
+	resp, err = c.RealClient.Post(url, contentType, body)
+	copyClientRealToProxy(&c.RealClient, c)
 
 	return resp, err
 }
 
 func (c *Client) PostForm(url string, data url.Values) (resp *Response, err error) {
-	copyClientProxyToReal(c, &c.realClient)
-	resp, err = c.realClient.PostForm(url, data)
-	copyClientRealToProxy(&c.realClient, c)
+	copyClientProxyToReal(c, &c.RealClient)
+	resp, err = c.RealClient.PostForm(url, data)
+	copyClientRealToProxy(&c.RealClient, c)
 
 	return resp, err
 }
