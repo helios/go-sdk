@@ -2,13 +2,14 @@ package helioshttptest
 
 import (
 	"io"
-	"net/http"
 	origin_httptest "net/http/httptest"
+
+	http "github.com/helios/go-sdk/proxy-libs/helioshttp"
+	"github.com/helios/opentelemetry-go-contrib/instrumentation/net/http/otelhttp"
 )
 
 const DefaultRemoteAddr = origin_httptest.DefaultRemoteAddr
 
-type Server = origin_httptest.Server
 type ResponseRecorder = origin_httptest.ResponseRecorder
 
 func NewRequest(method, target string, body io.Reader) *http.Request {
@@ -19,14 +20,31 @@ func NewRecorder() *ResponseRecorder {
 	return origin_httptest.NewRecorder()
 }
 
+func wrapServer(wrappedServer *origin_httptest.Server) *Server {
+	return &Server{
+		URL:           wrappedServer.URL,
+		Listener:      wrappedServer.Listener,
+		EnableHTTP2:   wrappedServer.EnableHTTP2,
+		TLS:           wrappedServer.TLS,
+		Config:        wrappedServer.Config,
+		wrappedServer: wrappedServer,
+	}
+}
+
 func NewServer(handler http.Handler) *Server {
-	return origin_httptest.NewServer(handler)
+	wrappedHandler := otelhttp.NewHandler(handler, "test_server")
+	wrappedServer := origin_httptest.NewServer(wrappedHandler)
+	return wrapServer(wrappedServer)
 }
 
 func NewUnstartedServer(handler http.Handler) *Server {
-	return origin_httptest.NewUnstartedServer(handler)
+	wrappedHandler := otelhttp.NewHandler(handler, "test_server")
+	wrappedServer := origin_httptest.NewUnstartedServer(wrappedHandler)
+	return wrapServer(wrappedServer)
 }
 
 func NewTLSServer(handler http.Handler) *Server {
-	return origin_httptest.NewTLSServer(handler)
+	wrappedHandler := otelhttp.NewHandler(handler, "test_server")
+	wrappedServer := origin_httptest.NewTLSServer(wrappedHandler)
+	return wrapServer(wrappedServer)
 }
