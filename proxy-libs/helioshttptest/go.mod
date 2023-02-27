@@ -1,4 +1,4 @@
-module helioshttptest
+module github.com/helios/go-sdk/proxy-libs/helioshttp
 
 go 1.18
 
