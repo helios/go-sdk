@@ -141,6 +141,10 @@ jobs:
             working-directory: proxy-libs/helioszerolog
             run: go mod tidy && go test .       
 
+          - name: Run httptest proxy unit tests
+            working-directory: proxy-libs/httptest
+            run: go mod tidy && go test .
+
           - name: Set GOPRIVATE
             run: go env -w GOPRIVATE=github.com/helios/\*
 
