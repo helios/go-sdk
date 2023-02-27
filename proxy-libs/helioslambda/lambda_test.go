@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/sdk/trace/tracetest"
 )
@@ -42,20 +43,8 @@ func init() {
 }
 
 func assertPayloads(t *testing.T, span tracetest.SpanStub, expectedEvent, expectedResponse string) {
-	foundRes := false
-	foundEvent := false
-	for _, attr := range span.Attributes {
-		if attr.Key == "faas.res" {
-			foundRes = true
-			assert.Equal(t, expectedResponse, attr.Value.AsString())
-		} else if attr.Key == "faas.event" {
-			foundEvent = true
-			assert.Equal(t, expectedEvent, attr.Value.AsString())
-		}
-	}
-
-	assert.True(t, foundRes)
-	assert.True(t, foundEvent)
+	assert.Contains(t, span.Attributes, attribute.String("faas.res", expectedResponse))
+	assert.Contains(t, span.Attributes, attribute.String("faas.event", expectedEvent))
 }
 
 func validateResults(t *testing.T, resp []reflect.Value, expectedEvent, expectedResponse string) {
@@ -87,6 +76,25 @@ func validateSqsTestResults(t *testing.T, resp []reflect.Value) {
 	customSpan := spans[0]
 	assert.Equal(t, traceId, customSpan.SpanContext.TraceID().String())
 	assert.Equal(t, lambdaSqsHandlerSpan.SpanContext.SpanID().String(), customSpan.Parent.SpanID().String())
+}
+
+func TestPayloadCollection(t *testing.T) {
+	ctx := context.Background()
+	exporter.Reset()
+	otel.SetTracerProvider(provider)
+
+	customerHandler := func(lambdaContext context.Context, event events.APIGatewayV2HTTPRequest) (any, error) {
+		return event, nil
+	}
+
+	wrapped := instrumentHandler(customerHandler)
+
+	wrappedCallable := reflect.ValueOf(wrapped)
+	wrappedCallable.Call([]reflect.Value{reflect.ValueOf(ctx), reflect.ValueOf(testApiGatewayEvent)})
+	spans := exporter.GetSpans()
+	assert.Len(t, spans, 1)
+	lambdaSpan := spans[0]
+	assertPayloads(t, lambdaSpan, obfuscatedExpectedPayload, obfuscatedExpectedPayload)
 }
 
 func TestApiGatewayContextPropagation(t *testing.T) {
