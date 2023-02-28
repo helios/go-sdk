@@ -1,4 +1,4 @@
-package dataobfuscator
+package datautils
 
 import (
 	"encoding/json"
