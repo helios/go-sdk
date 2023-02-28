@@ -137,6 +137,12 @@ func TestClientInstrumentation(t *testing.T) {
 	assert.Equal(t, 1, len(spans))
 	clientSpan := spans[0]
 	assert.Equal(t, trace.SpanKind(3), clientSpan.SpanKind())
+	for _, value := range clientSpan.Attributes() {
+		key := value.Key
+		 if key == semconv.HTTPURLKey {
+			assert.Equal(t, "google.com", value.Value.AsString())
+		}
+	}
 }
 
 func TestServerInstrumentationMetadataOnly(t *testing.T) {
