@@ -36,7 +36,7 @@ func init() {
 
 func getHello(responseWriter ResponseWriter, request *Request) {
 	body, _ := io.ReadAll(request.Body)
-	if string(body) != requestBody {
+	if string(body) != expectedRequestBody {
 		log.Fatal("Invalid request body")
 	}
 	io.WriteString(responseWriter, expectedResponseBody)
@@ -102,7 +102,7 @@ func validateStaticContentAttributes(attrs []attribute.KeyValue, metadataOnly bo
 		}
 	}
 
-	assert.Equal(t, metadataOnly, !requestHeadersFound)
+	assert.EqualValues(t, metadataOnly, !requestHeadersFound)
 }
 
 func staticContentTestHelper(t *testing.T, port int, metadataOnly bool) {
@@ -158,9 +158,9 @@ func sendRequestAndValidate(t *testing.T, port int, path string, metadataOnly bo
 	assert.Equal(t, res.Header.Get("traceresponse"), fmt.Sprintf("00-%s-%s-01", serverSpan.SpanContext().TraceID().String(), serverSpan.SpanContext().SpanID().String()))
 
 	// Send again
-	res, _ = Post(fmt.Sprintf("http://localhost:%d/%s", port, path), "application/json", bytes.NewBuffer([]byte(requestBody)))
+	res, _ = Post(fmt.Sprintf("http://localhost:%d/%s", port, path), "application/json", bytes.NewBuffer([]byte(expectedRequestBody)))
 	body, _ = io.ReadAll(res.Body)
-	assert.Equal(t, responseBody, string(body))
+	assert.Equal(t, expectedResponseBody, string(body))
 	sr.ForceFlush(context.Background())
 	spans = sr.Ended()
 	serverSpan = spans[2]
@@ -193,10 +193,6 @@ func TestServerInstrumentationMetadataOnly(t *testing.T) {
 	testHelper(t, 8001, "test2", true)
 }
 
-func TestServerInstrumentationWithSkippedContent(t *testing.T) {
-	staticContentTestHelper(t, 8000, false)
-}
-
 func TestHandleFunc(t *testing.T) {
 	sr := tracetest.NewSpanRecorder()
 	otel.SetTracerProvider(sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(sr)))
@@ -207,4 +203,8 @@ func TestHandleFunc(t *testing.T) {
 	path := "test3"
 	HandleFunc("/"+path, getHello)
 	sendRequestAndValidate(t, port, path, true, sr)
+}
+
+func TestServerInstrumentationWithSkippedContent(t *testing.T) {
+	staticContentTestHelper(t, 8003, false)
 }
