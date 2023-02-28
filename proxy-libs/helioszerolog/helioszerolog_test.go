@@ -26,8 +26,7 @@ func TestZerolog(t *testing.T) {
 	ctx, span := tracer.Start(context.Background(), "hello-span")
 
 	out := &bytes.Buffer{}
-	newCtx := New(out).WithContext(ctx)
-	newLogger := Ctx(newCtx)
+	newLogger := NewWithContext(out, ctx)
 	newLogger.Info().Msg("test")
 	data := map[string]string{}
 	json.Unmarshal(out.Bytes(), &data)
@@ -49,5 +48,4 @@ func TestZerolog(t *testing.T) {
 	value, ok = data["spanId"]
 	assert.True(t, ok)
 	assert.Equal(t, spanId, value)
-
 }

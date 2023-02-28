@@ -36,6 +36,12 @@ func New(w io.Writer) Logger {
 	return Logger{&logger, nil}
 }
 
+func NewWithContext(w io.Writer, ctx context.Context) Logger {
+	newCtx := New(w).WithContext(ctx)
+	newLogger := Ctx(newCtx)
+	return *newLogger
+}
+
 func Nop() Logger {
 	logger := origin_zerolog.Nop()
 	return Logger{&logger, nil}
