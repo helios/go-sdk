@@ -30,7 +30,7 @@ func extractProxyLibExports(libName string) []exportsExtractor.ExtractedObject {
 }
 
 func TestHttpInterfaceMatch(t *testing.T) {
-	originalExports := cloneRepositoryAndExtractExports("https://github.com/golang/go", "go1.19", "http", "/src/net/http")
+	originalExports := cloneRepositoryAndExtractExports("https://github.com/golang/go", "go1.18", "http", "/src/net/http")
 	heliosExports := extractProxyLibExports("helioshttp")
 	assert.EqualValues(t, originalExports, heliosExports)
 }
