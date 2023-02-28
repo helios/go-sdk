@@ -117,6 +117,18 @@ func TestServerInstrumentation(t *testing.T) {
 	testHelper(t, 8000, "test1", false)
 }
 
+func TestClientInstrumentation(t *testing.T) {
+	sr := tracetest.NewSpanRecorder()
+	otel.SetTracerProvider(sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(sr)))
+	propagator := propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{})
+	otel.SetTextMapPropagator(propagator)
+	client := &Client{}
+	_, _ = client.realClient.Get("google.com")
+	sr.ForceFlush(context.Background())
+	spans := sr.Ended()
+	assert.Equal(t, 1, len(spans))
+}
+
 func TestServerInstrumentationMetadataOnly(t *testing.T) {
 	os.Setenv("HS_METADATA_ONLY", "true")
 	// Reset the client so that metadaaonly mode canbe properly applied
