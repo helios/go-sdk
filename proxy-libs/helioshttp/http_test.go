@@ -72,17 +72,7 @@ func validateAttributes(attrs []attribute.KeyValue, path string, metadataOnly bo
 	assert.Equal(t, metadataOnly, !responseBodyFound)
 }
 
-func setupSpanRecording() *tracetest.SpanRecorder {
-	sr := tracetest.NewSpanRecorder()
-	otel.SetTracerProvider(sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(sr)))
-	propagator := propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{})
-	otel.SetTextMapPropagator(propagator)
-	return sr
-}
-
-func testHelper(t *testing.T, port int, path string, metadataOnly bool) {
-	sr := setupSpanRecording()
-	Handle("/"+path, HandlerFunc(getHello))
+func sendRequestAndValidate(t *testing.T, port int, path string, metadataOnly bool, sr *tracetest.SpanRecorder) {
 	go func() {
 		ListenAndServe(fmt.Sprintf(":%d", port), nil)
 	}()
@@ -118,6 +108,20 @@ func testHelper(t *testing.T, port int, path string, metadataOnly bool) {
 	validateAttributes(clientSpan.Attributes(), path, metadataOnly, t)
 }
 
+func setupSpanRecording() *tracetest.SpanRecorder {
+	sr := tracetest.NewSpanRecorder()
+	otel.SetTracerProvider(sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(sr)))
+	propagator := propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{})
+	otel.SetTextMapPropagator(propagator)
+	return sr
+}
+
+func testHelper(t *testing.T, port int, path string, metadataOnly bool) {
+	sr := setupSpanRecording()
+	Handle("/"+path, HandlerFunc(getHello))
+	sendRequestAndValidate(t, port, path, metadataOnly, sr)
+}
+
 func TestServerInstrumentation(t *testing.T) {
 	testHelper(t, 8000, "test1", false)
 }
@@ -141,4 +145,16 @@ func TestServerInstrumentationMetadataOnly(t *testing.T) {
 	otelhttp.DefaultClient = &http.Client{Transport: otelhttp.NewTransport(http.DefaultTransport)}
 	DefaultClient = &Client{}
 	testHelper(t, 8001, "test2", true)
+}
+
+func TestHandleFunc(t *testing.T) {
+	sr := tracetest.NewSpanRecorder()
+	otel.SetTracerProvider(sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(sr)))
+	propagator := propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{})
+	otel.SetTextMapPropagator(propagator)
+
+	port := 8002
+	path := "test3"
+	HandleFunc("/"+path, getHello)
+	sendRequestAndValidate(t, port, path, true, sr)
 }
