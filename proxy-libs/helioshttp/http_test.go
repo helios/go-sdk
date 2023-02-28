@@ -182,6 +182,10 @@ func testHelper(t *testing.T, port int, path string, metadataOnly bool) {
 	sendRequestAndValidate(t, port, path, metadataOnly, sr)
 }
 
+func TestServerInstrumentationWithSkippedContent(t *testing.T) {
+	staticContentTestHelper(t, 8003, false)
+}
+
 func TestServerInstrumentation(t *testing.T) {
 	testHelper(t, 8000, "test1", false)
 }
@@ -204,8 +208,4 @@ func TestHandleFunc(t *testing.T) {
 	path := "test3"
 	HandleFunc("/"+path, getHello)
 	sendRequestAndValidate(t, port, path, true, sr)
-}
-
-func TestServerInstrumentationWithSkippedContent(t *testing.T) {
-	staticContentTestHelper(t, 8003, false)
 }
