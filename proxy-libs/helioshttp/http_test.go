@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -36,8 +35,8 @@ func init() {
 }
 
 func getHello(responseWriter ResponseWriter, request *Request) {
-	body, _ := ioutil.ReadAll(request.Body)
-	if string(body) != expectedRequestBody {
+	body, _ := io.ReadAll(request.Body)
+	if string(body) != requestBody {
 		log.Fatal("Invalid request body")
 	}
 	io.WriteString(responseWriter, expectedResponseBody)
@@ -137,12 +136,7 @@ func staticContentTestHelper(t *testing.T, port int, metadataOnly bool) {
 	assert.Equal(t, res.Header.Get("traceresponse"), fmt.Sprintf("00-%s-%s-01", serverSpan.SpanContext().TraceID().String(), serverSpan.SpanContext().SpanID().String()))
 }
 
-func testHelper(t *testing.T, port int, path string, metadataOnly bool) {
-	sr := tracetest.NewSpanRecorder()
-	otel.SetTracerProvider(sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(sr)))
-	propagator := propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{})
-	otel.SetTextMapPropagator(propagator)
-	Handle("/"+path, HandlerFunc(getHello))
+func sendRequestAndValidate(t *testing.T, port int, path string, metadataOnly bool, sr *tracetest.SpanRecorder) {
 	go func() {
 		ListenAndServe(fmt.Sprintf(":%d", port), nil)
 	}()
@@ -162,6 +156,29 @@ func testHelper(t *testing.T, port int, path string, metadataOnly bool) {
 	validateAttributes(clientSpan.Attributes(), path, metadataOnly, t)
 	assert.Equal(t, serverSpan.Parent().SpanID(), clientSpan.SpanContext().SpanID())
 	assert.Equal(t, res.Header.Get("traceresponse"), fmt.Sprintf("00-%s-%s-01", serverSpan.SpanContext().TraceID().String(), serverSpan.SpanContext().SpanID().String()))
+
+	// Send again
+	res, _ = Post(fmt.Sprintf("http://localhost:%d/%s", port, path), "application/json", bytes.NewBuffer([]byte(requestBody)))
+	body, _ = io.ReadAll(res.Body)
+	assert.Equal(t, responseBody, string(body))
+	sr.ForceFlush(context.Background())
+	spans = sr.Ended()
+	serverSpan = spans[2]
+	assert.Equal(t, trace.SpanKind(2), serverSpan.SpanKind())
+	validateAttributes(serverSpan.Attributes(), path, metadataOnly, t)
+	clientSpan = spans[3]
+	assert.Equal(t, trace.SpanKind(3), clientSpan.SpanKind())
+	assert.False(t, clientSpan.Parent().HasTraceID())
+	validateAttributes(clientSpan.Attributes(), path, metadataOnly, t)
+}
+
+func testHelper(t *testing.T, port int, path string, metadataOnly bool) {
+	sr := tracetest.NewSpanRecorder()
+	otel.SetTracerProvider(sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(sr)))
+	propagator := propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{})
+	otel.SetTextMapPropagator(propagator)
+	Handle("/"+path, HandlerFunc(getHello))
+	sendRequestAndValidate(t, port, path, metadataOnly, sr)
 }
 
 func TestServerInstrumentation(t *testing.T) {
@@ -178,4 +195,16 @@ func TestServerInstrumentationMetadataOnly(t *testing.T) {
 
 func TestServerInstrumentationWithSkippedContent(t *testing.T) {
 	staticContentTestHelper(t, 8000, false)
+}
+
+func TestHandleFunc(t *testing.T) {
+	sr := tracetest.NewSpanRecorder()
+	otel.SetTracerProvider(sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(sr)))
+	propagator := propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{})
+	otel.SetTextMapPropagator(propagator)
+
+	port := 8002
+	path := "test3"
+	HandleFunc("/"+path, getHello)
+	sendRequestAndValidate(t, port, path, true, sr)
 }

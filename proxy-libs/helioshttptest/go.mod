@@ -1,13 +1,15 @@
-module github.com/helios/go-sdk/proxy-libs/heliosmux
+module github.com/helios/go-sdk/proxy-libs/helioshttptest
 
 go 1.18
 
+replace github.com/helios/go-sdk/proxy-libs/helioshttp => ../helioshttp
+
 require (
-	github.com/gorilla/mux v1.8.0
-	github.com/helios/opentelemetry-go-contrib/instrumentation/github.com/gorilla/mux/otelmux v0.1.3
+	github.com/helios/go-sdk/proxy-libs/helioshttp v1.19.5
+	github.com/helios/opentelemetry-go-contrib/instrumentation/net/http/otelhttp v0.1.2
 	github.com/stretchr/testify v1.8.1
 	go.opentelemetry.io/otel v1.11.2
-	go.opentelemetry.io/otel/sdk v1.11.2
+	go.opentelemetry.io/otel/sdk v1.11.1
 	go.opentelemetry.io/otel/trace v1.11.2
 )
 
@@ -19,6 +21,7 @@ require (
 	github.com/helios/go-sdk/data-obfuscator v1.0.1 // indirect
 	github.com/ohler55/ojg v1.17.4 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
+	go.opentelemetry.io/otel/metric v0.34.0 // indirect
 	golang.org/x/exp v0.0.0-20230203172020-98cc5a0785f9 // indirect
 	golang.org/x/sys v0.1.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect

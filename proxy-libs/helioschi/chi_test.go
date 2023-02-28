@@ -90,6 +90,12 @@ func runTests(t *testing.T, port string, metadataOnly bool) {
 	assert.Equal(t, serverSpan.SpanKind(), trace.SpanKindServer)
 	validateAttributes(serverSpan.Attributes(), t, metadataOnly)
 	assert.Equal(t, res.Header.Get("traceresponse"), fmt.Sprintf("00-%s-%s-01", serverSpan.SpanContext().TraceID().String(), serverSpan.SpanContext().SpanID().String()))
+
+	// Send again
+	http.Post(url, "application/json", bytes.NewBuffer([]byte(requestBody)))
+	spans = sr.Ended()
+	serverSpan = spans[1]
+	validateAttributes(serverSpan.Attributes(), t, metadataOnly)
 }
 
 func TestInstrumentation(t *testing.T) {

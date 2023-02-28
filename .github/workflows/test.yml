@@ -135,7 +135,15 @@ jobs:
 
           - name: Run sqlx proxy unit tests
             working-directory: proxy-libs/heliossqlx/internal
-            run: go mod tidy && go test .     
+            run: go mod tidy && go test .  
+
+          - name: Run zerolog proxy unit tests
+            working-directory: proxy-libs/helioszerolog
+            run: go mod tidy && go test .       
+
+          - name: Run httptest proxy unit tests
+            working-directory: proxy-libs/helioshttptest
+            run: go mod tidy && go test .
 
           - name: Set GOPRIVATE
             run: go env -w GOPRIVATE=github.com/helios/\*
