@@ -72,11 +72,16 @@ func validateAttributes(attrs []attribute.KeyValue, path string, metadataOnly bo
 	assert.Equal(t, metadataOnly, !responseBodyFound)
 }
 
-func testHelper(t *testing.T, port int, path string, metadataOnly bool) {
+func setupSpanRecording() *tracetest.SpanRecorder {
 	sr := tracetest.NewSpanRecorder()
 	otel.SetTracerProvider(sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(sr)))
 	propagator := propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{})
 	otel.SetTextMapPropagator(propagator)
+	return sr
+}
+
+func testHelper(t *testing.T, port int, path string, metadataOnly bool) {
+	sr := setupSpanRecording()
 	Handle("/"+path, HandlerFunc(getHello))
 	go func() {
 		ListenAndServe(fmt.Sprintf(":%d", port), nil)
@@ -118,15 +123,16 @@ func TestServerInstrumentation(t *testing.T) {
 }
 
 func TestClientInstrumentation(t *testing.T) {
-	sr := tracetest.NewSpanRecorder()
-	otel.SetTracerProvider(sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(sr)))
-	propagator := propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{})
-	otel.SetTextMapPropagator(propagator)
+	sr := setupSpanRecording()
 	client := &Client{}
-	_, _ = client.realClient.Get("google.com")
+	realClient := client.getOriginHttpClient()
+	_,_ = realClient.Get("google.com")
 	sr.ForceFlush(context.Background())
 	spans := sr.Ended()
+	
 	assert.Equal(t, 1, len(spans))
+	clientSpan := spans[0]
+	assert.Equal(t, trace.SpanKind(3), clientSpan.SpanKind())
 }
 
 func TestServerInstrumentationMetadataOnly(t *testing.T) {
