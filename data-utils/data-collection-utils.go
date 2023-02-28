@@ -11,7 +11,7 @@ var excludedTypes = []string{	"audio", "image", "multipart", "video" }
 var excludedTextSubTypes = []string{	"css", "html", "javascript" }
 var excludedApplicationSubTypes = []string{	"javascript" }
 
-func shouldSkipContentCollectionByContentType(contentType string) (bool, error) {
+func ShouldSkipContentCollectionByContentType(contentType string) (bool, error) {
 	if contentType == "" {
 		return false, nil
 	}
