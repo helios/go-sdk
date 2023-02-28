@@ -18,6 +18,11 @@ type Client struct {
 	Timeout       time.Duration
 }
 
+func (c *Client) getOriginHttpClient() realHttp.Client {
+	copyClientProxyToReal(c, &c.realClient)
+	return c.realClient
+}
+
 func copyClientProxyToReal(from *Client, to *realHttp.Client) {
 	if !from.initialized {
 		if from.Transport == nil {
