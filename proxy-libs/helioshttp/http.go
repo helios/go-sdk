@@ -116,8 +116,18 @@ func Handle(pattern string, handler Handler) {
 	realHttp.Handle(pattern, handler)
 }
 
+type handlerWrapper struct {
+	handler func(ResponseWriter, *Request)
+}
+
+func (hw handlerWrapper) ServeHTTP(rw ResponseWriter, req *Request) {
+	hw.handler(rw, req)
+}
+
 func HandleFunc(pattern string, handler func(ResponseWriter, *Request)) {
-	realHttp.HandleFunc(pattern, handler)
+	hw := handlerWrapper{handler}
+	wrappedHandler := otelhttp.NewHandler(hw, pattern)
+	realHttp.HandleFunc(pattern, wrappedHandler.ServeHTTP)
 }
 
 func Serve(l net.Listener, handler Handler) error {
