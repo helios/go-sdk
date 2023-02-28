@@ -94,6 +94,7 @@ func validateStaticContentAttributes(attrs []attribute.KeyValue, metadataOnly bo
 			assert.Equal(t, 200, int(value.Value.AsInt64()))
 		} else if key == "http.request.headers" {
 			requestHeadersFound = true
+			fmt.Println("requestHeadersFound = true", requestHeadersFound)
 			headers := map[string][]string{}
 			json.Unmarshal([]byte(value.Value.AsString()), &headers)
 			if headers["Content-Type"] != nil {
