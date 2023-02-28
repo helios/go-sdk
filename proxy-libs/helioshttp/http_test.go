@@ -44,8 +44,9 @@ func getHello(responseWriter ResponseWriter, request *Request) {
 }
 
 func getCss(responseWriter ResponseWriter, request *Request) {
-	responseWriter.Header().Add("Content-Type", "text/css")
-	http.ServeFile(responseWriter, request, "style.css")
+	responseWriter.Header().Set("content-type", "text/css")
+	responseWriter.Header().Add("foo", "bar1")
+	io.WriteString(responseWriter, expectedCssResponseBody)
 }
 
 func validateAttributes(attrs []attribute.KeyValue, path string, metadataOnly bool, t *testing.T) {
@@ -83,8 +84,8 @@ func validateStaticContentAttributes(attrs []attribute.KeyValue, metadataOnly bo
 	requestHeadersFound := false
 	for _, value := range attrs {
 		key := value.Key
-		assert.NotEqual(t, key, "http.request.body")
-		assert.NotEqual(t, key, "http.response.body")
+		assert.NotEqualValues(t, key, "http.request.body")
+		assert.NotEqualValues(t, key, "http.response.body")
 
 		if key == semconv.HTTPMethodKey {
 			assert.Equal(t, "GET", value.Value.AsString())
