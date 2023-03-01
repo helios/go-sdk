@@ -3,6 +3,7 @@ package heliosmacaron
 import (
 	"context"
 	"net/http"
+	"os"
 	"testing"
 
 	"go.opentelemetry.io/otel"
@@ -51,4 +52,27 @@ func TestInstrumentation(t *testing.T) {
 	assert.Equal(t, 1, len(spans))
 	serverSpan := spans[0]
 	validateAttributes(serverSpan.Attributes(), t)
+}
+
+func TestDisableInstrumentation(t *testing.T) {
+	os.Setenv("HS_DISABLED", "true")
+	defer os.Setenv("HS_DISABLED", "")
+	sr := tracetest.NewSpanRecorder()
+	otel.SetTracerProvider(sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(sr)))
+	propagator := propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{})
+	otel.SetTextMapPropagator(propagator)
+	m := Classic()
+	m.Get("/users/:id", func(ctx *Context) string {
+		id := ctx.Params("id")
+		return id
+	})
+
+	go func() {
+		m.Run()
+	}()
+
+	http.Get("http://localhost:4001/users/abcd1234")
+	sr.ForceFlush(context.Background())
+	spans := sr.Ended()
+	assert.Equal(t, 0, len(spans))
 }
