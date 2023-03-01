@@ -109,6 +109,7 @@ func TestInstrumentationInMetadataOnlyMode(t *testing.T) {
 
 func TestDisableInstrumentation(t *testing.T) {
 	os.Setenv("HS_DISABLED", "true")
+	defer os.Setenv("HS_DISABLED", "")
 	port := "3335"
 	sr := tracetest.NewSpanRecorder()
 	otel.SetTracerProvider(sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(sr)))

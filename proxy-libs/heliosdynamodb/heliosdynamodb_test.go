@@ -81,6 +81,7 @@ func TestListTables(t *testing.T) {
 
 func TestDisableInstrumentation(t *testing.T) {
 	os.Setenv("HS_DISABLED", "true")
+	defer os.Setenv("HS_DISABLED", "")
 	spanRecorder := getSpanRecorder()
 	// init aws config
 	ctx := context.Background()

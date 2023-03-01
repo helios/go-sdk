@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"os"
 	"strings"
 	"testing"
 
@@ -94,4 +95,39 @@ func TestInstrumentation(t *testing.T) {
 	sr.ForceFlush(context.Background())
 	serverSpan = sr.Ended()[1]
 	validateAttributes(t, serverSpan.Attributes())
+}
+
+func TestDisableInstrumentation(t *testing.T) {
+	os.Setenv("HS_DISABLED", "true")
+	defer os.Setenv("HS_DISABLED", "")
+	sr := tracetest.NewSpanRecorder()
+	otel.SetTracerProvider(sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(sr)))
+	propagator := propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{})
+	otel.SetTextMapPropagator(propagator)
+	r := New()
+
+	r.POST("/users/:id", func(c Context) error {
+		print(io.ReadAll(c.Request().Body))
+		id := c.Param("id")
+		name := "Random"
+		return c.JSON(http.StatusOK, struct {
+			ID   string
+			Name string
+		}{
+			ID:   id,
+			Name: name,
+		})
+	})
+
+	go func() {
+		_ = r.Start(":8092")
+	}()
+
+	url := "http://localhost:8092/users/abcd1234"
+	res, _ := http.Post(url, "application/json", bytes.NewBuffer([]byte(requestBody)))
+	body, _ := io.ReadAll(res.Body)
+	assert.Equal(t, responseBody, strings.Trim(string(body), "\n"))
+	sr.ForceFlush(context.Background())
+	spans := sr.Ended()
+	assert.Equal(t, 0, len(spans))
 }

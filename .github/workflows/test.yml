@@ -83,10 +83,6 @@ jobs:
           echo "GOPATH=$(go env GOPATH)" >> $GITHUB_ENV
           echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
 
-      - name: Run http proxy unit tests
-        working-directory: proxy-libs/helioshttp
-        run: go mod tidy && go test .
-
       - name: Run grpc proxy unit tests
         working-directory: proxy-libs/heliosgrpc
         run: go mod tidy && go test .
@@ -137,6 +133,10 @@ jobs:
 
       - name: Run zerolog proxy unit tests
         working-directory: proxy-libs/helioszerolog
+        run: go mod tidy && go test .
+
+      - name: Run http proxy unit tests
+        working-directory: proxy-libs/helioshttp
         run: go mod tidy && go test .
 
       - name: Run httptest proxy unit tests

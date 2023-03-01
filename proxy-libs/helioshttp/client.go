@@ -26,11 +26,17 @@ func (c *Client) getOriginHttpClient() realHttp.Client {
 
 func copyClientProxyToReal(from *Client, to *realHttp.Client) {
 	if !from.initialized {
-		if os.Getenv("HS_DISABLED") != "true" {
-			if from.Transport == nil {
+		if from.Transport == nil {
+			if os.Getenv("HS_DISABLED") != "true" {
 				to.Transport = otelhttp.NewTransport(realHttp.DefaultTransport)
 			} else {
+				to.Transport = realHttp.DefaultTransport
+			}
+		} else {
+			if os.Getenv("HS_DISABLED") != "true" {
 				to.Transport = otelhttp.NewTransport(from.Transport)
+			} else {
+				to.Transport = from.Transport
 			}
 		}
 

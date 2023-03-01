@@ -231,6 +231,7 @@ func TestHandleFunc(t *testing.T) {
 
 func TestDisableInstrumentation(t *testing.T) {
 	os.Setenv("HS_DISABLED", "true")
+	defer os.Setenv("HS_DISABLED", "")
 	otelhttp.DefaultClient = &http.Client{Transport: otelhttp.NewTransport(http.DefaultTransport)}
 	DefaultClient = &Client{}
 	sr := setupSpanRecording()
@@ -245,7 +246,9 @@ func TestDisableInstrumentation(t *testing.T) {
 	res, _ := Post(fmt.Sprintf("http://localhost:%d/%s", port, path), "application/json", bytes.NewBuffer([]byte(expectedRequestBody)))
 	body, _ := io.ReadAll(res.Body)
 	assert.Equal(t, expectedResponseBody, string(body))
+	fmt.Println("AFTER RESPONSE ASSERT: ", string(body))
 	sr.ForceFlush(context.Background())
 	spans := sr.Ended()
 	assert.Equal(t, 0, len(spans))
+	fmt.Println("AFTER SPANS ASSERTION: ", len(spans))
 }
