@@ -12,10 +12,10 @@ github.com/go-logr/stdr v1.2.2/go.mod h1:mMo/vtBO5dYbehREoey6XUKy/eSumjCCveDpRre
 github.com/golang-jwt/jwt v3.2.2+incompatible h1:IfV12K8xAKAnZqdXVzCZ+TOjboZ2keLg81eXfW3O+oY=
 github.com/golang-jwt/jwt v3.2.2+incompatible/go.mod h1:8pz2t5EyA70fFQQSrl6XZXzqecmYZeUEB8OUGHkxJ+I=
 github.com/google/go-cmp v0.5.9 h1:O2Tfq5qg4qc4AmwVlvv0oLiVAGB7enBSJ2x2DqQFi38=
-github.com/helios/go-sdk/data-obfuscator v1.0.1 h1:cNqAe+fhMBp/jWrSy1VPywVWx4FHjo4eBGvvp0yTw88=
-github.com/helios/go-sdk/data-obfuscator v1.0.1/go.mod h1:n3MuH/koBrEvdddLC06KXNBcInOv96yNkgLMa/pVJ1M=
-github.com/helios/opentelemetry-go-contrib/instrumentation/github.com/labstack/echo/otelecho v0.1.0 h1:zjKlTtuBvvS4rWbQOLXPh06tZ5eM356AvVp5PLEohQc=
-github.com/helios/opentelemetry-go-contrib/instrumentation/github.com/labstack/echo/otelecho v0.1.0/go.mod h1:K24pHpY1fxmXA5o0YmGAO4fyNJwS6vNR3euMN0sQNlE=
+github.com/helios/go-sdk/data-utils v1.0.2 h1:W9+RYM5Xdlatq23YqD4B1eSVWW6lqlR4lZ+ijhhzSw0=
+github.com/helios/go-sdk/data-utils v1.0.2/go.mod h1:tTs/9gPHFAtfo2SkkG9KbXwRP3u0qEEO3xYv1ZPaf3g=
+github.com/helios/opentelemetry-go-contrib/instrumentation/github.com/labstack/echo/otelecho v0.1.1 h1:fh2I0cLs1Fge5l06yAj4PkRAF+yyKYbNKGdPf09b/DU=
+github.com/helios/opentelemetry-go-contrib/instrumentation/github.com/labstack/echo/otelecho v0.1.1/go.mod h1:iKx+EddFStJmk/+BGpmVth8PElOjLqCmB68BBv/oerY=
 github.com/kr/pretty v0.1.0/go.mod h1:dAy3ld7l9f0ibDNOQOHHMYYIIbhfbHSm3C4ZsoJORNo=
 github.com/kr/pretty v0.2.1/go.mod h1:ipq/a2n7PKx3OHsz4KJII5eveXtPO4qwEXGdVfWzfnI=
 github.com/kr/pretty v0.3.0 h1:WgNl7dwNpEZ6jJ9k1snq4pZsg7DOEN8hP9Xw0Tsjwk0=
