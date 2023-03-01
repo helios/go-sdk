@@ -135,3 +135,29 @@ func TestNewRouterInstrumentationMetadataOnly(t *testing.T) {
 	os.Setenv("HS_METADATA_ONLY", "true")
 	testHelper(t, true, "metadataOnly")
 }
+
+func TestDisableConnectInstrumentation(t *testing.T) {
+	os.Setenv("HS_DISABLED", "true")
+	defer os.Setenv("HS_DISABLED", "true")
+
+	path := "no-instrumentation"
+	spanRecorder := tracetest.NewSpanRecorder()
+	otel.SetTracerProvider(sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(spanRecorder)))
+	propagator := propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{})
+	otel.SetTextMapPropagator(propagator)
+
+	router := NewRouter()
+	router.HandleFunc(fmt.Sprintf("/%s", path), http.HandlerFunc(postUser))
+	http.Handle(fmt.Sprintf("/%s", path), router)
+	go func() { http.ListenAndServe(":8001", nil) }()
+
+	response, _ := http.Post(fmt.Sprintf("http://localhost:8001/%s", path), "application/json", bytes.NewBuffer([]byte(requestResponseBody)))
+	statusCode := response.StatusCode
+	body, _ := io.ReadAll(response.Body)
+
+	assert.Equal(t, expectedStatusCode, statusCode)
+	assert.Equal(t, requestResponseBody, strings.TrimSpace(string(body)))
+	spanRecorder.ForceFlush(context.Background())
+	spans := spanRecorder.Ended()
+	assert.Equal(t, 0, len(spans))
+}
