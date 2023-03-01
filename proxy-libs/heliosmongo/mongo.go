@@ -2,6 +2,7 @@ package heliosmongo
 
 import (
 	"context"
+	"os"
 
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
 	originalMongo "go.mongodb.org/mongo-driver/mongo"
@@ -77,11 +78,13 @@ var ErrUnacknowledgedWrite = originalMongo.ErrUnacknowledgedWrite
 var ErrWrongClient = originalMongo.ErrWrongClient
 
 func setMonitor(opts []*options.ClientOptions) []*options.ClientOptions {
-	monitor := otelmongo.NewMonitor()
+	if os.Getenv("HS_DISABLED") != "true" {
+		monitor := otelmongo.NewMonitor()
 
-	for _, opt := range opts {
-		if opt != nil {
-			opt.Monitor = monitor
+		for _, opt := range opts {
+			if opt != nil {
+				opt.Monitor = monitor
+			}
 		}
 	}
 

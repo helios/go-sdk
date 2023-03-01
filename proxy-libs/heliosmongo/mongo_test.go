@@ -3,6 +3,7 @@ package heliosmongo
 import (
 	"context"
 	"fmt"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -91,6 +92,24 @@ func TestConnectInstrumentation(t *testing.T) {
 	assertAttributes(t, attributes, 12345, "Lior Govrin", "Software Engineer")
 }
 
+func TestDisableConnectInstrumentation(t *testing.T) {
+	os.Setenv("HS_DISABLED", "true")
+	defer os.Setenv("HS_DISABLED", "true")
+
+	spanRecorder := getSpanRecorder()
+	clientOptions := getClientOptions()
+	client, error := Connect(context.Background(), clientOptions)
+
+	if error != nil {
+		panic(error)
+	}
+
+	insertUser(client, 12345, "Lior Govrin", "Software Engineer")
+	spanRecorder.ForceFlush(context.Background())
+	spans := spanRecorder.Ended()
+	assert.Equal(t, 0, len(spans))
+}
+
 func TestNewClientInstrumentation(t *testing.T) {
 	spanRecorder := getSpanRecorder()
 	clientOptions := getClientOptions()
@@ -104,4 +123,23 @@ func TestNewClientInstrumentation(t *testing.T) {
 	insertUser(client, 67890, "Bob McClown", "Company Jester")
 	attributes := assertSpan(t, spanRecorder)
 	assertAttributes(t, attributes, 67890, "Bob McClown", "Company Jester")
+}
+
+func TestDisableClientInstrumentation(t *testing.T) {
+	os.Setenv("HS_DISABLED", "true")
+	defer os.Setenv("HS_DISABLED", "true")
+
+	spanRecorder := getSpanRecorder()
+	clientOptions := getClientOptions()
+	client, error := NewClient(clientOptions)
+
+	if error != nil {
+		panic(error)
+	}
+
+	client.Connect(context.Background())
+	insertUser(client, 67890, "Bob McClown", "Company Jester")
+	spanRecorder.ForceFlush(context.Background())
+	spans := spanRecorder.Ended()
+	assert.Equal(t, 0, len(spans))
 }
