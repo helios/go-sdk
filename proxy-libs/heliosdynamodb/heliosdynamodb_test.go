@@ -3,6 +3,7 @@ package heliosdynamodb
 import (
 	"context"
 	"log"
+	"os"
 	"testing"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -76,4 +77,35 @@ func TestListTables(t *testing.T) {
 	}
 	attributes := assertSpan(t, spanRecorder)
 	assertAttributes(t, attributes)
+}
+
+func TestDisableInstrumentation(t *testing.T) {
+	os.Setenv("HS_DISABLED", "true")
+	spanRecorder := getSpanRecorder()
+	// init aws config
+	ctx := context.Background()
+	newCreds := credentials.NewStaticCredentialsProvider("test", "test", "")
+
+	customResolver := aws.EndpointResolverWithOptionsFunc(func(service, region string, options ...interface{}) (aws.Endpoint, error) {
+			return aws.Endpoint{
+				PartitionID:   "aws",
+				URL:           "http://localhost:4566",
+				SigningRegion: "us-east-1",
+			}, nil
+			})
+	cfg, err := awsConfig.LoadDefaultConfig(ctx, awsConfig.WithCredentialsProvider(newCreds) ,awsConfig.WithEndpointResolverWithOptions(customResolver))
+	if err != nil {
+		panic("configuration error, " + err.Error())
+	}
+	dynamoDbClient := NewFromConfig(cfg)
+	_, err = dynamoDbClient.ListTables(ctx, &ListTablesInput{
+		Limit: aws.Int32(5),
+	})
+	if err != nil {
+		log.Fatalf("failed to list tables, %v", err)
+		return
+	}
+	spanRecorder.ForceFlush(context.Background())
+	spans := spanRecorder.Ended()
+	assert.Equal(t, 0, len(spans))
 }
