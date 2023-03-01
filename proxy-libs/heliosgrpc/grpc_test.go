@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"net"
+	"os"
 	"testing"
 	"time"
 
@@ -99,4 +100,44 @@ func TestServerInstrumentation(t *testing.T) {
 	validateAttributes(clientSpan.Attributes(), t)
 	assert.Equal(t, serverSpan.Parent().SpanID(), clientSpan.SpanContext().SpanID())
 	assert.True(t, unaryInterceptorCalled)
+}
+
+func TestDisableInstrumentation(t *testing.T) {
+	os.Setenv("HS_DISABLED", "true")
+	defer os.Setenv("HS_DISABLED", "")
+
+	sr := tracetest.NewSpanRecorder()
+	otel.SetTracerProvider(sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(sr)))
+	propagator := propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{})
+	otel.SetTextMapPropagator(propagator)
+
+	go func() {
+		lis, _ := net.Listen("tcp", ":3031")
+		grpcServer := NewServer(UnaryInterceptor(noopUnaryInterceptor), StreamInterceptor(noopstreamInterceptor))
+		s := GrpcServer{}
+		pb.RegisterChatServiceServer(grpcServer, &s)
+		if err := grpcServer.Serve(lis); err != nil {
+			log.Fatalf("failed to serve: %s", err)
+		}
+	}()
+
+	var conn *ClientConn
+	conn, err := Dial("localhost:3031", WithTransportCredentials(insecure.NewCredentials()))
+
+	if err != nil {
+		log.Fatalf("did not connect: %v", err)
+	}
+	defer conn.Close()
+	client := pb.NewChatServiceClient(conn)
+
+	md := metadata.Pairs(
+		"timestamp", time.Now().Format(time.StampNano),
+	)
+
+	ctx := metadata.NewOutgoingContext(context.Background(), md)
+	response, _ := client.SayHello(ctx, &pb.Message{Body: "helios"})
+	assert.Equal(t, "Hello From the Server!", response.Body)
+	sr.ForceFlush(context.Background())
+	spans := sr.Ended()
+	assert.Equal(t, 0, len(spans))
 }
