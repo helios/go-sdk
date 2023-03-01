@@ -76,3 +76,13 @@ jobs:
           - name: Upload updated proxy_libs_version.json to s3
             run: |
               aws s3 cp ./proxy-libs/proxy_libs_versions.json s3://www.heliosphere.io/go-proxy-libs/proxy_libs_versions.json
+
+          - name: Notify Slack
+            if: ${{ success() }}
+            uses: rtCamp/action-slack-notify@v2
+            env:
+              SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+              SLACK_USERNAME: heliosphere-ci-bot
+              SLACK_TITLE: A new version of ${{ github.event.inputs.proxy_lib }} proxy lib was successfully released!
+              SLACK_MESSAGE: Version ${{ github.event.inputs.proxy_lib_version }} of ${{ github.event.inputs.proxy_lib }} was released
+              SLACK_COLOR: ${{ job.status }}
