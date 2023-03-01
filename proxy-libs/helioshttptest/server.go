@@ -6,6 +6,7 @@ import (
 	"net"
 	"net/http"
 	origin_httptest "net/http/httptest"
+	"os"
 
 	"github.com/helios/opentelemetry-go-contrib/instrumentation/net/http/otelhttp"
 )
@@ -41,7 +42,9 @@ func (s *Server) Certificate() *x509.Certificate {
 
 func (s *Server) Client() *http.Client {
 	client := s.wrappedServer.Client()
-	origTransport := client.Transport
-	client.Transport = otelhttp.NewTransport(origTransport)
+	if os.Getenv("HS_DISABLED") != "true" {
+		origTransport := client.Transport
+		client.Transport = otelhttp.NewTransport(origTransport)
+	}
 	return client
 }
