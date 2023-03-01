@@ -106,3 +106,36 @@ func TestInstrumentationInMetadataOnlyMode(t *testing.T) {
 	os.Setenv("HS_METADATA_ONLY", "true")
 	runTests(t, "3334", true)
 }
+
+func TestDisableInstrumentation(t *testing.T) {
+	os.Setenv("HS_DISABLED", "true")
+	port := "3335"
+	sr := tracetest.NewSpanRecorder()
+	otel.SetTracerProvider(sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(sr)))
+	propagator := propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{})
+	otel.SetTextMapPropagator(propagator)
+	r := NewRouter()
+
+	r.HandleFunc("/users/{id}", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		decoder := json.NewDecoder(r.Body)
+		var user User
+		decoder.Decode(&user)
+
+		id := URLParam(r, "id")
+		name := "test"
+		reply := fmt.Sprintf("user %s (id %s)", name, id)
+		w.Write(([]byte)(reply))
+	}))
+
+	go func() {
+		http.ListenAndServe(":" + port, r)
+	}()
+
+	url := fmt.Sprintf("http://localhost:%s/users/abcd1234", port)
+	res, _ := http.Post(url, "application/json", bytes.NewBuffer([]byte(requestBody)))
+	body, _ := io.ReadAll(res.Body)
+	assert.Equal(t, responseBody, string(body))
+	sr.ForceFlush(context.Background())
+	spans := sr.Ended()
+	assert.Equal(t, 0, len(spans))
+}

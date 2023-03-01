@@ -231,7 +231,6 @@ func TestHandleFunc(t *testing.T) {
 
 func TestDisableInstrumentation(t *testing.T) {
 	os.Setenv("HS_DISABLED", "true")
-	// Reset the client so that metadaaonly mode canbe properly applied
 	otelhttp.DefaultClient = &http.Client{Transport: otelhttp.NewTransport(http.DefaultTransport)}
 	DefaultClient = &Client{}
 	sr := setupSpanRecording()
