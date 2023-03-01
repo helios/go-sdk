@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os"
 	"testing"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -152,4 +153,61 @@ func TestContextPropagation(t *testing.T) {
 	spanRecorder.ForceFlush(context.Background())
 	spans = spanRecorder.Ended()
 	validateTraceparentMessageAttribute(t, message, spans[4])
+}
+
+func TestDisableInstrumentation(t *testing.T) {
+	os.Setenv("HS_DISABLED", "true")
+	defer os.Setenv("HS_DISABLED", "")
+
+	spanRecorder := getSpanRecorder()
+	// init aws config
+	ctx := context.Background()
+	newCreds := credentials.NewStaticCredentialsProvider("test", "test", "")
+
+	customResolver := aws.EndpointResolverWithOptionsFunc(func(service, region string, options ...interface{}) (aws.Endpoint, error) {
+		return aws.Endpoint{
+			PartitionID:   "aws",
+			URL:           "http://localhost:4566",
+			SigningRegion: "us-east-1",
+		}, nil
+	})
+
+	cfg, err := awsConfig.LoadDefaultConfig(ctx, awsConfig.WithCredentialsProvider(newCreds), awsConfig.WithEndpointResolverWithOptions(customResolver))
+	if err != nil {
+		panic("configuration error, " + err.Error())
+	}
+	client := NewFromConfig(cfg)
+	queueName := "test_queue"
+	createQueue := &sqs.CreateQueueInput{QueueName: &queueName}
+	createQueueResult, err := client.CreateQueue(ctx, createQueue)
+	if err != nil {
+		panic("failed creating queue, " + err.Error())
+	}
+
+	queueUrl := createQueueResult.QueueUrl
+	_, err = client.PurgeQueue(ctx, &sqs.PurgeQueueInput{QueueUrl: queueUrl})
+	if err != nil {
+		log.Fatalf("failed to purge queue, %v", err)
+		return
+	}
+
+	messageBody := "message body"
+	_, err = client.SendMessage(ctx, &sqs.SendMessageInput{MessageBody: &messageBody, QueueUrl: queueUrl})
+	if err != nil {
+		log.Fatalf("failed to send message, %v", err)
+		return
+	}
+
+	receiveMessageResult, err := client.ReceiveMessage(ctx, &sqs.ReceiveMessageInput{QueueUrl: queueUrl})
+	if err != nil {
+		log.Fatalf("failed to receive message, %v", err)
+		return
+	}
+
+	message := receiveMessageResult.Messages[0]
+	assert.Equal(t, messageBody, *message.Body)
+	spanRecorder.ForceFlush(context.Background())
+	spans := spanRecorder.Ended()
+
+	assert.Equal(t, 0, len(spans))
 }
