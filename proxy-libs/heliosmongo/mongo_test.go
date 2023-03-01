@@ -92,9 +92,9 @@ func TestConnectInstrumentation(t *testing.T) {
 	assertAttributes(t, attributes, 12345, "Lior Govrin", "Software Engineer")
 }
 
-func TestDisableConnectInstrumentation(t *testing.T) {
+func TestDisableInstrumentation(t *testing.T) {
 	os.Setenv("HS_DISABLED", "true")
-	defer os.Setenv("HS_DISABLED", "true")
+	defer os.Setenv("HS_DISABLED", "")
 
 	spanRecorder := getSpanRecorder()
 	clientOptions := getClientOptions()
@@ -127,7 +127,7 @@ func TestNewClientInstrumentation(t *testing.T) {
 
 func TestDisableClientInstrumentation(t *testing.T) {
 	os.Setenv("HS_DISABLED", "true")
-	defer os.Setenv("HS_DISABLED", "true")
+	defer os.Setenv("HS_DISABLED", "")
 
 	spanRecorder := getSpanRecorder()
 	clientOptions := getClientOptions()

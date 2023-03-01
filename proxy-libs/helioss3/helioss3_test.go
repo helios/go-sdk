@@ -79,7 +79,7 @@ func TestListBuckets(t *testing.T) {
 
 func TestDisableConnectInstrumentation(t *testing.T) {
 	os.Setenv("HS_DISABLED", "true")
-	defer os.Setenv("HS_DISABLED", "true")
+	defer os.Setenv("HS_DISABLED", "")
 
 	spanRecorder := getSpanRecorder()
 	// init aws config

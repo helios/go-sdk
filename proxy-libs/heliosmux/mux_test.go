@@ -138,7 +138,7 @@ func TestNewRouterInstrumentationMetadataOnly(t *testing.T) {
 
 func TestDisableConnectInstrumentation(t *testing.T) {
 	os.Setenv("HS_DISABLED", "true")
-	defer os.Setenv("HS_DISABLED", "true")
+	defer os.Setenv("HS_DISABLED", "")
 
 	path := "no-instrumentation"
 	spanRecorder := tracetest.NewSpanRecorder()
