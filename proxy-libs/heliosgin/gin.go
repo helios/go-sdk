@@ -3,6 +3,7 @@ package heliosgin
 import (
 	"io"
 	"net/http"
+	"os"
 
 	origin_gin "github.com/gin-gonic/gin"
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
@@ -56,7 +57,9 @@ type Engine = origin_gin.Engine
 
 func New() *Engine {
 	engine := origin_gin.New()
-	engine.Use(otelgin.Middleware("opentelemetry-middleware"))
+	if os.Getenv("HS_DISABLED") != "true" {
+		engine.Use(otelgin.Middleware("opentelemetry-middleware"))
+	}
 	return engine
 }
 

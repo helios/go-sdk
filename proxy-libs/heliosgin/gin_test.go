@@ -4,6 +4,7 @@ import (
 	"context"
 	"html/template"
 	"net/http"
+	"os"
 	"testing"
 
 	"go.opentelemetry.io/otel"
@@ -59,4 +60,35 @@ func TestInstrumentation(t *testing.T) {
 	assert.Equal(t, 1, len(spans))
 	serverSpan := spans[0]
 	validateAttributes(serverSpan.Attributes(), t)
+}
+
+func TestDisableInstrumentation(t *testing.T) {
+	os.Setenv("HS_DISABLED", "true")
+	defer os.Setenv("HS_DISABLED", "")
+
+	sr := tracetest.NewSpanRecorder()
+	otel.SetTracerProvider(sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(sr)))
+	propagator := propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{})
+	otel.SetTextMapPropagator(propagator)
+	r := New()
+	tmplName := "user"
+	tmplStr := "user {{ .name }} (id {{ .id }})\n"
+	tmpl := template.Must(template.New(tmplName).Parse(tmplStr))
+	r.SetHTMLTemplate(tmpl)
+	r.GET("/users/:id", func(c *Context) {
+		id := c.Param("id")
+		c.HTML(http.StatusOK, tmplName, H{
+			"name": "whatever",
+			"id":   id,
+		})
+	})
+
+	go func() {
+		_ = r.Run(":8090")
+	}()
+
+	http.Get("http://localhost:8090/users/abcd1234")
+	sr.ForceFlush(context.Background())
+	spans := sr.Ended()
+	assert.Equal(t, 0, len(spans))
 }
