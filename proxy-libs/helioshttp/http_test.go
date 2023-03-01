@@ -228,3 +228,25 @@ func TestHandleFunc(t *testing.T) {
 	HandleFunc("/"+path, getHello)
 	sendRequestAndValidate(t, port, path, true, sr)
 }
+
+func TestDisableInstrumentation(t *testing.T) {
+	os.Setenv("HS_DISABLED", "true")
+	// Reset the client so that metadaaonly mode canbe properly applied
+	otelhttp.DefaultClient = &http.Client{Transport: otelhttp.NewTransport(http.DefaultTransport)}
+	DefaultClient = &Client{}
+	sr := setupSpanRecording()
+	port := 8084
+	path := "test4"
+	Handle("/" + path, HandlerFunc(getHello))
+
+	go func() {
+		ListenAndServe(fmt.Sprintf(":%d", port), nil)
+	}()
+
+	res, _ := Post(fmt.Sprintf("http://localhost:%d/%s", port, path), "application/json", bytes.NewBuffer([]byte(expectedRequestBody)))
+	body, _ := io.ReadAll(res.Body)
+	assert.Equal(t, expectedResponseBody, string(body))
+	sr.ForceFlush(context.Background())
+	spans := sr.Ended()
+	assert.Equal(t, 0, len(spans))
+}
