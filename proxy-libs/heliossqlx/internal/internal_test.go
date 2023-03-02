@@ -65,13 +65,19 @@ func assertAttributes(t *testing.T, attributes []attribute.KeyValue) bool {
 	return dbNameExists && dbSystemExists && dbStatementExists
 }
 
-func TestSqlxInstrumentation(t *testing.T) {
-	spanRecorder := getSpanRecorder()
+func getDBConnection() *heliossqlx.DB {
 	db, err := heliossqlx.Open("sqlite", "file::memory:?cache=shared",
 		otelsql.WithDBName("test"))
 	if err != nil {
 		panic(err)
 	}
+
+	return db
+}
+
+func TestSqlxInstrumentation(t *testing.T) {
+	spanRecorder := getSpanRecorder()
+	db := getDBConnection()
 
 	var num int
 	if err := db.QueryRowContext(context.Background(), "SELECT 42").Scan(&num); err != nil {
@@ -85,11 +91,7 @@ func TestDisableInstrumentation(t *testing.T) {
 	os.Setenv("HS_DISABLED", "true")
 	defer os.Setenv("HS_DISABLED", "")
 	spanRecorder := getSpanRecorder()
-	db, err := heliossqlx.Open("sqlite", "file::memory:?cache=shared",
-		otelsql.WithDBName("test"))
-	if err != nil {
-		panic(err)
-	}
+	db := getDBConnection()
 
 	var num int
 	if err := db.QueryRowContext(context.Background(), "SELECT 42").Scan(&num); err != nil {
