@@ -3,6 +3,7 @@ package helioslogrus
 import (
 	"context"
 	"io"
+	"os"
 	"time"
 
 	origin_logrus "github.com/sirupsen/logrus"
@@ -288,7 +289,9 @@ type MutexWrap = origin_logrus.MutexWrap
 
 func New() *Logger {
 	l := origin_logrus.New()
-	l.AddHook(AddHeliosHook())
+	if os.Getenv("HS_DISABLED") != "true" {
+		l.AddHook(AddHeliosHook())
+	}
 	return l
 }
 
