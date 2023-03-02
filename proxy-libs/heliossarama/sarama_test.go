@@ -107,7 +107,9 @@ func (handler *TestNonInstrumentedConsumerGroupHandler) ConsumeClaim(session Con
 	session.MarkMessage(message, "")
 	handler.spanRecorder.ForceFlush(context.Background())
 	spans := handler.spanRecorder.Ended()
-	assert.Equal(handler.t, 0, len(spans))
+	assert.Equal(handler.t, 1, len(spans)) // expect only root span to be available
+	rootTestSpan := spans[0]
+	assert.Equal(handler.t, testRootSpanName, rootTestSpan.Name())
 	return nil
 }
 

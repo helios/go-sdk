@@ -568,9 +568,11 @@ var V3_2_3_0 = originalSarama.V3_2_3_0
 func NewAsyncProducer(addrs []string, conf *Config) (AsyncProducer, error) {
 	asyncProducer, error := originalSarama.NewAsyncProducer(addrs, conf)
 
-	if asyncProducer != nil {
-		asyncProducer = asyncProducerWrapper{asyncProducer}
-		asyncProducer = otelsarama.WrapAsyncProducer(conf, asyncProducer)
+	if os.Getenv("HS_DISABLED") != "true" {
+		if asyncProducer != nil {
+			asyncProducer = asyncProducerWrapper{asyncProducer}
+			asyncProducer = otelsarama.WrapAsyncProducer(conf, asyncProducer)
+		}
 	}
 
 	return asyncProducer, error
