@@ -209,25 +209,6 @@ func TestClientInstrumentation(t *testing.T) {
 	assert.Contains(t, clientSpan.Attributes(), attribute.String("http.url", "google.com"))
 }
 
-func TestServerInstrumentationMetadataOnly(t *testing.T) {
-	os.Setenv("HS_METADATA_ONLY", "true")
-	// Reset the client so that metadaaonly mode canbe properly applied
-	otelhttp.DefaultClient = &http.Client{Transport: otelhttp.NewTransport(http.DefaultTransport)}
-	DefaultClient = &Client{}
-	testHelper(t, 8001, "test2", true)
-}
-
-func TestHandleFunc(t *testing.T) {
-	sr := tracetest.NewSpanRecorder()
-	otel.SetTracerProvider(sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(sr)))
-	propagator := propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{})
-	otel.SetTextMapPropagator(propagator)
-
-	port := 8002
-	path := "test3"
-	HandleFunc("/"+path, getHello)
-	sendRequestAndValidate(t, port, path, true, sr)
-}
 
 func TestDisableInstrumentation(t *testing.T) {
 	os.Setenv("HS_DISABLED", "true")
@@ -251,4 +232,24 @@ func TestDisableInstrumentation(t *testing.T) {
 	spans := sr.Ended()
 	assert.Equal(t, 0, len(spans))
 	fmt.Println("AFTER SPANS ASSERTION: ", len(spans))
+}
+
+func TestServerInstrumentationMetadataOnly(t *testing.T) {
+	os.Setenv("HS_METADATA_ONLY", "true")
+	// Reset the client so that metadaaonly mode canbe properly applied
+	otelhttp.DefaultClient = &http.Client{Transport: otelhttp.NewTransport(http.DefaultTransport)}
+	DefaultClient = &Client{}
+	testHelper(t, 8001, "test2", true)
+}
+
+func TestHandleFunc(t *testing.T) {
+	sr := tracetest.NewSpanRecorder()
+	otel.SetTracerProvider(sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(sr)))
+	propagator := propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{})
+	otel.SetTextMapPropagator(propagator)
+
+	port := 8002
+	path := "test3"
+	HandleFunc("/"+path, getHello)
+	sendRequestAndValidate(t, port, path, true, sr)
 }
