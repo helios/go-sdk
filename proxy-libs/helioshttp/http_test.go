@@ -237,7 +237,7 @@ func TestDisableInstrumentation(t *testing.T) {
 	sr := setupSpanRecording()
 	port := 8084
 	path := "test4"
-	Handle("/" + path, HandlerFunc(getHello))
+	HandleFunc("/"+path, getHello)
 
 	go func() {
 		ListenAndServe(fmt.Sprintf(":%d", port), nil)
