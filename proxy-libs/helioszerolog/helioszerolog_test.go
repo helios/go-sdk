@@ -18,12 +18,16 @@ import (
 	"go.opentelemetry.io/otel/sdk/trace/tracetest"
 )
 
-func TestZerolog(t *testing.T) {
+func initTracing(t *testing.T) (*tracetest.SpanRecorder, *sdktrace.TracerProvider) {
 	sr := tracetest.NewSpanRecorder()
 	tp := sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(sr))
 	otel.SetTracerProvider(tp)
 	propagator := propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{})
 	otel.SetTextMapPropagator(propagator)
+	return sr, tp
+}
+
+func registerLoggerAndLogMessage(t *testing.T, sr *tracetest.SpanRecorder, tp *sdktrace.TracerProvider) map[string]string {
 	tracer := tp.Tracer("TestZerolog")
 	ctx, span := tracer.Start(context.Background(), "hello-span")
 
@@ -35,6 +39,14 @@ func TestZerolog(t *testing.T) {
 
 	span.End()
 	sr.ForceFlush(ctx)
+	return data
+}
+
+func TestZerolog(t *testing.T) {
+	sr, tp := initTracing(t)
+
+	data := registerLoggerAndLogMessage(t, sr, tp)
+
 	spans := sr.Ended()
 	resultedSpan := spans[0]
 	assert.Equal(t, 1, len(spans))
@@ -56,22 +68,10 @@ func TestDisableInstrumentation(t *testing.T) {
 	os.Setenv("HS_DISABLED", "true")
 	defer os.Setenv("HS_DISABLED", "")
 
-	sr := tracetest.NewSpanRecorder()
-	tp := sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(sr))
-	otel.SetTracerProvider(tp)
-	propagator := propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{})
-	otel.SetTextMapPropagator(propagator)
-	tracer := tp.Tracer("TestZerolog")
-	ctx, span := tracer.Start(context.Background(), "hello-span")
+	sr, tp := initTracing(t)
 
-	out := &bytes.Buffer{}
-	newLogger := NewWithContext(out, ctx)
-	newLogger.Info().Msg("test")
-	data := map[string]string{}
-	json.Unmarshal(out.Bytes(), &data)
+	data := registerLoggerAndLogMessage(t, sr, tp)
 
-	span.End()
-	sr.ForceFlush(ctx)
 	spans := sr.Ended()
 	assert.Equal(t, 1, len(spans))
 	_, exists := data["go_to_helios"]
