@@ -4,7 +4,6 @@ import (
 	"io"
 	realHttp "net/http"
 	"net/url"
-	"os"
 	"time"
 
 	"github.com/helios/opentelemetry-go-contrib/instrumentation/net/http/otelhttp"
@@ -27,17 +26,17 @@ func (c *Client) getOriginHttpClient() realHttp.Client {
 func copyClientProxyToReal(from *Client, to *realHttp.Client) {
 	if !from.initialized {
 		if from.Transport == nil {
-			if os.Getenv("HS_DISABLED") != "true" {
+			// if os.Getenv("HS_DISABLED") != "true" {
 				to.Transport = otelhttp.NewTransport(realHttp.DefaultTransport)
-			} else {
-				to.Transport = realHttp.DefaultTransport
-			}
+			// } else {
+				// to.Transport = realHttp.DefaultTransport
+			// }
 		} else {
-			if os.Getenv("HS_DISABLED") != "true" {
+			// if os.Getenv("HS_DISABLED") != "true" {
 				to.Transport = otelhttp.NewTransport(from.Transport)
-			} else {
-				to.Transport = from.Transport
-			}
+			// } else {
+				// to.Transport = from.Transport
+			// }
 		}
 
 		from.initialized = true
