@@ -4,6 +4,7 @@ import (
 	"io"
 	realHttp "net/http"
 	"net/url"
+	"os"
 	"time"
 
 	"github.com/helios/opentelemetry-go-contrib/instrumentation/net/http/otelhttp"
@@ -23,28 +24,28 @@ func (c *Client) getOriginHttpClient() realHttp.Client {
 	return c.realClient
 }
 
-func copyClientProxyToReal(from *Client, to *realHttp.Client) {
-	if !from.initialized {
-		if from.Transport == nil {
-			// if os.Getenv("HS_DISABLED") != "true" {
-				to.Transport = otelhttp.NewTransport(realHttp.DefaultTransport)
-			// } else {
-				// to.Transport = realHttp.DefaultTransport
-			// }
+func copyClientProxyToReal(wrapperClient *Client, origClient *realHttp.Client) {
+	if !wrapperClient.initialized {
+		if os.Getenv("HS_DISABLED") != "true" {
+			if wrapperClient.Transport == nil {
+				origClient.Transport = otelhttp.NewTransport(realHttp.DefaultTransport)
+			} else {
+				origClient.Transport = otelhttp.NewTransport(wrapperClient.Transport)
+			}
 		} else {
-			// if os.Getenv("HS_DISABLED") != "true" {
-				to.Transport = otelhttp.NewTransport(from.Transport)
-			// } else {
-				// to.Transport = from.Transport
-			// }
+			if wrapperClient.Transport == nil {
+				origClient.Transport = realHttp.DefaultTransport
+			} else {
+				origClient.Transport = wrapperClient.Transport
+			}
 		}
 
-		from.initialized = true
+		wrapperClient.initialized = true
 	}
 
-	to.CheckRedirect = from.CheckRedirect
-	to.Jar = from.Jar
-	to.Timeout = from.Timeout
+	origClient.CheckRedirect = wrapperClient.CheckRedirect
+	origClient.Jar = wrapperClient.Jar
+	origClient.Timeout = wrapperClient.Timeout
 }
 
 func copyClientRealToProxy(from *realHttp.Client, to *Client) {

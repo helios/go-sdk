@@ -78,25 +78,25 @@ func validateSqsTestResults(t *testing.T, resp []reflect.Value) {
 	assert.Equal(t, lambdaSqsHandlerSpan.SpanContext.SpanID().String(), customSpan.Parent.SpanID().String())
 }
 
-// func TestApiGatewayDisableInstrumentation(t *testing.T) {
-// 	os.Setenv("HS_DISABLED", "true")
-// 	defer os.Setenv("HS_DISABLED", "")
+func TestApiGatewayDisableInstrumentation(t *testing.T) {
+	os.Setenv("HS_DISABLED", "true")
+	defer os.Setenv("HS_DISABLED", "")
 
-// 	ctx := context.Background()
-// 	exporter.Reset()
-// 	otel.SetTracerProvider(provider)
+	ctx := context.Background()
+	exporter.Reset()
+	otel.SetTracerProvider(provider)
 
-// 	customerHandler := func(lambdaContext context.Context, event events.APIGatewayV2HTTPRequest) (any, error) {
-// 		return event, nil
-// 	}
+	customerHandler := func(lambdaContext context.Context, event events.APIGatewayV2HTTPRequest) (any, error) {
+		return event, nil
+	}
 
-// 	wrapped := instrumentHandler(customerHandler)
+	wrapped := instrumentHandler(customerHandler)
 
-// 	wrappedCallable := reflect.ValueOf(wrapped)
-// 	wrappedCallable.Call([]reflect.Value{reflect.ValueOf(ctx), reflect.ValueOf(testApiGatewayEvent)})
-// 	spans := exporter.GetSpans()
-// 	assert.Len(t, spans, 0)
-// }
+	wrappedCallable := reflect.ValueOf(wrapped)
+	wrappedCallable.Call([]reflect.Value{reflect.ValueOf(ctx), reflect.ValueOf(testApiGatewayEvent)})
+	spans := exporter.GetSpans()
+	assert.Len(t, spans, 0)
+}
 
 func TestPayloadCollection(t *testing.T) {
 	ctx := context.Background()
@@ -153,31 +153,29 @@ func TestApiGatewayContextPropagationWithObfuscation(t *testing.T) {
 	validateResults(t, resp, string(obfuscatedExpectedPayload), obfuscatedRes)
 }
 
-// func TestEventbridgeDisableInstrumentation(t *testing.T) {
-// 	os.Setenv("HS_DISABLED", "true")
-// 	defer os.Setenv("HS_DISABLED", "")
+func TestEventbridgeDisableInstrumentation(t *testing.T) {
+	os.Setenv("HS_DISABLED", "true")
+	defer os.Setenv("HS_DISABLED", "")
 
-// 	exporter.Reset()
-// 	ctx := context.Background()
-// 	otel.SetTracerProvider(provider)
+	exporter.Reset()
+	ctx := context.Background()
+	otel.SetTracerProvider(provider)
 
-// 	customerHandler := func(lambdaContext context.Context, event eventBridgeEvent) (string, error) {
-// 		_, customSpan := provider.Tracer("test").Start(lambdaContext, "custom_span")
-// 		customSpan.End()
-// 		return response, nil
-// 	}
+	customerHandler := func(lambdaContext context.Context, event eventBridgeEvent) (string, error) {
+		return response, nil
+	}
 
-// 	wrapped := instrumentHandler(customerHandler)
+	wrapped := instrumentHandler(customerHandler)
 
-// 	wrappedCallable := reflect.ValueOf(wrapped)
-// 	resp := wrappedCallable.Call([]reflect.Value{reflect.ValueOf(ctx), reflect.ValueOf(testEventBridgeEvent1)})
-// 	assert.Len(t, resp, 2)
-// 	assert.Equal(t, response, resp[0].Interface())
-// 	assert.Nil(t, resp[1].Interface())
+	wrappedCallable := reflect.ValueOf(wrapped)
+	resp := wrappedCallable.Call([]reflect.Value{reflect.ValueOf(ctx), reflect.ValueOf(testEventBridgeEvent1)})
+	assert.Len(t, resp, 2)
+	assert.Equal(t, response, resp[0].Interface())
+	assert.Nil(t, resp[1].Interface())
 
-// 	spans := exporter.GetSpans()
-// 	assert.Len(t, spans, 0)
-// }
+	spans := exporter.GetSpans()
+	assert.Len(t, spans, 0)
+}
 
 func TestEventbridgeContextPropagationInDetail(t *testing.T) {
 	exporter.Reset()
@@ -217,39 +215,37 @@ func TestEventbridgeContextPropagationInTraceHeader(t *testing.T) {
 	validateResults(t, resp, string(rawEvent), obfuscatedRes)
 }
 
-// func TestSqsDisableInstrumentation(t *testing.T) {
-// 	os.Setenv("HS_DISABLED", "true")
-// 	defer os.Setenv("HS_DISABLED", "")
+func TestSqsDisableInstrumentation(t *testing.T) {
+	os.Setenv("HS_DISABLED", "true")
+	defer os.Setenv("HS_DISABLED", "")
 
-// 	exporter.Reset()
-// 	ctx := context.Background()
-// 	otel.SetTracerProvider(provider)
+	exporter.Reset()
+	ctx := context.Background()
+	otel.SetTracerProvider(provider)
 
-// 	innerMethod := func(lambdaContext context.Context, event events.SQSMessage) (any, error) {
-// 		_, customSpan := provider.Tracer("test").Start(lambdaContext, "custom_span")
-// 		customSpan.End()
-// 		return response, nil
-// 	}
+	innerMethod := func(lambdaContext context.Context, event events.SQSMessage) (any, error) {
+		return response, nil
+	}
 
-// 	newHandler := func(lambdaContext context.Context, event events.SQSEvent) (any, error) {
-// 		var returnVal any
-// 		for _, record := range event.Records {
-// 			returnVal, _ = HandleRecord(lambdaContext, record, innerMethod)
-// 		}
-// 		return returnVal, nil
-// 	}
+	newHandler := func(lambdaContext context.Context, event events.SQSEvent) (any, error) {
+		var returnVal any
+		for _, record := range event.Records {
+			returnVal, _ = HandleRecord(lambdaContext, record, innerMethod)
+		}
+		return returnVal, nil
+	}
 
-// 	wrapped := instrumentHandler(newHandler)
+	wrapped := instrumentHandler(newHandler)
 
-// 	wrappedCallable := reflect.ValueOf(wrapped)
-// 	resp := wrappedCallable.Call([]reflect.Value{reflect.ValueOf(ctx), reflect.ValueOf(testSqsRecord)})
-// 	assert.Len(t, resp, 2)
-// 	assert.Equal(t, response, resp[0].Interface())
-// 	assert.Nil(t, resp[1].Interface())
+	wrappedCallable := reflect.ValueOf(wrapped)
+	resp := wrappedCallable.Call([]reflect.Value{reflect.ValueOf(ctx), reflect.ValueOf(testSqsRecord)})
+	assert.Len(t, resp, 2)
+	assert.Equal(t, response, resp[0].Interface())
+	assert.Nil(t, resp[1].Interface())
 
-// 	spans := exporter.GetSpans()
-// 	assert.Len(t, spans, 0)
-// }
+	spans := exporter.GetSpans()
+	assert.Len(t, spans, 0)
+}
 
 func TestSqsContextPropagationInMessageAttribute(t *testing.T) {
 	exporter.Reset()
