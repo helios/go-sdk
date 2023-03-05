@@ -50,10 +50,8 @@ func assertAttributes(t *testing.T, attributes []attribute.KeyValue) {
 	}
 }
 
-func TestListTables(t *testing.T) {
-	spanRecorder := getSpanRecorder()
-	// init aws config
-	ctx := context.Background()
+func initAwsConfig(t *testing.T, ctx context.Context) aws.Config{
+	
 	newCreds := credentials.NewStaticCredentialsProvider("test", "test", "")
 
 	customResolver := aws.EndpointResolverWithOptionsFunc(func(service, region string, options ...interface{}) (aws.Endpoint, error) {
@@ -67,14 +65,28 @@ func TestListTables(t *testing.T) {
 	if err != nil {
 		panic("configuration error, " + err.Error())
 	}
+
+	return cfg
+}
+
+func initDynamoDBAndListTables(t *testing.T) {
+	ctx := context.Background()
+	cfg := initAwsConfig(t, ctx)
 	dynamoDbClient := NewFromConfig(cfg)
-	_, err = dynamoDbClient.ListTables(ctx, &ListTablesInput{
+	_, err := dynamoDbClient.ListTables(ctx, &ListTablesInput{
 		Limit: aws.Int32(5),
 	})
 	if err != nil {
 		log.Fatalf("failed to list tables, %v", err)
 		return
 	}
+}
+
+func TestListTables(t *testing.T) {
+	spanRecorder := getSpanRecorder()
+	
+	initDynamoDBAndListTables(t)
+
 	attributes := assertSpan(t, spanRecorder)
 	assertAttributes(t, attributes)
 }
@@ -82,30 +94,11 @@ func TestListTables(t *testing.T) {
 func TestDisableInstrumentation(t *testing.T) {
 	os.Setenv("HS_DISABLED", "true")
 	defer os.Setenv("HS_DISABLED", "")
+	
 	spanRecorder := getSpanRecorder()
-	// init aws config
-	ctx := context.Background()
-	newCreds := credentials.NewStaticCredentialsProvider("test", "test", "")
+	
+	initDynamoDBAndListTables(t)
 
-	customResolver := aws.EndpointResolverWithOptionsFunc(func(service, region string, options ...interface{}) (aws.Endpoint, error) {
-			return aws.Endpoint{
-				PartitionID:   "aws",
-				URL:           "http://localhost:4566",
-				SigningRegion: "us-east-1",
-			}, nil
-			})
-	cfg, err := awsConfig.LoadDefaultConfig(ctx, awsConfig.WithCredentialsProvider(newCreds) ,awsConfig.WithEndpointResolverWithOptions(customResolver))
-	if err != nil {
-		panic("configuration error, " + err.Error())
-	}
-	dynamoDbClient := NewFromConfig(cfg)
-	_, err = dynamoDbClient.ListTables(ctx, &ListTablesInput{
-		Limit: aws.Int32(5),
-	})
-	if err != nil {
-		log.Fatalf("failed to list tables, %v", err)
-		return
-	}
 	spanRecorder.ForceFlush(context.Background())
 	spans := spanRecorder.Ended()
 	assert.Equal(t, 0, len(spans))
