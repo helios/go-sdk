@@ -189,6 +189,28 @@ func testHelper(t *testing.T, port int, path string, metadataOnly bool) {
 
 func TestServerInstrumentationWithSkippedContent(t *testing.T) {
 	staticContentTestHelper(t, 8003, false)
+// }
+
+// func TestDisableInstrumentation(t *testing.T) {
+	os.Setenv("HS_DISABLED", "true")
+	defer os.Setenv("HS_DISABLED", "")
+	sr := setupSpanRecording()
+	port := 8084
+	path := "test4"
+	HandleFunc("/"+path, getHello)
+
+	go func() {
+		ListenAndServe(fmt.Sprintf(":%d", port), nil)
+	}()
+
+	res, _ := Post(fmt.Sprintf("http://localhost:%d/%s", port, path), "application/json", bytes.NewBuffer([]byte(expectedRequestBody)))
+	body, _ := io.ReadAll(res.Body)
+	assert.Equal(t, expectedResponseBody, string(body))
+	fmt.Println("AFTER RESPONSE ASSERT: ", string(body))
+	sr.ForceFlush(context.Background())
+	spans := sr.Ended()
+	assert.Equal(t, 0, len(spans))
+	fmt.Println("AFTER SPANS ASSERTION: ", len(spans))
 }
 
 func TestServerInstrumentation(t *testing.T) {
@@ -209,34 +231,9 @@ func TestClientInstrumentation(t *testing.T) {
 	assert.Contains(t, clientSpan.Attributes(), attribute.String("http.url", "google.com"))
 }
 
-
-func TestDisableInstrumentation(t *testing.T) {
-	os.Setenv("HS_DISABLED", "true")
-	defer os.Setenv("HS_DISABLED", "")
-	otelhttp.DefaultClient = &http.Client{Transport: otelhttp.NewTransport(http.DefaultTransport)}
-	DefaultClient = &Client{}
-	sr := setupSpanRecording()
-	port := 8084
-	path := "test4"
-	HandleFunc("/"+path, getHello)
-
-	go func() {
-		ListenAndServe(fmt.Sprintf(":%d", port), nil)
-	}()
-
-	res, _ := Post(fmt.Sprintf("http://localhost:%d/%s", port, path), "application/json", bytes.NewBuffer([]byte(expectedRequestBody)))
-	body, _ := io.ReadAll(res.Body)
-	assert.Equal(t, expectedResponseBody, string(body))
-	fmt.Println("AFTER RESPONSE ASSERT: ", string(body))
-	sr.ForceFlush(context.Background())
-	spans := sr.Ended()
-	assert.Equal(t, 0, len(spans))
-	fmt.Println("AFTER SPANS ASSERTION: ", len(spans))
-}
-
 func TestServerInstrumentationMetadataOnly(t *testing.T) {
 	os.Setenv("HS_METADATA_ONLY", "true")
-	// Reset the client so that metadaaonly mode canbe properly applied
+	// Reset the client so that metadaaonly mode can be properly applied
 	otelhttp.DefaultClient = &http.Client{Transport: otelhttp.NewTransport(http.DefaultTransport)}
 	DefaultClient = &Client{}
 	testHelper(t, 8001, "test2", true)
