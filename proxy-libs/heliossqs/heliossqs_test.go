@@ -87,10 +87,8 @@ func validateTraceparentMessageAttribute(t *testing.T, message types.Message, se
 	assert.Equal(t, fmt.Sprintf("00-%s-%s-01", spanContext.TraceID().String(), spanContext.SpanID().String()), *traceparent)
 }
 
-func TestContextPropagation(t *testing.T) {
-	spanRecorder := getSpanRecorder()
-	// init aws config
-	ctx := context.Background()
+func initAwsConfig(t *testing.T, ctx context.Context) aws.Config{
+
 	newCreds := credentials.NewStaticCredentialsProvider("test", "test", "")
 
 	customResolver := aws.EndpointResolverWithOptionsFunc(func(service, region string, options ...interface{}) (aws.Endpoint, error) {
@@ -105,8 +103,17 @@ func TestContextPropagation(t *testing.T) {
 	if err != nil {
 		panic("configuration error, " + err.Error())
 	}
+
+	return cfg
+}
+
+func initSqsClient(t *testing.T, ctx context.Context) *sqs.Client {
+	cfg := initAwsConfig(t, ctx)
 	client := NewFromConfig(cfg)
-	queueName := "test_queue"
+	return client
+}
+
+func createSqsQueue(t *testing.T, client *sqs.Client, ctx context.Context, queueName string) *sqs.CreateQueueOutput {
 	createQueue := &sqs.CreateQueueInput{QueueName: &queueName}
 	createQueueResult, err := client.CreateQueue(ctx, createQueue)
 	if err != nil {
@@ -117,11 +124,22 @@ func TestContextPropagation(t *testing.T) {
 	_, err = client.PurgeQueue(ctx, &sqs.PurgeQueueInput{QueueUrl: queueUrl})
 	if err != nil {
 		log.Fatalf("failed to purge queue, %v", err)
-		return
+		return nil
 	}
 
+	return createQueueResult
+}
+
+func TestContextPropagation(t *testing.T) {
+	spanRecorder := getSpanRecorder()
+	ctx := context.Background()
+	client := initSqsClient(t, ctx)
+
+	createQueueResult := createSqsQueue(t, client, ctx, "test_queue")
+	queueUrl := createQueueResult.QueueUrl
+	
 	messageBody := "message body"
-	_, err = client.SendMessage(ctx, &sqs.SendMessageInput{MessageBody: &messageBody, QueueUrl: queueUrl})
+	_, err := client.SendMessage(ctx, &sqs.SendMessageInput{MessageBody: &messageBody, QueueUrl: queueUrl})
 	if err != nil {
 		log.Fatalf("failed to send message, %v", err)
 		return
@@ -160,39 +178,14 @@ func TestDisableInstrumentation(t *testing.T) {
 	defer os.Setenv("HS_DISABLED", "")
 
 	spanRecorder := getSpanRecorder()
-	// init aws config
 	ctx := context.Background()
-	newCreds := credentials.NewStaticCredentialsProvider("test", "test", "")
+	client := initSqsClient(t, ctx)
 
-	customResolver := aws.EndpointResolverWithOptionsFunc(func(service, region string, options ...interface{}) (aws.Endpoint, error) {
-		return aws.Endpoint{
-			PartitionID:   "aws",
-			URL:           "http://localhost:4566",
-			SigningRegion: "us-east-1",
-		}, nil
-	})
-
-	cfg, err := awsConfig.LoadDefaultConfig(ctx, awsConfig.WithCredentialsProvider(newCreds), awsConfig.WithEndpointResolverWithOptions(customResolver))
-	if err != nil {
-		panic("configuration error, " + err.Error())
-	}
-	client := NewFromConfig(cfg)
-	queueName := "test_queue"
-	createQueue := &sqs.CreateQueueInput{QueueName: &queueName}
-	createQueueResult, err := client.CreateQueue(ctx, createQueue)
-	if err != nil {
-		panic("failed creating queue, " + err.Error())
-	}
-
+	createQueueResult := createSqsQueue(t, client, ctx, "test_queue")
 	queueUrl := createQueueResult.QueueUrl
-	_, err = client.PurgeQueue(ctx, &sqs.PurgeQueueInput{QueueUrl: queueUrl})
-	if err != nil {
-		log.Fatalf("failed to purge queue, %v", err)
-		return
-	}
 
 	messageBody := "message body"
-	_, err = client.SendMessage(ctx, &sqs.SendMessageInput{MessageBody: &messageBody, QueueUrl: queueUrl})
+	_, err := client.SendMessage(ctx, &sqs.SendMessageInput{MessageBody: &messageBody, QueueUrl: queueUrl})
 	if err != nil {
 		log.Fatalf("failed to send message, %v", err)
 		return
