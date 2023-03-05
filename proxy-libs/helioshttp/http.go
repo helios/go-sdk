@@ -8,6 +8,7 @@ import (
 	"net"
 	realHttp "net/http"
 	"net/url"
+	"os"
 
 	// "os"
 	"time"
@@ -80,9 +81,9 @@ func NewServeMux() *ServeMux {
 var DefaultServeMux = realHttp.DefaultServeMux
 
 func Handle(pattern string, handler Handler) {
-	// if os.Getenv("HS_DISABLED") != "true" {
+	if os.Getenv("HS_DISABLED") != "true" {
 		handler = otelhttp.NewHandler(handler, pattern)
-	// }
+	}
 	realHttp.Handle(pattern, handler)
 }
 
@@ -95,13 +96,13 @@ func (hw handlerWrapper) ServeHTTP(rw ResponseWriter, req *Request) {
 }
 
 func HandleFunc(pattern string, handler func(ResponseWriter, *Request)) {
-	// if os.Getenv("HS_DISABLED") != "true" {
+	if os.Getenv("HS_DISABLED") != "true" {
 		hw := handlerWrapper{handler}
 		wrappedHandler := otelhttp.NewHandler(hw, pattern)
 		realHttp.HandleFunc(pattern, wrappedHandler.ServeHTTP)
-	// } else {
-	// 	realHttp.HandleFunc(pattern, handler)
-	// }
+	} else {
+		realHttp.HandleFunc(pattern, handler)
+	}
 }
 
 func Serve(l net.Listener, handler Handler) error {
