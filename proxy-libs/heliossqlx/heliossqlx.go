@@ -3,6 +3,7 @@ package heliossqlx
 import (
 	"context"
 	"database/sql"
+	"os"
 
 	origin_sqlx "github.com/jmoiron/sqlx"
 	"github.com/uptrace/opentelemetry-go-extra/otelsql"
@@ -52,8 +53,11 @@ func NamedExecContext(ctx context.Context, e ExtContext, query string, arg inter
 }
 
 func ConnectContext(ctx context.Context, driverName, dataSourceName string, opts ...otelsql.Option) (*DB, error) {
-	opts = append(opts, otelsql.WithDBSystem(driverName))
-	return otelsqlx.ConnectContext(ctx, driverName, dataSourceName, opts...)
+	if os.Getenv("HS_DISABLED") != "true" {
+		opts = append(opts, otelsql.WithDBSystem(driverName))
+		return otelsqlx.ConnectContext(ctx, driverName, dataSourceName, opts...)
+	}
+	return origin_sqlx.ConnectContext(ctx, driverName, dataSourceName)
 }
 
 type QueryerContext = origin_sqlx.QueryerContext
@@ -123,13 +127,21 @@ func NewDb(db *sql.DB, driverName string) *DB {
 }
 
 func Open(driverName, dataSourceName string, opts ...otelsql.Option) (*DB, error) {
-	opts = append(opts, otelsql.WithDBSystem(driverName))
-	return otelsqlx.Open(driverName, dataSourceName, opts...)
+	if os.Getenv("HS_DISABLED") != "true" {
+		opts = append(opts, otelsql.WithDBSystem(driverName))
+		return otelsqlx.Open(driverName, dataSourceName, opts...)
+	}
+
+	return origin_sqlx.Open(driverName, dataSourceName)	
 }
 
 func MustOpen(driverName, dataSourceName string, opts ...otelsql.Option) *DB {
-	opts = append(opts, otelsql.WithDBSystem(driverName))
-	return otelsqlx.MustOpen(driverName, dataSourceName, opts...)
+	if os.Getenv("HS_DISABLED") != "true" {
+		opts = append(opts, otelsql.WithDBSystem(driverName))
+		return otelsqlx.MustOpen(driverName, dataSourceName, opts...)
+	}
+
+	return origin_sqlx.MustOpen(driverName, dataSourceName)	
 }
 
 type Conn = origin_sqlx.Conn
@@ -141,13 +153,19 @@ type Stmt = origin_sqlx.Stmt
 type Rows = origin_sqlx.Rows
 
 func Connect(driverName, dataSourceName string, opts ...otelsql.Option) (*DB, error) {
-	opts = append(opts, otelsql.WithDBSystem(driverName))
-	return otelsqlx.Connect(driverName, dataSourceName, opts ...)
+	if os.Getenv("HS_DISABLED") != "true" {
+		opts = append(opts, otelsql.WithDBSystem(driverName))
+		return otelsqlx.Connect(driverName, dataSourceName, opts ...)
+	}
+	return origin_sqlx.Connect(driverName, dataSourceName)
 }
 
 func MustConnect(driverName, dataSourceName string, opts ...otelsql.Option) *DB {
-	opts = append(opts, otelsql.WithDBSystem(driverName))
-	return otelsqlx.MustConnect(driverName, dataSourceName, opts...)
+	if os.Getenv("HS_DISABLED") != "true" {
+		opts = append(opts, otelsql.WithDBSystem(driverName))
+		return otelsqlx.MustConnect(driverName, dataSourceName, opts...)
+	}
+	return origin_sqlx.MustConnect(driverName, dataSourceName)
 }
 
 func Preparex(p Preparer, query string) (*Stmt, error) {

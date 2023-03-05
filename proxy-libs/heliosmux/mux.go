@@ -2,6 +2,7 @@ package heliosmux
 
 import (
 	"net/http"
+	"os"
 
 	originalMux "github.com/gorilla/mux"
 	"github.com/helios/opentelemetry-go-contrib/instrumentation/github.com/gorilla/mux/otelmux"
@@ -29,7 +30,9 @@ func CurrentRoute(r *http.Request) *Route {
 
 func NewRouter() *Router {
 	router := originalMux.NewRouter()
-	router.Use(otelmux.Middleware("opentelemetry-middleware"))
+	if os.Getenv("HS_DISABLED") != "true" {
+		router.Use(otelmux.Middleware("opentelemetry-middleware"))
+	}
 	return router
 }
 

@@ -3,6 +3,7 @@ package helioss3
 import (
 	"context"
 	"log"
+	"os"
 	"testing"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -49,10 +50,7 @@ func assertAttributes(t *testing.T, attributes []attribute.KeyValue) {
 	}
 }
 
-func TestListBuckets(t *testing.T) {
-	spanRecorder := getSpanRecorder()
-	// init aws config
-	ctx := context.Background()
+func initAwsConfig(t *testing.T, ctx context.Context) aws.Config{
 	newCreds := credentials.NewStaticCredentialsProvider("test", "test", "")
 
 	customResolver := aws.EndpointResolverWithOptionsFunc(func(service, region string, options ...interface{}) (aws.Endpoint, error) {
@@ -66,12 +64,41 @@ func TestListBuckets(t *testing.T) {
 	if err != nil {
 		panic("configuration error, " + err.Error())
 	}
+
+	return cfg
+}
+
+func initS3AndListBuckets(t *testing.T) {
+	ctx := context.Background()
+	cfg := initAwsConfig(t, ctx)
 	s3Client := NewFromConfig(cfg)
 	input := &ListBucketsInput{}
-	_, err = s3Client.ListBuckets(ctx, input)
+	_, err := s3Client.ListBuckets(ctx, input)
 	if err != nil {
 		log.Fatalf("Got an error retrieving buckets, %v", err)
 	}
+}
+
+
+
+func TestListBuckets(t *testing.T) {
+	spanRecorder := getSpanRecorder()
+
+	initS3AndListBuckets(t)
+
 	attributes := assertSpan(t, spanRecorder)
 	assertAttributes(t, attributes)
+}
+
+func TestDisableConnectInstrumentation(t *testing.T) {
+	os.Setenv("HS_DISABLED", "true")
+	defer os.Setenv("HS_DISABLED", "")
+
+	spanRecorder := getSpanRecorder()
+
+	initS3AndListBuckets(t)
+
+	spanRecorder.ForceFlush(context.Background())
+	spans := spanRecorder.Ended()
+	assert.Equal(t, 0, len(spans))
 }

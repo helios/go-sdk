@@ -3,6 +3,7 @@ package heliosgrpc
 import (
 	"context"
 	"net"
+	"os"
 	"time"
 
 	otelgrpc "go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
@@ -183,8 +184,11 @@ func WaitForReady(waitForReady bool) CallOption {
 }
 
 func Dial(target string, opts ...DialOption) (*ClientConn, error) {
-	newOptions := append(opts, WithUnaryInterceptor(otelgrpc.UnaryClientInterceptor()), WithStreamInterceptor(otelgrpc.StreamClientInterceptor()))
-	return realGrpc.Dial(target, newOptions...)
+	if os.Getenv("HS_DISABLED") != "true" {
+		newOptions := append(opts, WithUnaryInterceptor(otelgrpc.UnaryClientInterceptor()), WithStreamInterceptor(otelgrpc.StreamClientInterceptor()))
+		return realGrpc.Dial(target, newOptions...)
+	}
+	return realGrpc.Dial(target, opts...)	
 }
 
 func DialContext(ctx context.Context, target string, opts ...DialOption) (conn *ClientConn, err error) {
@@ -312,8 +316,11 @@ func WithWriteBufferSize(s int) DialOption {
 }
 
 func NewServer(opt ...ServerOption) *Server {
-	newOptions := append(opt, ChainUnaryInterceptor(otelgrpc.UnaryServerInterceptor()), ChainStreamInterceptor(otelgrpc.StreamServerInterceptor()))
-	return realGrpc.NewServer(newOptions...)
+	if os.Getenv("HS_DISABLED") != "true" {
+		newOptions := append(opt, ChainUnaryInterceptor(otelgrpc.UnaryServerInterceptor()), ChainStreamInterceptor(otelgrpc.StreamServerInterceptor()))
+		return realGrpc.NewServer(newOptions...)
+	}
+	return realGrpc.NewServer(opt...)
 }
 
 func ChainStreamInterceptor(interceptors ...StreamServerInterceptor) ServerOption {

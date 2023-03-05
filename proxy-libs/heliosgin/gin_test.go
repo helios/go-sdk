@@ -2,8 +2,10 @@ package heliosgin
 
 import (
 	"context"
+	"fmt"
 	"html/template"
 	"net/http"
+	"os"
 	"testing"
 
 	"go.opentelemetry.io/otel"
@@ -31,11 +33,15 @@ func validateAttributes(attrs []attribute.KeyValue, t *testing.T) {
 	}
 }
 
-func TestInstrumentation(t *testing.T) {
+func initTracing(t *testing.T) *tracetest.SpanRecorder{
 	sr := tracetest.NewSpanRecorder()
 	otel.SetTracerProvider(sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(sr)))
 	propagator := propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{})
 	otel.SetTextMapPropagator(propagator)
+	return sr
+}
+
+func registerServerAndPerformCall(t *testing.T, port string, url string) *http.Response {
 	r := New()
 	tmplName := "user"
 	tmplStr := "user {{ .name }} (id {{ .id }})\n"
@@ -50,13 +56,38 @@ func TestInstrumentation(t *testing.T) {
 	})
 
 	go func() {
-		_ = r.Run(":8090")
+		_ = r.Run(":" + port)
 	}()
 
-	http.Get("http://localhost:8090/users/abcd1234")
+	res, _ := http.Get(url)
+	return res
+}
+
+func TestInstrumentation(t *testing.T) {
+	sr := initTracing(t)
+	
+	port := "8090"
+	url := fmt.Sprintf("http://localhost:%s/users/abcd1234", port)
+	registerServerAndPerformCall(t, port, url)
+
 	sr.ForceFlush(context.Background())
 	spans := sr.Ended()
 	assert.Equal(t, 1, len(spans))
 	serverSpan := spans[0]
 	validateAttributes(serverSpan.Attributes(), t)
+}
+
+func TestDisableInstrumentation(t *testing.T) {
+	os.Setenv("HS_DISABLED", "true")
+	defer os.Setenv("HS_DISABLED", "")
+
+	sr := initTracing(t)
+	
+	port := "8091"
+	url := fmt.Sprintf("http://localhost:%s/users/abcd1234", port)
+	registerServerAndPerformCall(t, port, url)
+
+	sr.ForceFlush(context.Background())
+	spans := sr.Ended()
+	assert.Equal(t, 0, len(spans))
 }

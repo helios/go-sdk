@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"os"
 	"time"
 
 	"github.com/rs/zerolog"
@@ -14,14 +15,16 @@ import (
 const hsApiEndpoint = "https://app.gethelios.dev"
 
 func extractDataFromContext(otelContext *context.Context, event *Event) {
-	if otelContext != nil {
-		span := trace.SpanFromContext(*otelContext)
-		if span.IsRecording() {
-			traceId := span.SpanContext().TraceID().String()
-			spanId := span.SpanContext().SpanID().String()
-			event.Str("spanId", spanId)
-			event.Str("traceId", traceId)
-			event.Str("go_to_helios", fmt.Sprintf("%s?actionTraceId=%s&spanId=%s&source=zerolog&timestamp=%s",hsApiEndpoint, traceId, spanId, fmt.Sprint(time.Now().UnixNano())))
+	if os.Getenv("HS_DISABLED") != "true" {	
+		if otelContext != nil {
+			span := trace.SpanFromContext(*otelContext)
+			if span.IsRecording() {
+				traceId := span.SpanContext().TraceID().String()
+				spanId := span.SpanContext().SpanID().String()
+				event.Str("spanId", spanId)
+				event.Str("traceId", traceId)
+				event.Str("go_to_helios", fmt.Sprintf("%s?actionTraceId=%s&spanId=%s&source=zerolog&timestamp=%s",hsApiEndpoint, traceId, spanId, fmt.Sprint(time.Now().UnixNano())))
+			}
 		}
 	}
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os"
 	"testing"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -86,10 +87,8 @@ func validateTraceparentMessageAttribute(t *testing.T, message types.Message, se
 	assert.Equal(t, fmt.Sprintf("00-%s-%s-01", spanContext.TraceID().String(), spanContext.SpanID().String()), *traceparent)
 }
 
-func TestContextPropagation(t *testing.T) {
-	spanRecorder := getSpanRecorder()
-	// init aws config
-	ctx := context.Background()
+func initAwsConfig(t *testing.T, ctx context.Context) aws.Config{
+
 	newCreds := credentials.NewStaticCredentialsProvider("test", "test", "")
 
 	customResolver := aws.EndpointResolverWithOptionsFunc(func(service, region string, options ...interface{}) (aws.Endpoint, error) {
@@ -104,8 +103,17 @@ func TestContextPropagation(t *testing.T) {
 	if err != nil {
 		panic("configuration error, " + err.Error())
 	}
+
+	return cfg
+}
+
+func initSqsClient(t *testing.T, ctx context.Context) *sqs.Client {
+	cfg := initAwsConfig(t, ctx)
 	client := NewFromConfig(cfg)
-	queueName := "test_queue"
+	return client
+}
+
+func createSqsQueue(t *testing.T, client *sqs.Client, ctx context.Context, queueName string) *sqs.CreateQueueOutput {
 	createQueue := &sqs.CreateQueueInput{QueueName: &queueName}
 	createQueueResult, err := client.CreateQueue(ctx, createQueue)
 	if err != nil {
@@ -116,11 +124,22 @@ func TestContextPropagation(t *testing.T) {
 	_, err = client.PurgeQueue(ctx, &sqs.PurgeQueueInput{QueueUrl: queueUrl})
 	if err != nil {
 		log.Fatalf("failed to purge queue, %v", err)
-		return
+		return nil
 	}
 
+	return createQueueResult
+}
+
+func TestContextPropagation(t *testing.T) {
+	spanRecorder := getSpanRecorder()
+	ctx := context.Background()
+	client := initSqsClient(t, ctx)
+
+	createQueueResult := createSqsQueue(t, client, ctx, "test_queue")
+	queueUrl := createQueueResult.QueueUrl
+	
 	messageBody := "message body"
-	_, err = client.SendMessage(ctx, &sqs.SendMessageInput{MessageBody: &messageBody, QueueUrl: queueUrl})
+	_, err := client.SendMessage(ctx, &sqs.SendMessageInput{MessageBody: &messageBody, QueueUrl: queueUrl})
 	if err != nil {
 		log.Fatalf("failed to send message, %v", err)
 		return
@@ -152,4 +171,36 @@ func TestContextPropagation(t *testing.T) {
 	spanRecorder.ForceFlush(context.Background())
 	spans = spanRecorder.Ended()
 	validateTraceparentMessageAttribute(t, message, spans[4])
+}
+
+func TestDisableInstrumentation(t *testing.T) {
+	os.Setenv("HS_DISABLED", "true")
+	defer os.Setenv("HS_DISABLED", "")
+
+	spanRecorder := getSpanRecorder()
+	ctx := context.Background()
+	client := initSqsClient(t, ctx)
+
+	createQueueResult := createSqsQueue(t, client, ctx, "test_queue")
+	queueUrl := createQueueResult.QueueUrl
+
+	messageBody := "message body"
+	_, err := client.SendMessage(ctx, &sqs.SendMessageInput{MessageBody: &messageBody, QueueUrl: queueUrl})
+	if err != nil {
+		log.Fatalf("failed to send message, %v", err)
+		return
+	}
+
+	receiveMessageResult, err := client.ReceiveMessage(ctx, &sqs.ReceiveMessageInput{QueueUrl: queueUrl})
+	if err != nil {
+		log.Fatalf("failed to receive message, %v", err)
+		return
+	}
+
+	message := receiveMessageResult.Messages[0]
+	assert.Equal(t, messageBody, *message.Body)
+	spanRecorder.ForceFlush(context.Background())
+	spans := spanRecorder.Ended()
+
+	assert.Equal(t, 0, len(spans))
 }

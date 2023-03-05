@@ -92,6 +92,10 @@ func extractContextFromEventBridgeSqsMessage(ctx context.Context, record events.
 }
 
 func HandleRecord(ctx context.Context, record events.SQSMessage, handleRecordHelper func(ctx context.Context, message events.SQSMessage) (any, error)) (any, error) {
+	// if os.Getenv("HS_DISABLED") == "true" {	
+		// return handleRecordHelper(ctx, record)
+	// }
+
 	var recordCtx context.Context
 	if _, ok := record.MessageAttributes[lowerCaseTraceParentHeader]; ok {
 		recordCtx = extractContextFromSqsMessage(ctx, record.MessageAttributes)
@@ -150,6 +154,10 @@ func heliosEventToCarrier(eventJSON []byte) propagation.TextMapCarrier {
 }
 
 func instrumentHandler(handler interface{}) interface{} {
+	// if os.Getenv("HS_DISABLED") == "true" {	
+		// return handler
+	// }
+
 	provider := otel.GetTracerProvider()
 
 	options := []otellambda.Option{}

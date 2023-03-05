@@ -3,6 +3,7 @@ package helioschi
 import (
 	"context"
 	"net/http"
+	"os"
 
 	origin_chi "github.com/go-chi/chi/v5"
 	"github.com/helios/otelchi"
@@ -32,7 +33,9 @@ func addOpentelemetryMiddleware(mux *Mux) {
 
 func NewRouter() *Mux {
 	router := origin_chi.NewRouter()
-	addOpentelemetryMiddleware(router)
+	if os.Getenv("HS_DISABLED") != "true" {
+		addOpentelemetryMiddleware(router)
+	}
 	return router
 }
 
@@ -68,6 +71,8 @@ type Mux = origin_chi.Mux
 
 func NewMux() *Mux {
 	mux := origin_chi.NewMux()
-	addOpentelemetryMiddleware(mux)
+	if os.Getenv("HS_DISABLED") != "true" {
+		addOpentelemetryMiddleware(mux)
+	}
 	return mux
 }

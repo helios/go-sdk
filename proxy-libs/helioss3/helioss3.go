@@ -1,6 +1,7 @@
 package helioss3
 
 import (
+	"os"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -28,7 +29,9 @@ const ServiceAPIVersion = origin_s3.ServiceAPIVersion
 type Client = origin_s3.Client
 
 func New(options Options,optFns ...func(*Options) ) (*Client) {
-	otelaws.AppendMiddlewares(&options.APIOptions)
+	if os.Getenv("HS_DISABLED") != "true" {
+		otelaws.AppendMiddlewares(&options.APIOptions)
+	}
 	return origin_s3.New(options, optFns...)
  }
 
@@ -45,7 +48,9 @@ func WithEndpointResolver(v EndpointResolver) (func(*Options) ) {
 type HTTPClient = origin_s3.HTTPClient
 
 func NewFromConfig(cfg aws.Config,optFns ...func(*Options) ) (*Client) {
-	otelaws.AppendMiddlewares(&cfg.APIOptions)
+	if os.Getenv("HS_DISABLED") != "true" {
+		otelaws.AppendMiddlewares(&cfg.APIOptions)
+	}
 	return origin_s3.NewFromConfig(cfg,optFns...)
  }
 

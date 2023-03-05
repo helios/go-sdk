@@ -3,6 +3,7 @@ package heliossarama
 import (
 	"context"
 	"fmt"
+	"os"
 	"testing"
 
 	"github.com/Shopify/sarama"
@@ -83,6 +84,35 @@ func (handler *TestConsumerGroupHandler) assertAttributes(span sdktrace.ReadOnly
 	}
 }
 
+type TestNonInstrumentedConsumerGroupHandler struct {
+	messageKey   string
+	messageValue string
+	spanRecorder *tracetest.SpanRecorder
+	t            *testing.T
+}
+
+func (handler *TestNonInstrumentedConsumerGroupHandler) Setup(session ConsumerGroupSession) error {
+	return nil
+}
+
+func (handler *TestNonInstrumentedConsumerGroupHandler) Cleanup(session ConsumerGroupSession) error {
+	return nil
+}
+
+func (handler *TestNonInstrumentedConsumerGroupHandler) ConsumeClaim(session ConsumerGroupSession, claim ConsumerGroupClaim) error {
+	message := <-claim.Messages()
+	assert.Equal(handler.t, Topic, message.Topic)
+	assert.Equal(handler.t, handler.messageKey, string(message.Key))
+	assert.Equal(handler.t, handler.messageValue, string(message.Value))
+	session.MarkMessage(message, "")
+	handler.spanRecorder.ForceFlush(context.Background())
+	spans := handler.spanRecorder.Ended()
+	assert.Equal(handler.t, 1, len(spans)) // expect only root span to be available
+	rootTestSpan := spans[0]
+	assert.Equal(handler.t, testRootSpanName, rootTestSpan.Name())
+	return nil
+}
+
 func getSpanRecorder() *tracetest.SpanRecorder {
 	spanRecorder := tracetest.NewSpanRecorder()
 	otel.SetTracerProvider(sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(spanRecorder)))
@@ -112,6 +142,33 @@ func createRootSpanAndInjectMessage(message *sarama.ProducerMessage) {
 	InjectContextToMessage(ctx, message)
 }
 
+func sendMessageWithAsyncProducer(t *testing.T, config *sarama.Config, messageKey string, messageValue string) {
+	asyncProducer, _ := NewAsyncProducer(Addresses, config)
+	message := ProducerMessage{
+		Topic: Topic,
+		Key:   StringEncoder(messageKey),
+		Value: StringEncoder(messageValue),
+	}
+
+	createRootSpanAndInjectMessage(&message)
+	asyncProducer.Input() <- &message
+	<-asyncProducer.Successes()
+	asyncProducer.Close()
+}
+
+func sendMessageWithSyncProducer(t *testing.T, config *sarama.Config, messageKey string, messageValue string) {
+	syncProducer, _ := NewSyncProducer(Addresses, config)
+	message := ProducerMessage{
+		Topic: Topic,
+		Key:   StringEncoder(messageKey),
+		Value: StringEncoder(messageValue),
+	}
+	createRootSpanAndInjectMessage(&message)
+	syncProducer.SendMessage(&message)
+	syncProducer.Close()
+
+}
+
 func TestNewAsyncProducerAndNewConsumerGroupInstrumentations(t *testing.T) {
 	spanRecorder := getSpanRecorder()
 	config := getConfig()
@@ -119,20 +176,32 @@ func TestNewAsyncProducerAndNewConsumerGroupInstrumentations(t *testing.T) {
 	key := "0"
 	value := "Hello, World!"
 
-	asyncProducer, _ := NewAsyncProducer(Addresses, config)
-	message := ProducerMessage{
-		Topic: Topic,
-		Key:   StringEncoder(key),
-		Value: StringEncoder(value),
-	}
-
-	createRootSpanAndInjectMessage(&message)
-	asyncProducer.Input() <- &message
-	<-asyncProducer.Successes()
-	asyncProducer.Close()
+	sendMessageWithAsyncProducer(t, config, key, value)
 
 	consumerGroup, _ := NewConsumerGroup(Addresses, "consumerGroup", config)
 	consumerGroup.Consume(context.Background(), []string{Topic}, &TestConsumerGroupHandler{
+		messageKey:   key,
+		messageValue: value,
+		spanRecorder: spanRecorder,
+		t:            t,
+	})
+}
+
+
+func TestDisableNewAsyncProducerAndNewConsumerGroupInstrumentation(t *testing.T) {
+	os.Setenv("HS_DISABLED", "true")
+	defer os.Setenv("HS_DISABLED", "")
+
+	spanRecorder := getSpanRecorder()
+	config := getConfig()
+	deleteTopic(config)
+	key := "0"
+	value := "Hello, World!"
+
+	sendMessageWithAsyncProducer(t, config, key, value)
+
+	consumerGroup, _ := NewConsumerGroup(Addresses, "notInstrumentedConsumerGroup", config)
+	consumerGroup.Consume(context.Background(), []string{Topic}, &TestNonInstrumentedConsumerGroupHandler{
 		messageKey:   key,
 		messageValue: value,
 		spanRecorder: spanRecorder,
@@ -147,19 +216,33 @@ func TestNewSyncProducerAndNewConsumerGroupFromClientInstrumentations(t *testing
 	key := "1"
 	value := "Welcome to Helios!"
 
-	syncProducer, _ := NewSyncProducer(Addresses, config)
-	message := ProducerMessage{
-		Topic: Topic,
-		Key:   StringEncoder(key),
-		Value: StringEncoder(value),
-	}
-	createRootSpanAndInjectMessage(&message)
-	syncProducer.SendMessage(&message)
-	syncProducer.Close()
+	sendMessageWithSyncProducer(t, config, key, value)
 
 	client, _ := NewClient(Addresses, config)
 	consumerGroup, _ := NewConsumerGroupFromClient("consumerGroupFromClient", client)
 	consumerGroup.Consume(context.Background(), []string{Topic}, &TestConsumerGroupHandler{
+		messageKey:   key,
+		messageValue: value,
+		spanRecorder: spanRecorder,
+		t:            t,
+	})
+}
+
+func TestDisableNewSyncProducerAndNewConsumerGroupFromClientInstrumentation(t *testing.T) {
+	os.Setenv("HS_DISABLED", "true")
+	defer os.Setenv("HS_DISABLED", "")
+
+	spanRecorder := getSpanRecorder()
+	config := getConfig()
+	deleteTopic(config)
+	key := "1"
+	value := "Welcome to Helios!"
+
+	sendMessageWithSyncProducer(t, config, key, value)
+
+	client, _ := NewClient(Addresses, config)
+	consumerGroup, _ := NewConsumerGroupFromClient("notInstrumentedConsumerGroupFromClient", client)
+	consumerGroup.Consume(context.Background(), []string{Topic}, &TestNonInstrumentedConsumerGroupHandler{
 		messageKey:   key,
 		messageValue: value,
 		spanRecorder: spanRecorder,

@@ -4,6 +4,7 @@ import (
 	"context"
 	"hash"
 	"net"
+	"os"
 
 	originalSarama "github.com/Shopify/sarama"
 	"go.opentelemetry.io/contrib/instrumentation/github.com/Shopify/sarama/otelsarama"
@@ -567,9 +568,11 @@ var V3_2_3_0 = originalSarama.V3_2_3_0
 func NewAsyncProducer(addrs []string, conf *Config) (AsyncProducer, error) {
 	asyncProducer, error := originalSarama.NewAsyncProducer(addrs, conf)
 
-	if asyncProducer != nil {
-		asyncProducer = asyncProducerWrapper{asyncProducer}
-		asyncProducer = otelsarama.WrapAsyncProducer(conf, asyncProducer)
+	if os.Getenv("HS_DISABLED") != "true" {
+		if asyncProducer != nil {
+			asyncProducer = asyncProducerWrapper{asyncProducer}
+			asyncProducer = otelsarama.WrapAsyncProducer(conf, asyncProducer)
+		}
 	}
 
 	return asyncProducer, error
@@ -578,9 +581,11 @@ func NewAsyncProducer(addrs []string, conf *Config) (AsyncProducer, error) {
 func NewAsyncProducerFromClient(client Client) (AsyncProducer, error) {
 	asyncProducer, error := originalSarama.NewAsyncProducerFromClient(client)
 
-	if asyncProducer != nil {
-		asyncProducer = asyncProducerWrapper{asyncProducer}
-		asyncProducer = otelsarama.WrapAsyncProducer(client.Config(), asyncProducer)
+	if os.Getenv("HS_DISABLED") != "true" {
+		if asyncProducer != nil {
+			asyncProducer = asyncProducerWrapper{asyncProducer}
+			asyncProducer = otelsarama.WrapAsyncProducer(client.Config(), asyncProducer)
+		}
 	}
 
 	return asyncProducer, error
@@ -617,8 +622,10 @@ func NewConsumerFromClient(client Client) (Consumer, error) {
 func NewConsumerGroup(addrs []string, groupID string, config *Config) (ConsumerGroup, error) {
 	consumerGroup, error := originalSarama.NewConsumerGroup(addrs, groupID, config)
 
-	if consumerGroup != nil {
-		consumerGroup = consumerGroupWrapper{consumerGroup}
+	if os.Getenv("HS_DISABLED") != "true" {
+		if consumerGroup != nil {
+			consumerGroup = consumerGroupWrapper{consumerGroup}
+		}
 	}
 
 	return consumerGroup, error
@@ -627,8 +634,10 @@ func NewConsumerGroup(addrs []string, groupID string, config *Config) (ConsumerG
 func NewConsumerGroupFromClient(groupID string, client Client) (ConsumerGroup, error) {
 	consumerGroup, error := originalSarama.NewConsumerGroupFromClient(groupID, client)
 
-	if consumerGroup != nil {
-		consumerGroup = consumerGroupWrapper{consumerGroup}
+	if os.Getenv("HS_DISABLED") != "true" {
+		if consumerGroup != nil {
+			consumerGroup = consumerGroupWrapper{consumerGroup}
+		}
 	}
 
 	return consumerGroup, error
@@ -838,8 +847,10 @@ func NewRoundRobinPartitioner(topic string) Partitioner {
 func NewSyncProducer(addrs []string, config *Config) (SyncProducer, error) {
 	syncProducer, error := originalSarama.NewSyncProducer(addrs, config)
 
-	if syncProducer != nil {
-		syncProducer = otelsarama.WrapSyncProducer(config, syncProducer)
+	if os.Getenv("HS_DISABLED") != "true" {
+		if syncProducer != nil {
+			syncProducer = otelsarama.WrapSyncProducer(config, syncProducer)
+		}
 	}
 
 	return syncProducer, error
@@ -848,8 +859,10 @@ func NewSyncProducer(addrs []string, config *Config) (SyncProducer, error) {
 func NewSyncProducerFromClient(client Client) (SyncProducer, error) {
 	syncProducer, error := originalSarama.NewSyncProducerFromClient(client)
 
-	if syncProducer != nil {
-		syncProducer = otelsarama.WrapSyncProducer(client.Config(), syncProducer)
+	if os.Getenv("HS_DISABLED") != "true" {
+		if syncProducer != nil {
+			syncProducer = otelsarama.WrapSyncProducer(client.Config(), syncProducer)
+		}
 	}
 
 	return syncProducer, error
