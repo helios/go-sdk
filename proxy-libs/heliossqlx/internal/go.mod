@@ -2,6 +2,8 @@ module github.com/helios/go-sdk/proxy-libs/heliossqlx/internal
 
 go 1.18
 
+require github.com/helios/go-sdk/proxy-libs/heliossqlx v1.3.5
+
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dustin/go-humanize v1.0.0 // indirect
