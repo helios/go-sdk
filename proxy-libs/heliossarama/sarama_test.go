@@ -142,6 +142,33 @@ func createRootSpanAndInjectMessage(message *sarama.ProducerMessage) {
 	InjectContextToMessage(ctx, message)
 }
 
+func sendMessageWithAsyncProducer(t *testing.T, config *sarama.Config, messageKey string, messageValue string) {
+	asyncProducer, _ := NewAsyncProducer(Addresses, config)
+	message := ProducerMessage{
+		Topic: Topic,
+		Key:   StringEncoder(messageKey),
+		Value: StringEncoder(messageValue),
+	}
+
+	createRootSpanAndInjectMessage(&message)
+	asyncProducer.Input() <- &message
+	<-asyncProducer.Successes()
+	asyncProducer.Close()
+}
+
+func sendMessageWithSyncProducer(t *testing.T, config *sarama.Config, messageKey string, messageValue string) {
+	syncProducer, _ := NewSyncProducer(Addresses, config)
+	message := ProducerMessage{
+		Topic: Topic,
+		Key:   StringEncoder(messageKey),
+		Value: StringEncoder(messageValue),
+	}
+	createRootSpanAndInjectMessage(&message)
+	syncProducer.SendMessage(&message)
+	syncProducer.Close()
+
+}
+
 func TestNewAsyncProducerAndNewConsumerGroupInstrumentations(t *testing.T) {
 	spanRecorder := getSpanRecorder()
 	config := getConfig()
@@ -149,17 +176,7 @@ func TestNewAsyncProducerAndNewConsumerGroupInstrumentations(t *testing.T) {
 	key := "0"
 	value := "Hello, World!"
 
-	asyncProducer, _ := NewAsyncProducer(Addresses, config)
-	message := ProducerMessage{
-		Topic: Topic,
-		Key:   StringEncoder(key),
-		Value: StringEncoder(value),
-	}
-
-	createRootSpanAndInjectMessage(&message)
-	asyncProducer.Input() <- &message
-	<-asyncProducer.Successes()
-	asyncProducer.Close()
+	sendMessageWithAsyncProducer(t, config, key, value)
 
 	consumerGroup, _ := NewConsumerGroup(Addresses, "consumerGroup", config)
 	consumerGroup.Consume(context.Background(), []string{Topic}, &TestConsumerGroupHandler{
@@ -169,6 +186,7 @@ func TestNewAsyncProducerAndNewConsumerGroupInstrumentations(t *testing.T) {
 		t:            t,
 	})
 }
+
 
 func TestDisableNewAsyncProducerAndNewConsumerGroupInstrumentation(t *testing.T) {
 	os.Setenv("HS_DISABLED", "true")
@@ -180,17 +198,7 @@ func TestDisableNewAsyncProducerAndNewConsumerGroupInstrumentation(t *testing.T)
 	key := "0"
 	value := "Hello, World!"
 
-	asyncProducer, _ := NewAsyncProducer(Addresses, config)
-	message := ProducerMessage{
-		Topic: Topic,
-		Key:   StringEncoder(key),
-		Value: StringEncoder(value),
-	}
-
-	createRootSpanAndInjectMessage(&message)
-	asyncProducer.Input() <- &message
-	<-asyncProducer.Successes()
-	asyncProducer.Close()
+	sendMessageWithAsyncProducer(t, config, key, value)
 
 	consumerGroup, _ := NewConsumerGroup(Addresses, "notInstrumentedConsumerGroup", config)
 	consumerGroup.Consume(context.Background(), []string{Topic}, &TestNonInstrumentedConsumerGroupHandler{
@@ -208,15 +216,7 @@ func TestNewSyncProducerAndNewConsumerGroupFromClientInstrumentations(t *testing
 	key := "1"
 	value := "Welcome to Helios!"
 
-	syncProducer, _ := NewSyncProducer(Addresses, config)
-	message := ProducerMessage{
-		Topic: Topic,
-		Key:   StringEncoder(key),
-		Value: StringEncoder(value),
-	}
-	createRootSpanAndInjectMessage(&message)
-	syncProducer.SendMessage(&message)
-	syncProducer.Close()
+	sendMessageWithSyncProducer(t, config, key, value)
 
 	client, _ := NewClient(Addresses, config)
 	consumerGroup, _ := NewConsumerGroupFromClient("consumerGroupFromClient", client)
@@ -238,15 +238,7 @@ func TestDisableNewSyncProducerAndNewConsumerGroupFromClientInstrumentation(t *t
 	key := "1"
 	value := "Welcome to Helios!"
 
-	syncProducer, _ := NewSyncProducer(Addresses, config)
-	message := ProducerMessage{
-		Topic: Topic,
-		Key:   StringEncoder(key),
-		Value: StringEncoder(value),
-	}
-	createRootSpanAndInjectMessage(&message)
-	syncProducer.SendMessage(&message)
-	syncProducer.Close()
+	sendMessageWithSyncProducer(t, config, key, value)
 
 	client, _ := NewClient(Addresses, config)
 	consumerGroup, _ := NewConsumerGroupFromClient("notInstrumentedConsumerGroupFromClient", client)
