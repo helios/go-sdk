@@ -31,11 +31,17 @@ func validateAttributes(attrs []attribute.KeyValue, t *testing.T) {
 	}
 }
 
-func TestInstrumentation(t *testing.T) {
+
+
+func initTracing(t *testing.T) *tracetest.SpanRecorder {
 	sr := tracetest.NewSpanRecorder()
 	otel.SetTracerProvider(sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(sr)))
 	propagator := propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{})
 	otel.SetTextMapPropagator(propagator)
+	return sr
+}
+
+func registerMacaronAndPerformCall(t *testing.T) {
 	m := Classic()
 	m.Get("/users/:id", func(ctx *Context) string {
 		id := ctx.Params("id")
@@ -47,6 +53,11 @@ func TestInstrumentation(t *testing.T) {
 	}()
 
 	http.Get("http://localhost:4000/users/abcd1234")
+}
+
+func TestInstrumentation(t *testing.T) {
+	sr := initTracing(t)
+	registerMacaronAndPerformCall(t)
 	sr.ForceFlush(context.Background())
 	spans := sr.Ended()
 	assert.Equal(t, 1, len(spans))
@@ -57,21 +68,8 @@ func TestInstrumentation(t *testing.T) {
 func TestDisableInstrumentation(t *testing.T) {
 	os.Setenv("HS_DISABLED", "true")
 	defer os.Setenv("HS_DISABLED", "")
-	sr := tracetest.NewSpanRecorder()
-	otel.SetTracerProvider(sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(sr)))
-	propagator := propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{})
-	otel.SetTextMapPropagator(propagator)
-	m := Classic()
-	m.Get("/users/:id", func(ctx *Context) string {
-		id := ctx.Params("id")
-		return id
-	})
-
-	go func() {
-		m.Run()
-	}()
-
-	http.Get("http://localhost:4001/users/abcd1234")
+	sr := initTracing(t)
+	registerMacaronAndPerformCall(t)
 	sr.ForceFlush(context.Background())
 	spans := sr.Ended()
 	assert.Equal(t, 0, len(spans))
