@@ -202,7 +202,7 @@ func TestDisableInstrumentation(t *testing.T) {
 	defer os.Setenv("HS_DISABLED", "")
 
 	sr := setupSpanRecording()
-	port := 8084
+	port := 8004
 	path := "test4"
 	HandleFunc("/"+path, getHello)
 
