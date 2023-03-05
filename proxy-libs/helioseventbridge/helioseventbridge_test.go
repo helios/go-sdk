@@ -50,8 +50,7 @@ func assertAttributes(t *testing.T, attributes []attribute.KeyValue) {
 	}
 }
 
-func TestListRules(t *testing.T) {
-	spanRecorder := getSpanRecorder()
+func initEventbridgeAndListRules(t *testing.T) {
 	// init aws config
 	ctx := context.Background()
 	newCreds := credentials.NewStaticCredentialsProvider("test", "test", "")
@@ -75,6 +74,11 @@ func TestListRules(t *testing.T) {
 		log.Fatalf("failed to list rules, %v", err)
 		return
 	}
+}
+
+func TestListRules(t *testing.T) {
+	spanRecorder := getSpanRecorder()
+	initEventbridgeAndListRules(t)
 	attributes := assertSpan(t, spanRecorder)
 	assertAttributes(t, attributes)
 }
@@ -84,29 +88,7 @@ func TestDisableInstrumentation(t *testing.T) {
 	defer os.Setenv("HS_DISABLED", "")
 
 	spanRecorder := getSpanRecorder()
-	// init aws config
-	ctx := context.Background()
-	newCreds := credentials.NewStaticCredentialsProvider("test", "test", "")
-
-	customResolver := aws.EndpointResolverWithOptionsFunc(func(service, region string, options ...interface{}) (aws.Endpoint, error) {
-			return aws.Endpoint{
-				PartitionID:   "aws",
-				URL:           "http://localhost:4566",
-				SigningRegion: "us-east-1",
-			}, nil
-			})
-	cfg, err := awsConfig.LoadDefaultConfig(ctx, awsConfig.WithCredentialsProvider(newCreds) ,awsConfig.WithEndpointResolverWithOptions(customResolver))
-	if err != nil {
-		panic("configuration error, " + err.Error())
-	}
-	eventbridgeClient := NewFromConfig(cfg)
-	_, err = eventbridgeClient.ListRules(ctx, &ListRulesInput{
-		Limit: aws.Int32(5),
-	})
-	if err != nil {
-		log.Fatalf("failed to list rules, %v", err)
-		return
-	}
+	initEventbridgeAndListRules(t)
 
 	spanRecorder.ForceFlush(context.Background())
 	spans := spanRecorder.Ended()
