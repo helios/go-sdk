@@ -56,11 +56,15 @@ type User struct {
 	Role string `json:"role"`
 }
 
-func runTests(t *testing.T, port string, metadataOnly bool) {
+func initTracing(t *testing.T) *tracetest.SpanRecorder{
 	sr := tracetest.NewSpanRecorder()
 	otel.SetTracerProvider(sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(sr)))
 	propagator := propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{})
 	otel.SetTextMapPropagator(propagator)
+	return sr
+}
+
+func registerServerAndPerformCall(t *testing.T, port string, url string) *http.Response {
 	r := NewRouter()
 
 	r.HandleFunc("/users/{id}", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -78,10 +82,18 @@ func runTests(t *testing.T, port string, metadataOnly bool) {
 		http.ListenAndServe(":"+port, r)
 	}()
 
-	url := fmt.Sprintf("http://localhost:%s/users/abcd1234", port)
 	res, _ := http.Post(url, "application/json", bytes.NewBuffer([]byte(requestBody)))
 	body, _ := io.ReadAll(res.Body)
 	assert.Equal(t, responseBody, string(body))
+	return res
+}
+
+func runTests(t *testing.T, port string, metadataOnly bool) {
+	sr := initTracing(t)
+
+	url := fmt.Sprintf("http://localhost:%s/users/abcd1234", port)
+	res := registerServerAndPerformCall(t, port, url)
+	
 	sr.ForceFlush(context.Background())
 	spans := sr.Ended()
 	assert.Equal(t, 1, len(spans))
@@ -111,31 +123,11 @@ func TestDisableInstrumentation(t *testing.T) {
 	os.Setenv("HS_DISABLED", "true")
 	defer os.Setenv("HS_DISABLED", "")
 	port := "3335"
-	sr := tracetest.NewSpanRecorder()
-	otel.SetTracerProvider(sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(sr)))
-	propagator := propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{})
-	otel.SetTextMapPropagator(propagator)
-	r := NewRouter()
-
-	r.HandleFunc("/users/{id}", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		decoder := json.NewDecoder(r.Body)
-		var user User
-		decoder.Decode(&user)
-
-		id := URLParam(r, "id")
-		name := "test"
-		reply := fmt.Sprintf("user %s (id %s)", name, id)
-		w.Write(([]byte)(reply))
-	}))
-
-	go func() {
-		http.ListenAndServe(":" + port, r)
-	}()
-
+	sr := initTracing(t)
+	
 	url := fmt.Sprintf("http://localhost:%s/users/abcd1234", port)
-	res, _ := http.Post(url, "application/json", bytes.NewBuffer([]byte(requestBody)))
-	body, _ := io.ReadAll(res.Body)
-	assert.Equal(t, responseBody, string(body))
+	registerServerAndPerformCall(t, port, url)
+
 	sr.ForceFlush(context.Background())
 	spans := sr.Ended()
 	assert.Equal(t, 0, len(spans))
