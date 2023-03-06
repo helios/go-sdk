@@ -144,7 +144,7 @@ func Initialize(serviceName string, apiToken string, attrs ...attribute.KeyValue
 
 	if heliosConfig.instrumentationDisabled {
 		os.Setenv("HS_DISABLED", "true")
-		return nil, errors.New("helios tracing is not initialized")
+		return nil, errors.New("helios tracing is disabled")
 	}
 
 	var exporter *otlptrace.Exporter
