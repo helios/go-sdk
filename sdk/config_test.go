@@ -40,6 +40,13 @@ func TestConfigWithOptions(t *testing.T) {
 	assert.Equal(t, config.metadataOnly, true)
 }
 
+func TestConfigWithDisabledInstrumentationOption(t *testing.T) {
+	heliosConfigSingleton = nil
+	config := createHeliosConfig(serviceName, token, WithInstrumentationDisabled())
+	assert.Equal(t, config.apiToken, token)
+	assert.Equal(t, config.instrumentationDisabled, true)
+}
+
 func TestConfigWithEnvVars(t *testing.T) {
 	heliosConfigSingleton = nil
 	testCollectorEndpoint := "aaa.bbb.com:1234"
@@ -60,4 +67,14 @@ func TestConfigWithEnvVars(t *testing.T) {
 	assert.Equal(t, config.sampler.Description(), fmt.Sprintf("HeliosSampler(%.4f)", testSamplingRatio))
 	assert.Equal(t, config.debug, true)
 	assert.Equal(t, config.metadataOnly, true)
+}
+
+func TestConfigWithDisabledInstrumentationEnvVar(t *testing.T) {
+	heliosConfigSingleton = nil
+	os.Setenv(instrumentationDisabledEnvVar, "true")
+	defer os.Setenv(instrumentationDisabledEnvVar, "")
+
+	config := createHeliosConfig(serviceName, token)
+	assert.Equal(t, config.apiToken, token)
+	assert.Equal(t, config.instrumentationDisabled, true)
 }

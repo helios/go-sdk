@@ -12,6 +12,7 @@ import (
 var heliosConfigSingleton *HeliosConfig
 
 type HeliosConfig struct {
+	instrumentationDisabled bool
 	serviceName       string
 	apiToken          string
 	sampler           trace.Sampler
@@ -25,6 +26,8 @@ type HeliosConfig struct {
 }
 
 // Keys and their matching env vars
+const instrumentationDisabledKey = "disabled"
+const instrumentationDisabledEnvVar = "HS_DISABLED"
 const samplingRatioKey = "samplingRatio"
 const samplingRatioEnvVar = "HS_SAMPLING_RATIO"
 const environmentKey = "environment"
@@ -49,6 +52,7 @@ const hsDatahMacKeyEnvVar = "HS_DATA_OBFUSCATION_HMAC_KEY"
 const hsDatahMacKey = "dataObfuscationhMacKey"
 
 // Default values
+const defaultInstrumentationDisabled = false
 const defaultCollectorInsecure = false
 const defaultCollectorEndpoint = "collector.heliosphere.io:443"
 const defaultCollectorPath = "traces"
@@ -63,6 +67,11 @@ func getConfigByKey(key string, attrs []attribute.KeyValue) attribute.KeyValue {
 	}
 
 	return attribute.KeyValue{Key: "", Value: attribute.Value{}}
+}
+
+func isInstrumentationDisabled(attrs []attribute.KeyValue) bool {
+	instrumentationDisabledConfig := getConfigByKey(instrumentationDisabledKey, attrs)
+	return getBoolConfig(instrumentationDisabledEnvVar, defaultInstrumentationDisabled, instrumentationDisabledConfig)
 }
 
 func getSampler(attrs []attribute.KeyValue) trace.Sampler {
@@ -160,6 +169,7 @@ func createHeliosConfig(serviceName string, apiToken string, attrs ...attribute.
 	if heliosConfigSingleton != nil {
 		return heliosConfigSingleton
 	} else {
+		instrumentationDisabled := isInstrumentationDisabled(attrs)
 		sampler := getSampler(attrs)
 		collectorInsecure := isCollectorInsecure(attrs)
 		collectorEndpoint := getCollectorEndpoint(attrs)
@@ -168,7 +178,7 @@ func createHeliosConfig(serviceName string, apiToken string, attrs ...attribute.
 		commitHash := getCommitHash(attrs)
 		debug := isDebugMode(attrs)
 		metadataOnly := isMetadataOnlyMode(attrs)
-		heliosConfigSingleton = &HeliosConfig{serviceName, apiToken, sampler, collectorInsecure, collectorEndpoint, collectorPath, environment, commitHash, debug, metadataOnly}
+		heliosConfigSingleton = &HeliosConfig{instrumentationDisabled, serviceName, apiToken, sampler, collectorInsecure, collectorEndpoint, collectorPath, environment, commitHash, debug, metadataOnly}
 		return heliosConfigSingleton
 	}
 }
