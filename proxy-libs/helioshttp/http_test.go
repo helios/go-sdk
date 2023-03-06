@@ -22,10 +22,10 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
-const requestBody = "{\"id\":123,\"name\":\"Lior Govrin\",\"role\":\"Software Engineer\"}"
-const obfuscatedRequestBody = "{\"id\":123,\"name\":\"dac02c19\",\"role\":\"Software Engineer\"}"
-const responseBody = "hello1234"
-const obfuscatedResponseBody = "87468e56"
+const expectedRequestBody = "{\"id\":123,\"name\":\"Lior Govrin\",\"role\":\"Software Engineer\"}"
+const expectedObfuscatedRequestBody = "{\"id\":123,\"name\":\"dac02c19\",\"role\":\"Software Engineer\"}"
+const expectedResponseBody = "hello1234"
+const expectedObfuscatedResponseBody = "87468e56"
 
 func init() {
 	blocklistRules, _ := json.Marshal([]string{"$.name"})
@@ -33,12 +33,14 @@ func init() {
 	os.Setenv("HS_DATA_OBFUSCATION_BLOCKLIST", string(blocklistRules))
 }
 
+
+
 func getHello(responseWriter ResponseWriter, request *Request) {
 	body, _ := io.ReadAll(request.Body)
-	if string(body) != requestBody {
+	if string(body) != expectedRequestBody {
 		log.Fatal("Invalid request body")
 	}
-	io.WriteString(responseWriter, responseBody)
+	io.WriteString(responseWriter, expectedResponseBody)
 }
 
 func validateAttributes(attrs []attribute.KeyValue, path string, metadataOnly bool, t *testing.T) {
@@ -55,7 +57,7 @@ func validateAttributes(attrs []attribute.KeyValue, path string, metadataOnly bo
 			assert.Equal(t, 200, int(value.Value.AsInt64()))
 		} else if key == "http.response.body" {
 			responseBodyFound = true
-			assert.Equal(t, obfuscatedResponseBody, value.Value.AsString())
+			assert.Equal(t, expectedObfuscatedResponseBody, value.Value.AsString())
 		} else if key == "http.request.headers" {
 			requestHeadersFound = true
 			headers := map[string][]string{}
@@ -63,7 +65,7 @@ func validateAttributes(attrs []attribute.KeyValue, path string, metadataOnly bo
 			assert.Equal(t, "application/json", headers["Content-Type"][0])
 		} else if key == "http.request.body" {
 			requestBodyFound = true
-			assert.Equal(t, obfuscatedRequestBody, value.Value.AsString())
+			assert.Equal(t, expectedObfuscatedRequestBody, value.Value.AsString())
 		}
 	}
 
@@ -77,9 +79,9 @@ func sendRequestAndValidate(t *testing.T, port int, path string, metadataOnly bo
 		ListenAndServe(fmt.Sprintf(":%d", port), nil)
 	}()
 
-	res, _ := Post(fmt.Sprintf("http://localhost:%d/%s", port, path), "application/json", bytes.NewBuffer([]byte(requestBody)))
+	res, _ := Post(fmt.Sprintf("http://localhost:%d/%s", port, path), "application/json", bytes.NewBuffer([]byte(expectedRequestBody)))
 	body, _ := io.ReadAll(res.Body)
-	assert.Equal(t, responseBody, string(body))
+	assert.Equal(t, expectedResponseBody, string(body))
 	sr.ForceFlush(context.Background())
 	spans := sr.Ended()
 	assert.Equal(t, 2, len(spans))
@@ -94,9 +96,9 @@ func sendRequestAndValidate(t *testing.T, port int, path string, metadataOnly bo
 	assert.Equal(t, res.Header.Get("traceresponse"), fmt.Sprintf("00-%s-%s-01", serverSpan.SpanContext().TraceID().String(), serverSpan.SpanContext().SpanID().String()))
 
 	// Send again
-	res, _ = Post(fmt.Sprintf("http://localhost:%d/%s", port, path), "application/json", bytes.NewBuffer([]byte(requestBody)))
+	res, _ = Post(fmt.Sprintf("http://localhost:%d/%s", port, path), "application/json", bytes.NewBuffer([]byte(expectedRequestBody)))
 	body, _ = io.ReadAll(res.Body)
-	assert.Equal(t, responseBody, string(body))
+	assert.Equal(t, expectedResponseBody, string(body))
 	sr.ForceFlush(context.Background())
 	spans = sr.Ended()
 	serverSpan = spans[2]
@@ -108,7 +110,13 @@ func sendRequestAndValidate(t *testing.T, port int, path string, metadataOnly bo
 	validateAttributes(clientSpan.Attributes(), path, metadataOnly, t)
 }
 
+func resetClient() {
+	otelhttp.DefaultClient = &http.Client{Transport: otelhttp.NewTransport(http.DefaultTransport)}
+	DefaultClient = &Client{}
+}
+
 func setupSpanRecording() *tracetest.SpanRecorder {
+	resetClient()
 	sr := tracetest.NewSpanRecorder()
 	otel.SetTracerProvider(sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(sr)))
 	propagator := propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{})
@@ -140,11 +148,31 @@ func TestClientInstrumentation(t *testing.T) {
 	assert.Contains(t, clientSpan.Attributes(), attribute.String("http.url", "google.com"))
 }
 
+func TestDisableInstrumentation(t *testing.T) {
+	os.Setenv("HS_DISABLED", "true")
+	defer os.Setenv("HS_DISABLED", "")
+
+	sr := setupSpanRecording()
+	port := 8004
+	path := "test4"
+	HandleFunc("/"+path, getHello)
+
+	go func() {
+		ListenAndServe(fmt.Sprintf(":%d", port), nil)
+	}()
+
+	res, _ := Post(fmt.Sprintf("http://localhost:%d/%s", port, path), "application/json", bytes.NewBuffer([]byte(expectedRequestBody)))
+	body, _ := io.ReadAll(res.Body)
+	assert.Equal(t, expectedResponseBody, string(body))
+	fmt.Println("AFTER RESPONSE ASSERT: ", string(body))
+	sr.ForceFlush(context.Background())
+	spans := sr.Ended()
+	assert.Equal(t, 0, len(spans))
+	fmt.Println("AFTER SPANS ASSERTION: ", len(spans))
+}
+
 func TestServerInstrumentationMetadataOnly(t *testing.T) {
 	os.Setenv("HS_METADATA_ONLY", "true")
-	// Reset the client so that metadaaonly mode canbe properly applied
-	otelhttp.DefaultClient = &http.Client{Transport: otelhttp.NewTransport(http.DefaultTransport)}
-	DefaultClient = &Client{}
 	testHelper(t, 8001, "test2", true)
 }
 
