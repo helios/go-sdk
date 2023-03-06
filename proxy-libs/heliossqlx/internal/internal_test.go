@@ -2,6 +2,7 @@ package internal
 
 import (
 	"context"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -86,17 +87,17 @@ func TestSqlxInstrumentation(t *testing.T) {
 	assert.True(t, assertAttributes(t, attributes))
 }
 
-// func TestDisableInstrumentation(t *testing.T) {
-// 	os.Setenv("HS_DISABLED", "true")
-// 	defer os.Setenv("HS_DISABLED", "")
-// 	spanRecorder := getSpanRecorder()
-// 	db := getDBConnection()
+func TestDisableInstrumentation(t *testing.T) {
+	os.Setenv("HS_DISABLED", "true")
+	defer os.Setenv("HS_DISABLED", "")
+	spanRecorder := getSpanRecorder()
+	db := getDBConnection()
 
-// 	var num int
-// 	if err := db.QueryRowContext(context.Background(), "SELECT 42").Scan(&num); err != nil {
-// 		panic(err)
-// 	}
-// 	spanRecorder.ForceFlush(context.Background())
-// 	spans := spanRecorder.Ended()
-// 	assert.Equal(t, 0, len(spans))
-// }
+	var num int
+	if err := db.QueryRowContext(context.Background(), "SELECT 42").Scan(&num); err != nil {
+		panic(err)
+	}
+	spanRecorder.ForceFlush(context.Background())
+	spans := spanRecorder.Ended()
+	assert.Equal(t, 0, len(spans))
+}
