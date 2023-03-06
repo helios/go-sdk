@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/baggage"
 	"go.opentelemetry.io/otel/sdk/trace"
@@ -18,10 +19,12 @@ const testServiceName = "test_service"
 
 func initHelper(samplingRatio float64) {
 	if provider != nil {
+		provider.ForceFlush(context.Background())
 		provider.Shutdown(context.Background())
 	}
 	providerSingelton = nil
 	provider, _ = Initialize(serviceName, "abcd1234", WithCollectorEndpoint(""), WithSamplingRatio(samplingRatio))
+	otel.SetTracerProvider(provider)
 	exporter = tracetest.NewInMemoryExporter()
 	provider.RegisterSpanProcessor(trace.NewSimpleSpanProcessor(exporter))
 }
