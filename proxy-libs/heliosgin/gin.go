@@ -64,7 +64,12 @@ func New() *Engine {
 }
 
 func Default() *Engine {
-	return origin_gin.Default()
+	engine := origin_gin.Default()
+	if os.Getenv("HS_DISABLED") != "true" {
+		engine.Use(otelgin.Middleware("opentelemetry-middleware"))
+	}
+
+	return engine
 }
 
 const MIMEJSON = origin_gin.MIMEJSON
