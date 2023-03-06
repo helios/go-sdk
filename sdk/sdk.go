@@ -3,6 +3,7 @@ package sdk
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"log"
 	"os"
 
@@ -20,7 +21,7 @@ import (
 const sdkName = "helios-opentelemetry-sdk"
 const customSpanAttr = "hs-custom-span"
 
-var providerSingelton *trace.TracerProvider
+var providerSingleton *trace.TracerProvider
 
 func WithSamplingRatio(samplingRatio float64) attribute.KeyValue {
 	return attribute.KeyValue{
@@ -61,6 +62,13 @@ func WithCommitHash(commitHash string) attribute.KeyValue {
 	return attribute.KeyValue{
 		Key:   commitHashKey,
 		Value: attribute.StringValue(commitHash),
+	}
+}
+
+func WithInstrumentationDisabled() attribute.KeyValue {
+	return attribute.KeyValue{
+		Key:   instrumentationDisabledKey,
+		Value: attribute.StringValue("true"),
 	}
 }
 
@@ -105,12 +113,12 @@ func WithhmacKey(hMacKey string) attribute.KeyValue {
 }
 
 func CreateCustomSpan(context context.Context, spanName string, attributes []attribute.KeyValue, callback func()) context.Context {
-	if providerSingelton == nil {
+	if providerSingleton == nil {
 		log.Print("Can't create custom span before Initialize is called")
 		return nil
 	}
 
-	tracer := providerSingelton.Tracer("helios")
+	tracer := providerSingleton.Tracer("helios")
 	ctx, span := tracer.Start(context, spanName)
 	customSpanAttr := attribute.KeyValue{
 		Key:   customSpanAttr,
@@ -127,12 +135,18 @@ func CreateCustomSpan(context context.Context, spanName string, attributes []att
 }
 
 func Initialize(serviceName string, apiToken string, attrs ...attribute.KeyValue) (*trace.TracerProvider, error) {
-	if providerSingelton != nil {
-		return providerSingelton, nil
+	if providerSingleton != nil {
+		return providerSingleton, nil
 	}
 
 	ctx := context.Background()
 	heliosConfig := createHeliosConfig(serviceName, apiToken, attrs...)
+
+	if heliosConfig.instrumentationDisabled {
+		os.Setenv("HS_DISABLED", "true")
+		return nil, errors.New("helios tracing is not initialized")
+	}
+
 	var exporter *otlptrace.Exporter
 	if heliosConfig.collectorEndpoint != "" {
 		options := []otlptracehttp.Option{
@@ -190,6 +204,6 @@ func Initialize(serviceName string, apiToken string, attrs ...attribute.KeyValue
 	log.Printf("Helios tracing initialized (service: %s, token: %s*****, environment: %s)", serviceName, heliosConfig.apiToken[0:3], heliosConfig.environment)
 
 	// Set singleton
-	providerSingelton = tracerProvider
+	providerSingleton = tracerProvider
 	return tracerProvider, nil
 }

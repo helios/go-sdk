@@ -2,6 +2,7 @@ package sdk
 
 import (
 	"context"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -18,11 +19,13 @@ var provider *trace.TracerProvider
 const testServiceName = "test_service"
 
 func initHelper(samplingRatio float64) {
+	os.Setenv("HS_DISABLED", "")
 	if provider != nil {
 		provider.ForceFlush(context.Background())
 		provider.Shutdown(context.Background())
 	}
-	providerSingelton = nil
+	providerSingleton = nil
+	heliosConfigSingleton = nil
 	provider, _ = Initialize(serviceName, "abcd1234", WithCollectorEndpoint(""), WithSamplingRatio(samplingRatio))
 	otel.SetTracerProvider(provider)
 	exporter = tracetest.NewInMemoryExporter()
@@ -109,4 +112,15 @@ func TestSamplerNoSampling(t *testing.T) {
 	exported = exporter.GetSpans()
 	assert.Equal(t, 1, len(exported))
 	assert.Equal(t, exported[0].Name, "sampled2")
+}
+
+func TestDisabledSDK(t *testing.T) {
+	if provider != nil {
+		provider.ForceFlush(context.Background())
+		provider.Shutdown(context.Background())
+	}
+	providerSingleton = nil
+	heliosConfigSingleton = nil
+	_, err := Initialize(serviceName, "abcd1234", WithCollectorEndpoint(""), WithSamplingRatio(1), WithInstrumentationDisabled())
+	assert.NotNil(t, err)	
 }
