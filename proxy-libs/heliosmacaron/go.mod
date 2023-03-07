@@ -17,7 +17,7 @@ require (
 	github.com/rogpeppe/go-internal v1.8.0 // indirect
 	github.com/unknwon/com v0.0.0-20190804042917-757f69c95f3e // indirect
 	go.opentelemetry.io/otel/trace v1.11.2 // indirect
-	golang.org/x/crypto v0.0.0-20190701094942-4def268fd1a4 // indirect
+	golang.org/x/crypto v0.0.0-20220314234659-1baeb1ce4c0b // indirect
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 )
 
