@@ -1,7 +1,6 @@
 package sdk
 
 import (
-	"encoding/json"
 	"os"
 	"strconv"
 
@@ -13,16 +12,16 @@ var heliosConfigSingleton *HeliosConfig
 
 type HeliosConfig struct {
 	instrumentationDisabled bool
-	serviceName       string
-	apiToken          string
-	sampler           trace.Sampler
-	collectorInsecure bool
-	collectorEndpoint string
-	collectorPath     string
-	environment       string
-	commitHash        string
-	debug             bool
-	metadataOnly      bool
+	serviceName             string
+	apiToken                string
+	sampler                 trace.Sampler
+	collectorInsecure       bool
+	collectorEndpoint       string
+	collectorPath           string
+	environment             string
+	commitHash              string
+	debug                   bool
+	metadataOnly            bool
 }
 
 // Keys and their matching env vars
@@ -44,7 +43,6 @@ const debugKey = "debug"
 const debugEnvVar = "HS_DEBUG"
 const metadataOnlyKey = "metadataOnly"
 const metadataOnlyEnvVar = "HS_METADATA_ONLY"
-const hsDataObfuscationAllowlistEnvVAr = "HS_DATA_OBFUSCATION_ALLOWLIST"
 const hsDataObfuscationAllowlistKey = "dataObfuscationAllowlist"
 const hsDataObfuscationBlocklistEnvVar = "HS_DATA_OBFUSCATION_BLOCKLIST"
 const hsDataObfuscationBlocklistKey = "dataObfuscationBlocklist"
@@ -104,21 +102,6 @@ func getStringConfig(envVar string, defaultValue string, config attribute.KeyVal
 	}
 
 	return config.Value.AsString()
-}
-
-func getStringSliceConfig(envVar string, defaultValue []string, config attribute.KeyValue) []string {
-	envVarValue := os.Getenv(envVar)
-	var returnVal []string
-	if envVarValue != "" {
-		json.Unmarshal([]byte(envVarValue), &returnVal)
-		return returnVal
-	}
-
-	if config.Key == "" {
-		return defaultValue
-	}
-
-	return config.Value.AsStringSlice()
 }
 
 func getBoolConfig(envVar string, defaultValue bool, config attribute.KeyValue) bool {
@@ -181,11 +164,4 @@ func createHeliosConfig(serviceName string, apiToken string, attrs ...attribute.
 		heliosConfigSingleton = &HeliosConfig{instrumentationDisabled, serviceName, apiToken, sampler, collectorInsecure, collectorEndpoint, collectorPath, environment, commitHash, debug, metadataOnly}
 		return heliosConfigSingleton
 	}
-}
-
-func getHeliosConfig() *HeliosConfig {
-	if heliosConfigSingleton != nil {
-		return heliosConfigSingleton
-	}
-	return nil
 }
