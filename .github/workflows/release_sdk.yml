@@ -51,6 +51,7 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           custom_tag: ${{ steps.set_tag.outputs.new_tag }}
+          tag_prefix: ''
 
       - name: Create a GitHub release
         uses: ncipollo/release-action@v1.9.0
