@@ -193,8 +193,6 @@ func MaxBytesReader(w ResponseWriter, r io.ReadCloser, n int64) io.ReadCloser {
 	return realHttp.MaxBytesReader(w, r, n)
 }
 
-type MaxBytesError = realHttp.MaxBytesError
-
 type Response = realHttp.Response
 
 var ErrNoLocation = realHttp.ErrNoLocation
