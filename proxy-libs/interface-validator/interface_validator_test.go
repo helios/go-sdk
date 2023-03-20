@@ -219,6 +219,13 @@ func TestZerologInterfaceMatch(t *testing.T) {
 	assert.EqualValues(t, originalExports, heliosExports)
 }
 
+func TestPgInterfaceMatch(t *testing.T) {
+	originalExports := cloneRepositoryAndExtractExports("https://github.com/go-pg/pg", "v10.11.0", "pg", "")
+	heliosExports := extractProxyLibExports("heliospg")
+
+	assert.EqualValues(t, originalExports, heliosExports)
+}
+
 func TestHttpTestInteraceMatch(t *testing.T) {
 	originalExports := cloneRepositoryAndExtractExports("https://github.com/golang/go", "go1.19.5", "httptest", "/src/net/http/httptest")
 	heliosExports := extractProxyLibExports("helioshttptest")

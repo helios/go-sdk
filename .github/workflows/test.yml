@@ -38,6 +38,16 @@ jobs:
           --health-interval=10s
           --health-timeout=5s
           --health-retries=3
+      postgres:
+        image: postgres
+        env:
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
       mongodb:
         image: mongo@sha256:845fd775d7a58f564fae7c17a4eec7ff038e1c4004ebe05cc1cb5fc3767cf6cc
         options: >-
@@ -157,7 +167,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        go: ['1.18', '1.19']
+        go: ["1.18", "1.19"]
     env:
       GH_ACCESS_TOKEN: ${{ secrets.ACTIONS_GITHUB_TOKEN }}
 

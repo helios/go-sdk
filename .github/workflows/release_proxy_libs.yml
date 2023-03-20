@@ -25,6 +25,7 @@ on:
             - heliossqlx
             - helioszerolog
             - helioshttptest
+            - heliospg
           required: true
         proxy_lib_version:
           description: 'Proxy lib version'
