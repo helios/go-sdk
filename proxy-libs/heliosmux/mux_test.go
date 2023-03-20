@@ -35,7 +35,7 @@ func init() {
 	os.Setenv("HS_DATA_OBFUSCATION_BLOCKLIST", string(blocklistRules))
 }
 
-func validateAttributes(attrs []attribute.KeyValue, path string, metadataOnly bool, t *testing.T) {
+func validateAttributes(attrs []attribute.KeyValue, port string, path string, metadataOnly bool, t *testing.T) {
 	requestBodyFound := false
 	requestHeadersFound := false
 	responseBodyFound := false
@@ -45,7 +45,7 @@ func validateAttributes(attrs []attribute.KeyValue, path string, metadataOnly bo
 
 		switch key {
 		case semconv.HTTPHostKey:
-			assert.Equal(t, "localhost:8000", value)
+			assert.Equal(t, "localhost:" + port, value)
 		case semconv.HTTPMethodKey:
 			assert.Equal(t, "POST", value)
 		case semconv.HTTPRouteKey:
@@ -89,23 +89,35 @@ func postUser(responseWriter http.ResponseWriter, request *http.Request) {
 	json.NewEncoder(responseWriter).Encode(user)
 }
 
-func testHelper(t *testing.T, metadataOnly bool, path string) {
+func initTracing(t *testing.T) *tracetest.SpanRecorder {
 	spanRecorder := tracetest.NewSpanRecorder()
 	otel.SetTracerProvider(sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(spanRecorder)))
 	propagator := propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{})
 	otel.SetTextMapPropagator(propagator)
+	return spanRecorder
+}
 
+func registerServerAndPerformCall(t *testing.T, port string, path string) *http.Response {
 	router := NewRouter()
 	router.HandleFunc(fmt.Sprintf("/%s", path), http.HandlerFunc(postUser))
 	http.Handle(fmt.Sprintf("/%s", path), router)
-	go func() { http.ListenAndServe(":8000", nil) }()
+	go func() { http.ListenAndServe(":"+ port, nil) }()
 
-	response, _ := http.Post(fmt.Sprintf("http://localhost:8000/%s", path), "application/json", bytes.NewBuffer([]byte(requestResponseBody)))
+	response, _ := http.Post(fmt.Sprintf("http://localhost:%s/%s", port, path), "application/json", bytes.NewBuffer([]byte(requestResponseBody)))
 	statusCode := response.StatusCode
 	body, _ := io.ReadAll(response.Body)
 
 	assert.Equal(t, expectedStatusCode, statusCode)
 	assert.Equal(t, requestResponseBody, strings.TrimSpace(string(body)))
+	return response
+}
+
+func testHelper(t *testing.T, metadataOnly bool, path string) {
+	spanRecorder := initTracing(t)
+
+	port := "8000"
+	response := registerServerAndPerformCall(t, port, path)
+
 	spanRecorder.ForceFlush(context.Background())
 	spans := spanRecorder.Ended()
 	assert.Equal(t, 1, len(spans))
@@ -117,14 +129,14 @@ func testHelper(t *testing.T, metadataOnly bool, path string) {
 	assert.Equal(t, fmt.Sprintf("/%s", path), span.Name())
 	assert.Equal(t, trace.SpanKindServer, span.SpanKind())
 
-	validateAttributes(span.Attributes(), fmt.Sprintf("/%s", path), metadataOnly, t)
+	validateAttributes(span.Attributes(), port, fmt.Sprintf("/%s", path), metadataOnly, t)
 	assert.Equal(t, response.Header.Get("traceresponse"), fmt.Sprintf("00-%s-%s-01", span.SpanContext().TraceID().String(), span.SpanContext().SpanID().String()))
 
 	// Send again
-	http.Post(fmt.Sprintf("http://localhost:8000/%s", path), "application/json", bytes.NewBuffer([]byte(requestResponseBody)))
+	http.Post(fmt.Sprintf("http://localhost:%s/%s", port, path), "application/json", bytes.NewBuffer([]byte(requestResponseBody)))
 	spanRecorder.ForceFlush(context.Background())
 	span = spanRecorder.Ended()[1]
-	validateAttributes(span.Attributes(), fmt.Sprintf("/%s", path), metadataOnly, t)
+	validateAttributes(span.Attributes(), port, fmt.Sprintf("/%s", path), metadataOnly, t)
 }
 
 func TestNewRouterInstrumentation(t *testing.T) {
@@ -134,4 +146,20 @@ func TestNewRouterInstrumentation(t *testing.T) {
 func TestNewRouterInstrumentationMetadataOnly(t *testing.T) {
 	os.Setenv("HS_METADATA_ONLY", "true")
 	testHelper(t, true, "metadataOnly")
+}
+
+func TestDisableConnectInstrumentation(t *testing.T) {
+	os.Setenv("HS_DISABLED", "true")
+	defer os.Setenv("HS_DISABLED", "")
+
+	path := "no-instrumentation"
+	port := "8001"
+
+	spanRecorder := initTracing(t)
+
+	registerServerAndPerformCall(t, port, path)
+
+	spanRecorder.ForceFlush(context.Background())
+	spans := spanRecorder.Ended()
+	assert.Equal(t, 0, len(spans))
 }

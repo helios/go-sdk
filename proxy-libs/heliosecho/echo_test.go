@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"strings"
 	"testing"
 
@@ -55,11 +57,15 @@ func validateAttributes(t *testing.T, attrs []attribute.KeyValue) {
 	assert.True(t, foundResBody)
 }
 
-func TestInstrumentation(t *testing.T) {
+func initTracing(t *testing.T) *tracetest.SpanRecorder{
 	sr := tracetest.NewSpanRecorder()
 	otel.SetTracerProvider(sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(sr)))
 	propagator := propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{})
 	otel.SetTextMapPropagator(propagator)
+	return sr
+}
+
+func registerServerAndPerformCall(t *testing.T, port string, url string) *http.Response {
 	r := New()
 
 	r.POST("/users/:id", func(c Context) error {
@@ -76,13 +82,22 @@ func TestInstrumentation(t *testing.T) {
 	})
 
 	go func() {
-		_ = r.Start(":8091")
+		_ = r.Start(":" + port)
 	}()
 
-	url := "http://localhost:8091/users/abcd1234"
 	res, _ := http.Post(url, "application/json", bytes.NewBuffer([]byte(requestBody)))
 	body, _ := io.ReadAll(res.Body)
 	assert.Equal(t, responseBody, strings.Trim(string(body), "\n"))
+	return res
+}
+
+func TestInstrumentation(t *testing.T) {
+	sr := initTracing(t)
+
+	port := "8091"
+	url := fmt.Sprintf("http://localhost:%s/users/abcd1234", port)
+	registerServerAndPerformCall(t, port, url)
+
 	sr.ForceFlush(context.Background())
 	spans := sr.Ended()
 	assert.Equal(t, 1, len(spans))
@@ -94,4 +109,18 @@ func TestInstrumentation(t *testing.T) {
 	sr.ForceFlush(context.Background())
 	serverSpan = sr.Ended()[1]
 	validateAttributes(t, serverSpan.Attributes())
+}
+
+func TestDisableInstrumentation(t *testing.T) {
+	os.Setenv("HS_DISABLED", "true")
+	defer os.Setenv("HS_DISABLED", "")
+	sr := initTracing(t)
+
+	port := "8092"
+	url := fmt.Sprintf("http://localhost:%s/users/abcd1234", port)
+	registerServerAndPerformCall(t, port, url)
+
+	sr.ForceFlush(context.Background())
+	spans := sr.Ended()
+	assert.Equal(t, 0, len(spans))
 }

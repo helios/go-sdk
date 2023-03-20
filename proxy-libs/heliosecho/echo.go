@@ -4,6 +4,7 @@ import (
 	"io/fs"
 	"net"
 	"net/http"
+	"os"
 
 	"github.com/helios/opentelemetry-go-contrib/instrumentation/github.com/labstack/echo/otelecho"
 	origin_echo "github.com/labstack/echo/v4"
@@ -229,7 +230,9 @@ var MethodNotAllowedHandler = origin_echo.MethodNotAllowedHandler
 
 func New() (e *Echo) {
 	echo := origin_echo.New()
-	echo.Use(otelecho.Middleware("opentelemetry-middleware"))
+	if os.Getenv("HS_DISABLED") != "true" {
+		echo.Use(otelecho.Middleware("opentelemetry-middleware"))
+	}
 	return echo
 }
 

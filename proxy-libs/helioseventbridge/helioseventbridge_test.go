@@ -3,6 +3,7 @@ package helioseventbridge
 import (
 	"context"
 	"log"
+	"os"
 	"testing"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -49,8 +50,7 @@ func assertAttributes(t *testing.T, attributes []attribute.KeyValue) {
 	}
 }
 
-func TestListRules(t *testing.T) {
-	spanRecorder := getSpanRecorder()
+func initEventbridgeAndListRules(t *testing.T) {
 	// init aws config
 	ctx := context.Background()
 	newCreds := credentials.NewStaticCredentialsProvider("test", "test", "")
@@ -74,6 +74,23 @@ func TestListRules(t *testing.T) {
 		log.Fatalf("failed to list rules, %v", err)
 		return
 	}
+}
+
+func TestListRules(t *testing.T) {
+	spanRecorder := getSpanRecorder()
+	initEventbridgeAndListRules(t)
 	attributes := assertSpan(t, spanRecorder)
 	assertAttributes(t, attributes)
+}
+
+func TestDisableInstrumentation(t *testing.T) {
+	os.Setenv("HS_DISABLED", "true")
+	defer os.Setenv("HS_DISABLED", "")
+
+	spanRecorder := getSpanRecorder()
+	initEventbridgeAndListRules(t)
+
+	spanRecorder.ForceFlush(context.Background())
+	spans := spanRecorder.Ended()
+	assert.Equal(t, 0, len(spans))
 }

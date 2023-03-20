@@ -3,7 +3,7 @@ module github.com/helios/go-sdk/proxy-libs/helioschi
 go 1.18
 
 require (
-	github.com/helios/otelchi v0.1.2
+	github.com/helios/otelchi v0.1.3
 	github.com/stretchr/testify v1.8.1
 	go.opentelemetry.io/otel/trace v1.11.2
 )
@@ -12,9 +12,12 @@ require (
 	github.com/felixge/httpsnoop v1.0.3 // indirect
 	github.com/go-logr/logr v1.2.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
+	github.com/helios/go-sdk/data-utils v1.0.2 // indirect
 	github.com/kr/pretty v0.3.0 // indirect
+	github.com/ohler55/ojg v1.17.4 // indirect
 	github.com/rogpeppe/go-internal v1.8.0 // indirect
 	go.opentelemetry.io/contrib v1.12.0 // indirect
+	golang.org/x/exp v0.0.0-20230203172020-98cc5a0785f9 // indirect
 	golang.org/x/sys v0.3.0 // indirect
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 )

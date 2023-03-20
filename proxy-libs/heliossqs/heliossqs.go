@@ -3,6 +3,7 @@ package heliossqs
 import (
 	"context"
 	"encoding/json"
+	"os"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	origin_sqs "github.com/aws/aws-sdk-go-v2/service/sqs"
@@ -124,8 +125,10 @@ func attributeSetter(ctx context.Context, ii middleware.InitializeInput) []attri
 }
 
 func New(options Options, optFns ...func(*Options)) *Client {
-	attributeSetterOpt := otelaws.WithAttributeSetter(attributeSetter)
-	otelaws.AppendMiddlewares(&options.APIOptions, attributeSetterOpt)
+	if os.Getenv("HS_DISABLED") != "true" {
+		attributeSetterOpt := otelaws.WithAttributeSetter(attributeSetter)
+		otelaws.AppendMiddlewares(&options.APIOptions, attributeSetterOpt)
+	}
 	return origin_sqs.New(options, optFns...)
 }
 
@@ -142,8 +145,10 @@ func WithEndpointResolver(v EndpointResolver) func(*Options) {
 type HTTPClient = origin_sqs.HTTPClient
 
 func NewFromConfig(cfg aws.Config, optFns ...func(*Options)) *Client {
-	attributeSetterOpt := otelaws.WithAttributeSetter(attributeSetter)
-	otelaws.AppendMiddlewares(&cfg.APIOptions, attributeSetterOpt)
+	if os.Getenv("HS_DISABLED") != "true" {
+		attributeSetterOpt := otelaws.WithAttributeSetter(attributeSetter)
+		otelaws.AppendMiddlewares(&cfg.APIOptions, attributeSetterOpt)
+	}
 	return origin_sqs.NewFromConfig(cfg, optFns...)
 }
 

@@ -214,6 +214,8 @@ func TestZerologInterfaceMatch(t *testing.T) {
 	originalExports := cloneRepositoryAndExtractExports("https://github.com/rs/zerolog", "v1.29.0", "zerolog", "")
 	heliosExports := extractProxyLibExports("helioszerolog")
 
+	heliosExports = deleteByName(heliosExports, "NewWithContext")
+
 	assert.EqualValues(t, originalExports, heliosExports)
 }
 

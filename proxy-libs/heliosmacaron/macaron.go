@@ -3,6 +3,7 @@ package heliosmacaron
 import (
 	"io"
 	"net/http"
+	"os"
 
 	"go.opentelemetry.io/contrib/instrumentation/gopkg.in/macaron.v1/otelmacaron"
 	"gopkg.in/ini.v1"
@@ -156,7 +157,9 @@ type Handler = origin_macaron.Handler
 type Macaron = origin_macaron.Macaron
 
 func addOtelMiddleware(mac *Macaron) {
-	mac.Use(otelmacaron.Middleware("opentelemetry-middleware"))
+	if os.Getenv("HS_DISABLED") != "true" {
+		mac.Use(otelmacaron.Middleware("opentelemetry-middleware"))
+	}
 }
 
 func NewWithLogger(out io.Writer) *Macaron {

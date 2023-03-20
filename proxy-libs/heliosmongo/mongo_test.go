@@ -3,6 +3,7 @@ package heliosmongo
 import (
 	"context"
 	"fmt"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -77,8 +78,7 @@ func assertAttributes(t *testing.T, attributes []attribute.KeyValue, id int, nam
 	}
 }
 
-func TestConnectInstrumentation(t *testing.T) {
-	spanRecorder := getSpanRecorder()
+func registerMongoConnectAndInsertUser(t *testing.T, userId int, username string, company string) {
 	clientOptions := getClientOptions()
 	client, error := Connect(context.Background(), clientOptions)
 
@@ -86,13 +86,33 @@ func TestConnectInstrumentation(t *testing.T) {
 		panic(error)
 	}
 
-	insertUser(client, 12345, "Lior Govrin", "Software Engineer")
+	client.Connect(context.Background())
+	insertUser(client, userId, username, company)
+}
+
+func TestConnectInstrumentation(t *testing.T) {
+	spanRecorder := getSpanRecorder()
+
+	registerMongoConnectAndInsertUser(t, 12345, "Lior Govrin", "Software Engineer")
+
 	attributes := assertSpan(t, spanRecorder)
 	assertAttributes(t, attributes, 12345, "Lior Govrin", "Software Engineer")
 }
 
-func TestNewClientInstrumentation(t *testing.T) {
+func TestDisableInstrumentation(t *testing.T) {
+	os.Setenv("HS_DISABLED", "true")
+	defer os.Setenv("HS_DISABLED", "")
+
 	spanRecorder := getSpanRecorder()
+
+	registerMongoConnectAndInsertUser(t, 12345, "Lior Govrin", "Software Engineer")
+
+	spanRecorder.ForceFlush(context.Background())
+	spans := spanRecorder.Ended()
+	assert.Equal(t, 0, len(spans))
+}
+
+func registerMongoClientAndInsertUser(t *testing.T, userId int, username string, company string) {
 	clientOptions := getClientOptions()
 	client, error := NewClient(clientOptions)
 
@@ -101,7 +121,27 @@ func TestNewClientInstrumentation(t *testing.T) {
 	}
 
 	client.Connect(context.Background())
-	insertUser(client, 67890, "Bob McClown", "Company Jester")
+	insertUser(client, userId, username, company)
+}
+
+func TestNewClientInstrumentation(t *testing.T) {
+	spanRecorder := getSpanRecorder()
+
+	registerMongoClientAndInsertUser(t, 67890, "Bob McClown", "Company Jester")
+
 	attributes := assertSpan(t, spanRecorder)
 	assertAttributes(t, attributes, 67890, "Bob McClown", "Company Jester")
+}
+
+func TestDisableClientInstrumentation(t *testing.T) {
+	os.Setenv("HS_DISABLED", "true")
+	defer os.Setenv("HS_DISABLED", "")
+
+	spanRecorder := getSpanRecorder()
+
+	registerMongoClientAndInsertUser(t, 67890, "Bob McClown", "Company Jester")
+
+	spanRecorder.ForceFlush(context.Background())
+	spans := spanRecorder.Ended()
+	assert.Equal(t, 0, len(spans))
 }

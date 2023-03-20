@@ -2,8 +2,10 @@ package heliosgrpc
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net"
+	"os"
 	"testing"
 	"time"
 
@@ -55,14 +57,17 @@ func noopstreamInterceptor(srv interface{}, ss ServerStream, info *StreamServerI
 	return nil
 }
 
-func TestServerInstrumentation(t *testing.T) {
+func initTracing(t *testing.T) *tracetest.SpanRecorder{
 	sr := tracetest.NewSpanRecorder()
 	otel.SetTracerProvider(sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(sr)))
 	propagator := propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{})
 	otel.SetTextMapPropagator(propagator)
+	return sr
+}
 
+func registerServerAndPerformCall(t *testing.T, port string) *pb.Message {
 	go func() {
-		lis, _ := net.Listen("tcp", ":3030")
+		lis, _ := net.Listen("tcp", ":" + port)
 		grpcServer := NewServer(UnaryInterceptor(noopUnaryInterceptor), StreamInterceptor(noopstreamInterceptor))
 		s := GrpcServer{}
 		pb.RegisterChatServiceServer(grpcServer, &s)
@@ -72,7 +77,7 @@ func TestServerInstrumentation(t *testing.T) {
 	}()
 
 	var conn *ClientConn
-	conn, err := Dial("localhost:3030", WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := Dial(fmt.Sprintf("localhost:%s", port), WithTransportCredentials(insecure.NewCredentials()))
 
 	if err != nil {
 		log.Fatalf("did not connect: %v", err)
@@ -87,9 +92,19 @@ func TestServerInstrumentation(t *testing.T) {
 	ctx := metadata.NewOutgoingContext(context.Background(), md)
 	response, _ := client.SayHello(ctx, &pb.Message{Body: "helios"})
 	assert.Equal(t, "Hello From the Server!", response.Body)
+	return response
+}
+
+func TestServerInstrumentation(t *testing.T) {
+	sr := initTracing(t)
+
+	port := "3030"
+	registerServerAndPerformCall(t, port)
+
 	sr.ForceFlush(context.Background())
 	spans := sr.Ended()
 	assert.Equal(t, 2, len(spans))
+
 	serverSpan := spans[0]
 	assert.Equal(t, trace.SpanKind(2), serverSpan.SpanKind())
 	validateAttributes(serverSpan.Attributes(), t)
@@ -99,4 +114,18 @@ func TestServerInstrumentation(t *testing.T) {
 	validateAttributes(clientSpan.Attributes(), t)
 	assert.Equal(t, serverSpan.Parent().SpanID(), clientSpan.SpanContext().SpanID())
 	assert.True(t, unaryInterceptorCalled)
+}
+
+func TestDisableInstrumentation(t *testing.T) {
+	os.Setenv("HS_DISABLED", "true")
+	defer os.Setenv("HS_DISABLED", "")
+
+	sr := initTracing(t)
+
+	port := "3031"
+	registerServerAndPerformCall(t, port)
+
+	sr.ForceFlush(context.Background())
+	spans := sr.Ended()
+	assert.Equal(t, 0, len(spans))
 }

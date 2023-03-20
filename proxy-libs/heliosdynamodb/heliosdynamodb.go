@@ -1,6 +1,8 @@
 package heliosdynamodb
 
 import (
+	"os"
+
 	"github.com/aws/aws-sdk-go-v2/aws"
 	origin_dynamodb "github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/smithy-go/middleware"
@@ -25,7 +27,9 @@ const ServiceAPIVersion = origin_dynamodb.ServiceAPIVersion
 type Client = origin_dynamodb.Client
 
 func New(options Options,optFns ...func(*Options) ) (*Client) {
-	otelaws.AppendMiddlewares(&options.APIOptions)
+	if os.Getenv("HS_DISABLED") != "true" {
+		otelaws.AppendMiddlewares(&options.APIOptions)
+	}
 	return origin_dynamodb.New(options,optFns...)
  }
 
@@ -42,7 +46,9 @@ func WithEndpointResolver(v EndpointResolver) (func(*Options) ) {
 type HTTPClient = origin_dynamodb.HTTPClient
 
 func NewFromConfig(cfg aws.Config,optFns ...func(*Options) ) (*Client) {
-	otelaws.AppendMiddlewares(&cfg.APIOptions)
+	if os.Getenv("HS_DISABLED") != "true" {
+		otelaws.AppendMiddlewares(&cfg.APIOptions)
+	}
 	return origin_dynamodb.NewFromConfig(cfg,optFns...)
  }
 

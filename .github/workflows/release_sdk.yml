@@ -1,72 +1,73 @@
 name: Release Go SDK
 
 on:
-    workflow_dispatch:
+  workflow_dispatch:
 
 jobs:
-    test:
-        uses: ./.github/workflows/test.yml
-        secrets:
-            ACTIONS_GITHUB_TOKEN: ${{ secrets.ACTIONS_GITHUB_TOKEN }}
+  test:
+    uses: ./.github/workflows/test.yml
+    secrets:
+      ACTIONS_GITHUB_TOKEN: ${{ secrets.ACTIONS_GITHUB_TOKEN }}
 
-    release:
-        name: Release and Tag Go SDK
-        runs-on: ubuntu-latest
-        needs: [test]
-        steps:
-            - name: Checkout
-              uses: actions/checkout@v3
+  release:
+    name: Release and Tag Go SDK
+    runs-on: ubuntu-latest
+    needs: [test]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
 
-            - name: Get latest tag
-              id: latest_tag
-              run: |
-                latest_tag=$(git tag | grep sdk | sort -V | tail -1)
-                echo $latest_tag
-                echo "tag=$latest_tag" >> "$GITHUB_OUTPUT"
+      - name: Get latest tag
+        id: latest_tag
+        run: |
+          latest_tag=$(git tag | grep sdk | sort -V | tail -1)
+          echo $latest_tag
+          echo "latest_tag=$latest_tag" >> "$GITHUB_OUTPUT"
 
-            - name: Get current version
-              id: current_version
-              uses: michmich112/extract-version@main
-              with:
-                version-file: ./sdk/version.go
-                schema: major.minor.build
+      - name: Get current version
+        id: current_version
+        uses: michmich112/extract-version@main
+        with:
+          version-file: ./sdk/version.go
+          schema: major.minor.build
 
-            - name: Set tag candidate
-              id: set_tag
-              run: |
-                new_tag=sdk/v${{ steps.current_version.outputs.version }}
-                echo $new_tag
-                echo "new_tag=$new_tag" >> "$GITHUB_OUTPUT"
+      - name: Set tag candidate
+        id: set_tag
+        run: |
+          new_tag=sdk/v${{ steps.current_version.outputs.version }}
+          echo $new_tag
+          echo "new_tag=$new_tag" >> "$GITHUB_OUTPUT"
 
-            - name: Version check result
-              if: ${{ steps.latest_tag.outputs.tag }} == ${{ steps.set_tag.outputs.new_tag }}
-              uses: actions/github-script@v3
-              with:
-                  script: |
-                      core.setFailed('Version is not updated - please bump on `version.go`')
+      - name: Version check result
+        if: steps.latest_tag.outputs.latest_tag == steps.set_tag.outputs.new_tag
+        uses: actions/github-script@v3
+        with:
+          script: |
+            core.setFailed('Version is not updated - please bump on `version.go`')
 
-            - name: Push tag
-              id: tag_version
-              uses: mathieudutour/github-tag-action@v6.0
-              with:
-                  github_token: ${{ secrets.GITHUB_TOKEN }}
-                  custom_tag: ${{ steps.set_tag.outputs.new_tag }}
+      - name: Push tag
+        id: tag_version
+        uses: mathieudutour/github-tag-action@v6.0
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          custom_tag: ${{ steps.set_tag.outputs.new_tag }}
+          tag_prefix: ''
 
-            - name: Create a GitHub release
-              uses: ncipollo/release-action@v1.9.0
-              with:
-                  token: ${{ secrets.GITHUB_TOKEN }}
-                  tag: ${{ steps.tag_version.outputs.new_tag }}
-                  name: Release ${{ steps.tag_version.outputs.new_tag }}
-                  body: ${{ steps.tag_version.outputs.changelog }}
-                  generateReleaseNotes: true
+      - name: Create a GitHub release
+        uses: ncipollo/release-action@v1.9.0
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          tag: ${{ steps.tag_version.outputs.new_tag }}
+          name: Release ${{ steps.tag_version.outputs.new_tag }}
+          body: ${{ steps.tag_version.outputs.changelog }}
+          generateReleaseNotes: true
 
-            - name: Notify Slack
-              if: ${{ success() }}
-              uses: rtCamp/action-slack-notify@v2
-              env:
-                  SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
-                  SLACK_USERNAME: heliosphere-ci-bot
-                  SLACK_TITLE: A new Go SDK version was successfully released!
-                  SLACK_MESSAGE: Version ${{ steps.current_version.outputs.version }}
-                  SLACK_COLOR: ${{ job.status }}
+      - name: Notify Slack
+        if: ${{ success() }}
+        uses: rtCamp/action-slack-notify@v2
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+          SLACK_USERNAME: heliosphere-ci-bot
+          SLACK_TITLE: A new Go SDK version was successfully released!
+          SLACK_MESSAGE: Version ${{ steps.current_version.outputs.version }}
+          SLACK_COLOR: ${{ job.status }}

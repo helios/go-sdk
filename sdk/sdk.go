@@ -3,15 +3,19 @@ package sdk
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"log"
 	"os"
 
 	"github.com/go-logr/stdr"
+	"go.opentelemetry.io/contrib/instrumentation/host"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
 	"go.opentelemetry.io/otel/propagation"
+	"go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/resource"
 	"go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.10.0"
@@ -20,7 +24,7 @@ import (
 const sdkName = "helios-opentelemetry-sdk"
 const customSpanAttr = "hs-custom-span"
 
-var providerSingelton *trace.TracerProvider
+var providerSingleton *trace.TracerProvider
 
 func WithSamplingRatio(samplingRatio float64) attribute.KeyValue {
 	return attribute.KeyValue{
@@ -61,6 +65,13 @@ func WithCommitHash(commitHash string) attribute.KeyValue {
 	return attribute.KeyValue{
 		Key:   commitHashKey,
 		Value: attribute.StringValue(commitHash),
+	}
+}
+
+func WithInstrumentationDisabled() attribute.KeyValue {
+	return attribute.KeyValue{
+		Key:   instrumentationDisabledKey,
+		Value: attribute.StringValue("true"),
 	}
 }
 
@@ -105,12 +116,12 @@ func WithhmacKey(hMacKey string) attribute.KeyValue {
 }
 
 func CreateCustomSpan(context context.Context, spanName string, attributes []attribute.KeyValue, callback func()) context.Context {
-	if providerSingelton == nil {
+	if providerSingleton == nil {
 		log.Print("Can't create custom span before Initialize is called")
 		return nil
 	}
 
-	tracer := providerSingelton.Tracer("helios")
+	tracer := providerSingleton.Tracer("helios")
 	ctx, span := tracer.Start(context, spanName)
 	customSpanAttr := attribute.KeyValue{
 		Key:   customSpanAttr,
@@ -126,13 +137,55 @@ func CreateCustomSpan(context context.Context, spanName string, attributes []att
 	return ctx
 }
 
+func getResource(serviceName string, heliosConfig *HeliosConfig) *resource.Resource {
+	serviceAttributes := []attribute.KeyValue{semconv.ServiceNameKey.String(serviceName), semconv.TelemetrySDKVersionKey.String(version), semconv.TelemetrySDKNameKey.String(sdkName), semconv.TelemetrySDKLanguageGo}
+	if heliosConfig.environment != "" {
+		serviceAttributes = append(serviceAttributes, semconv.DeploymentEnvironmentKey.String(heliosConfig.environment))
+	}
+	if heliosConfig.commitHash != "" {
+		serviceAttributes = append(serviceAttributes, semconv.ServiceVersionKey.String(heliosConfig.commitHash))
+	}
+
+	return resource.NewWithAttributes(semconv.SchemaURL, serviceAttributes...)
+}
+
+func createMeterProvider(ctx context.Context, resource *resource.Resource, heliosConfig *HeliosConfig) {
+	options := []otlpmetrichttp.Option{
+		otlpmetrichttp.WithEndpoint(heliosConfig.collectorEndpoint),
+		otlpmetrichttp.WithURLPath(heliosConfig.collectorPath),
+		otlpmetrichttp.WithHeaders(map[string]string{"Authorization": heliosConfig.apiToken}),
+	}
+	if heliosConfig.collectorInsecure {
+		options = append(options, otlpmetrichttp.WithInsecure())
+	}
+
+	exporter, err := otlpmetrichttp.New(ctx, options...)
+	if err != nil {
+		log.Print("Unable to initialize metrics exporter")
+		return
+	}
+
+	reader := metric.NewPeriodicReader(exporter)
+	provider := metric.NewMeterProvider(metric.WithResource(resource), metric.WithReader(reader))
+	err = host.Start(host.WithMeterProvider(provider))
+	if err != nil {
+		log.Print("Unable to start host metrics collection")
+	}
+}
+
 func Initialize(serviceName string, apiToken string, attrs ...attribute.KeyValue) (*trace.TracerProvider, error) {
-	if providerSingelton != nil {
-		return providerSingelton, nil
+	if providerSingleton != nil {
+		return providerSingleton, nil
 	}
 
 	ctx := context.Background()
 	heliosConfig := createHeliosConfig(serviceName, apiToken, attrs...)
+
+	if heliosConfig.instrumentationDisabled {
+		os.Setenv("HS_DISABLED", "true")
+		return nil, errors.New("helios tracing is disabled")
+	}
+
 	var exporter *otlptrace.Exporter
 	if heliosConfig.collectorEndpoint != "" {
 		options := []otlptracehttp.Option{
@@ -160,25 +213,22 @@ func Initialize(serviceName string, apiToken string, attrs ...attribute.KeyValue
 		os.Setenv("HS_METADATA_ONLY", "true")
 	}
 
-	serviceAttributes := []attribute.KeyValue{semconv.ServiceNameKey.String(serviceName), semconv.TelemetrySDKVersionKey.String(version), semconv.TelemetrySDKNameKey.String(sdkName), semconv.TelemetrySDKLanguageGo}
-	if heliosConfig.environment != "" {
-		serviceAttributes = append(serviceAttributes, semconv.DeploymentEnvironmentKey.String(heliosConfig.environment))
-	}
-	if heliosConfig.commitHash != "" {
-		serviceAttributes = append(serviceAttributes, semconv.ServiceVersionKey.String(heliosConfig.commitHash))
-	}
-
-	serviceResource := resource.NewWithAttributes(semconv.SchemaURL, serviceAttributes...)
+	serviceResource := getResource(serviceName, heliosConfig)
 	providerParams := []trace.TracerProviderOption{
 		trace.WithResource(serviceResource),
 		trace.WithSampler(heliosConfig.sampler),
 	}
+
 	if exporter != nil {
 		providerParams = append(providerParams, trace.WithBatcher(exporter))
 	}
 
 	tracerProvider := trace.NewTracerProvider(providerParams...)
 	heliosProcessor := HeliosProcessor{}
+
+	if os.Getenv("HS_USE_METRICS") == "true" {
+		createMeterProvider(ctx, serviceResource, heliosConfig)
+	}
 
 	tracerProvider.RegisterSpanProcessor(heliosProcessor)
 	otel.SetTracerProvider(tracerProvider)
@@ -190,6 +240,6 @@ func Initialize(serviceName string, apiToken string, attrs ...attribute.KeyValue
 	log.Printf("Helios tracing initialized (service: %s, token: %s*****, environment: %s)", serviceName, heliosConfig.apiToken[0:3], heliosConfig.environment)
 
 	// Set singleton
-	providerSingelton = tracerProvider
+	providerSingleton = tracerProvider
 	return tracerProvider, nil
 }
