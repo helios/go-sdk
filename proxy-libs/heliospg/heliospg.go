@@ -53,7 +53,6 @@ func Array(v interface{}) (*types.Array) {
 func Hstore(v interface{}) (*types.Hstore) {
 	return origin_pg.Hstore(v)
  }
-
  type logging interface {
 	Printf(ctx context.Context, format string, v ...interface{})
 }
