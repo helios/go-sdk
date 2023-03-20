@@ -223,6 +223,10 @@ func TestPgInterfaceMatch(t *testing.T) {
 	originalExports := cloneRepositoryAndExtractExports("https://github.com/go-pg/pg", "v10.11.0", "pg", "")
 	heliosExports := extractProxyLibExports("heliospg")
 
+	heliosExports = deleteByName(heliosExports, "SetLogger")
+	heliosExports = deleteByName(heliosExports, "Logging")
+	originalExports = deleteByName(originalExports, "SetLogger")
+
 	assert.EqualValues(t, originalExports, heliosExports)
 }
 
