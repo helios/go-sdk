@@ -54,11 +54,11 @@ func Hstore(v interface{}) (*types.Hstore) {
 	return origin_pg.Hstore(v)
  }
 
- type Logging interface {
+ type logging interface {
 	Printf(ctx context.Context, format string, v ...interface{})
 }
 
-func SetLogger(logger Logging){
+func SetLogger(logger logging){
 	origin_pg.SetLogger(logger)
  }
 
