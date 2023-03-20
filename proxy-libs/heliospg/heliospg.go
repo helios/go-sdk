@@ -5,7 +5,6 @@ import (
 
 	"github.com/go-pg/pg/extra/pgotel/v10"
 	origin_pg "github.com/go-pg/pg/v10"
-	"github.com/go-pg/pg/v10/internal"
 	"github.com/go-pg/pg/v10/orm"
 	"github.com/go-pg/pg/v10/types"
 )
@@ -55,7 +54,11 @@ func Hstore(v interface{}) (*types.Hstore) {
 	return origin_pg.Hstore(v)
  }
 
-func SetLogger(logger internal.Logging){
+ type Logging interface {
+	Printf(ctx context.Context, format string, v ...interface{})
+}
+
+func SetLogger(logger Logging){
 	origin_pg.SetLogger(logger)
  }
 
