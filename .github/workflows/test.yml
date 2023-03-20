@@ -1,209 +1,207 @@
 name: Test
 
 on:
-    push:
-        branches: [main]
+  push:
+    branches: [main]
 
-    pull_request:
-        branches: [main]
+  pull_request:
+    branches: [main]
 
-    workflow_dispatch:
-    workflow_call:
-        secrets:
-          ACTIONS_GITHUB_TOKEN:
-              required: true
-      
+  workflow_dispatch:
+  workflow_call:
+    secrets:
+      ACTIONS_GITHUB_TOKEN:
+        required: true
 
 jobs:
-    test-proxy-libs:
-        runs-on: ubuntu-latest
+  test-proxy-libs:
+    runs-on: ubuntu-latest
+    env:
+      GH_ACCESS_TOKEN: ${{ secrets.ACTIONS_GITHUB_TOKEN }}
+
+    services:
+      localstack:
+        image: localstack/localstack@sha256:81a7b7f12223fcd6c4f596baaf004c19e7a1f815887116c7f7f25962b7a7e89e
+        ports:
+          - 4566:4566
         env:
-          GH_ACCESS_TOKEN: ${{ secrets.ACTIONS_GITHUB_TOKEN }}
-        
-        
-        services:
-            localstack:
-              image: localstack/localstack@sha256:81a7b7f12223fcd6c4f596baaf004c19e7a1f815887116c7f7f25962b7a7e89e
-              ports:
-                  - 4566:4566
-              env:
-                  AWS_SERVICES: ${{ env.AWS_SERVICES }}
-                  DEFAULT_REGION: us-east-1
-                  HOSTNAME_EXTERNAL: ${{ env.AWS_HOST }}
-                  LAMBDA_EXECUTOR: docker-reuse
-                  LAMBDA_REMOTE_DOCKER: true
-              volumes:
-                  - /var/run/docker.sock:/var/run/docker.sock
-              options: >-
-                  --name=localstack
-                  --health-cmd="curl -sS 127.0.0.1:4566 || exit 1"
-                  --health-interval=10s
-                  --health-timeout=5s
-                  --health-retries=3
-            mongodb:
-                image: mongo@sha256:845fd775d7a58f564fae7c17a4eec7ff038e1c4004ebe05cc1cb5fc3767cf6cc
-                options: >-
-                  --health-cmd="echo 'db.runCommand(\"ping\").ok' | mongo localhost:27017/test --quiet"
-                  --health-interval=10s
-                  --health-retries=3
-                  --health-timeout=5s
-                ports:
-                  - 27017:27017
-            
-            postgres:
-                image: postgres
-                env:
-                  POSTGRES_PASSWORD: postgres
-                options: >-
-                  --health-cmd pg_isready
-                  --health-interval 10s
-                  --health-timeout 5s
-                  --health-retries 5
-            
-            zookeeper:
-                image: bitnami/zookeeper:3.6
-                env:
-                    ALLOW_ANONYMOUS_LOGIN: yes
-                ports:
-                    - 2181:2181
-
-            kafka:
-                image: bitnami/kafka:2.8.0
-                env:
-                    ALLOW_PLAINTEXT_LISTENER: yes
-                    KAFKA_BROKER_ID: 1
-                    KAFKA_CFG_ADVERTISED_LISTENERS: CLIENT://kafka:9092,EXTERNAL://localhost:9093
-                    KAFKA_CFG_LISTENERS: CLIENT://:9092,EXTERNAL://:9093
-                    KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: CLIENT:PLAINTEXT,EXTERNAL:PLAINTEXT
-                    KAFKA_CFG_ZOOKEEPER_CONNECT: zookeeper:2181
-                    KAFKA_INTER_BROKER_LISTENER_NAME: CLIENT
-                ports:
-                    - 9092:9092
-                    - 9093:9093
-
-        steps:
-          - name: Checkout Repo
-            uses: actions/checkout@v3
-
-          - name: Setup Go
-            uses: actions/setup-go@v3
-            with:
-                go-version: 1.19
-
-          - name: Setup Go Environment
-            run: |
-              echo "GOPATH=$(go env GOPATH)" >> $GITHUB_ENV
-              echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
-
-          - name: Run http proxy unit tests
-            working-directory: proxy-libs/helioshttp
-            run: go mod tidy && go test .
-
-          - name: Run grpc proxy unit tests
-            working-directory: proxy-libs/heliosgrpc
-            run: go mod tidy && go test .
-
-          - name: Run mongo proxy unit tests
-            working-directory: proxy-libs/heliosmongo
-            run: go mod tidy && go test .
-
-          - name: Run gin proxy unit tests
-            working-directory: proxy-libs/heliosgin
-            run: go mod tidy && go test .
-
-          - name: Run mux proxy unit tests
-            working-directory: proxy-libs/heliosmux
-            run: go mod tidy && go test .
-
-          - name: Run sarama proxy unit tests
-            working-directory: proxy-libs/heliossarama
-            run: go mod tidy && go test .
-
-          - name: Run s3 proxy unit tests
-            working-directory: proxy-libs/helioss3
-            run: go mod tidy && go test .  
-
-          - name: Run dynamodb proxy unit tests
-            working-directory: proxy-libs/heliosdynamodb
-            run: go mod tidy && go test .  
-
-          - name: Run sqs proxy unit tests
-            working-directory: proxy-libs/heliossqs
-            run: go mod tidy && go test . 
-
-          - name: Run eventbridge proxy unit tests
-            working-directory: proxy-libs/helioseventbridge
-            run: go mod tidy && go test .    
-
-          - name: Run lambda proxy unit tests
-            working-directory: proxy-libs/helioslambda
-            run: go mod tidy && go test .     
-
-          - name: Run logrus proxy unit tests
-            working-directory: proxy-libs/helioslogrus
-            run: go mod tidy && go test .   
-
-          - name: Run sqlx proxy unit tests
-            working-directory: proxy-libs/heliossqlx/internal
-            run: go mod tidy && go test .  
-
-          - name: Run zerolog proxy unit tests
-            working-directory: proxy-libs/helioszerolog
-            run: go mod tidy && go test .       
-
-          - name: Run httptest proxy unit tests
-            working-directory: proxy-libs/helioshttptest
-            run: go mod tidy && go test .
-
-          - name: Set GOPRIVATE
-            run: go env -w GOPRIVATE=github.com/helios/\*
-
-          - name: Configure token access as default
-            run: git config --global url."https://helios:${GH_ACCESS_TOKEN}@github.com".insteadOf "https://github.com"
-
-          - name: Run interface validator tests
-            working-directory: proxy-libs/interface-validator
-            run: go mod tidy && go test .
-
-    test:
-        runs-on: ubuntu-latest
-        strategy:
-          matrix:
-            go: [ "1.18", "1.19" ]
+          AWS_SERVICES: ${{ env.AWS_SERVICES }}
+          DEFAULT_REGION: us-east-1
+          HOSTNAME_EXTERNAL: ${{ env.AWS_HOST }}
+          LAMBDA_EXECUTOR: docker-reuse
+          LAMBDA_REMOTE_DOCKER: true
+        volumes:
+          - /var/run/docker.sock:/var/run/docker.sock
+        options: >-
+          --name=localstack
+          --health-cmd="curl -sS 127.0.0.1:4566 || exit 1"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+      postgres:
+        image: postgres
         env:
-          GH_ACCESS_TOKEN: ${{ secrets.ACTIONS_GITHUB_TOKEN }}
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
-        steps:
-          - name: Checkout Repo
-            uses: actions/checkout@v3
+      mongodb:
+        image: mongo@sha256:845fd775d7a58f564fae7c17a4eec7ff038e1c4004ebe05cc1cb5fc3767cf6cc
+        options: >-
+          --health-cmd="echo 'db.runCommand(\"ping\").ok' | mongo localhost:27017/test --quiet"
+          --health-interval=10s
+          --health-retries=3
+          --health-timeout=5s
+        ports:
+          - 27017:27017
 
-          - name: Setup Go
-            uses: actions/setup-go@v3
-            with:
-                go-version: ${{ matrix.go }}
+      zookeeper:
+        image: bitnami/zookeeper:3.6
+        env:
+          ALLOW_ANONYMOUS_LOGIN: yes
+        ports:
+          - 2181:2181
 
-          - name: Setup Go Environment
-            run: |
-              echo "GOPATH=$(go env GOPATH)" >> $GITHUB_ENV
-              echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
+      kafka:
+        image: bitnami/kafka:2.8.0
+        env:
+          ALLOW_PLAINTEXT_LISTENER: yes
+          KAFKA_BROKER_ID: 1
+          KAFKA_CFG_ADVERTISED_LISTENERS: CLIENT://kafka:9092,EXTERNAL://localhost:9093
+          KAFKA_CFG_LISTENERS: CLIENT://:9092,EXTERNAL://:9093
+          KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: CLIENT:PLAINTEXT,EXTERNAL:PLAINTEXT
+          KAFKA_CFG_ZOOKEEPER_CONNECT: zookeeper:2181
+          KAFKA_INTER_BROKER_LISTENER_NAME: CLIENT
+        ports:
+          - 9092:9092
+          - 9093:9093
 
-          - name: Cache Go
-            id: module-cache
-            uses: actions/cache@v2
-            with:
-              path: |
-                /home/runner/go/pkg/mod
-              key: v1-go-pkg-mod-${{ runner.os }}-${{ hashFiles('**/go.mod', '**/go.sum') }}
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v3
 
-          - name: Install dependencies
-            working-directory: sdk
-            if: steps.module-cache.outputs.hit != 'true'
-            run: go mod download && go mod verify
+      - name: Setup Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: 1.19
 
-          - name: Run sdk unit tests
-            working-directory: sdk
-            run: go test
+      - name: Setup Go Environment
+        run: |
+          echo "GOPATH=$(go env GOPATH)" >> $GITHUB_ENV
+          echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
 
-          - name: Run data obfuscator unit tests
-            working-directory: data-obfuscator
-            run: go test  
+      - name: Run http proxy unit tests
+        working-directory: proxy-libs/helioshttp
+        run: go mod tidy && go test .
+
+      - name: Run grpc proxy unit tests
+        working-directory: proxy-libs/heliosgrpc
+        run: go mod tidy && go test .
+
+      - name: Run mongo proxy unit tests
+        working-directory: proxy-libs/heliosmongo
+        run: go mod tidy && go test .
+
+      - name: Run gin proxy unit tests
+        working-directory: proxy-libs/heliosgin
+        run: go mod tidy && go test .
+
+      - name: Run mux proxy unit tests
+        working-directory: proxy-libs/heliosmux
+        run: go mod tidy && go test .
+
+      - name: Run sarama proxy unit tests
+        working-directory: proxy-libs/heliossarama
+        run: go mod tidy && go test .
+
+      - name: Run s3 proxy unit tests
+        working-directory: proxy-libs/helioss3
+        run: go mod tidy && go test .
+
+      - name: Run dynamodb proxy unit tests
+        working-directory: proxy-libs/heliosdynamodb
+        run: go mod tidy && go test .
+
+      - name: Run sqs proxy unit tests
+        working-directory: proxy-libs/heliossqs
+        run: go mod tidy && go test .
+
+      - name: Run eventbridge proxy unit tests
+        working-directory: proxy-libs/helioseventbridge
+        run: go mod tidy && go test .
+
+      - name: Run lambda proxy unit tests
+        working-directory: proxy-libs/helioslambda
+        run: go mod tidy && go test .
+
+      - name: Run logrus proxy unit tests
+        working-directory: proxy-libs/helioslogrus
+        run: go mod tidy && go test .
+
+      - name: Run sqlx proxy unit tests
+        working-directory: proxy-libs/heliossqlx/internal
+        run: go mod tidy && go test .
+
+      - name: Run zerolog proxy unit tests
+        working-directory: proxy-libs/helioszerolog
+        run: go mod tidy && go test .
+
+      - name: Run httptest proxy unit tests
+        working-directory: proxy-libs/helioshttptest
+        run: go mod tidy && go test .
+
+      - name: Set GOPRIVATE
+        run: go env -w GOPRIVATE=github.com/helios/\*
+
+      - name: Configure token access as default
+        run: git config --global url."https://helios:${GH_ACCESS_TOKEN}@github.com".insteadOf "https://github.com"
+
+      - name: Run interface validator tests
+        working-directory: proxy-libs/interface-validator
+        run: go mod tidy && go test .
+
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go: ["1.18", "1.19"]
+    env:
+      GH_ACCESS_TOKEN: ${{ secrets.ACTIONS_GITHUB_TOKEN }}
+
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v3
+
+      - name: Setup Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: ${{ matrix.go }}
+
+      - name: Setup Go Environment
+        run: |
+          echo "GOPATH=$(go env GOPATH)" >> $GITHUB_ENV
+          echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
+
+      - name: Cache Go
+        id: module-cache
+        uses: actions/cache@v2
+        with:
+          path: |
+            /home/runner/go/pkg/mod
+          key: v1-go-pkg-mod-${{ runner.os }}-${{ hashFiles('**/go.mod', '**/go.sum') }}
+
+      - name: Install dependencies
+        working-directory: sdk
+        if: steps.module-cache.outputs.hit != 'true'
+        run: go mod download && go mod verify
+
+      - name: Run sdk unit tests
+        working-directory: sdk
+        run: go test
+
+      - name: Run data utils unit tests
+        working-directory: data-utils
+        run: go test
