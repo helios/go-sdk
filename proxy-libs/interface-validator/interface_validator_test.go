@@ -224,7 +224,6 @@ func TestPgInterfaceMatch(t *testing.T) {
 	heliosExports := extractProxyLibExports("heliospg")
 
 	heliosExports = deleteByName(heliosExports, "SetLogger")
-	heliosExports = deleteByName(heliosExports, "Logging")
 	originalExports = deleteByName(originalExports, "SetLogger")
 
 	assert.EqualValues(t, originalExports, heliosExports)
