@@ -20,7 +20,6 @@ type User struct {
 	Emails []string
 }
 
-// createSchema creates database schema for User and Story models.
 func createSchema(db *DB) error {
 	models := []interface{}{
 		(*User)(nil),
@@ -49,8 +48,7 @@ func getSpanRecorder() (*tracetest.SpanRecorder, *sdktrace.TracerProvider) {
 func ConnectToDb() *DB {
 	db := Connect(&Options{
 		User:     "postgres",
-		Password: "postgres",
-	})
+		Password: "postgres"})
 	err := createSchema(db)
 	if err != nil {
 		panic(err)
@@ -82,6 +80,7 @@ func assertSpan(t *testing.T, spanRecorder *tracetest.SpanRecorder) []attribute.
 func assertAttributes(t *testing.T, attributes []attribute.KeyValue) {
 	assert.Contains(t, attributes, attribute.String("db.name", "postgres"))
 	assert.Contains(t, attributes, attribute.String("db.system", "postgresql"))
+	assert.Contains(t, attributes, attribute.String("db.statement", "INSERT INTO \"users\" (\"id\", \"name\", \"emails\") VALUES (?, ?, ?)"))
 }
 
 func TestConnectInstrumentation(t *testing.T) {
