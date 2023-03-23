@@ -18,10 +18,12 @@ func TestBasicConfig(t *testing.T) {
 	assert.Equal(t, config.apiToken, token)
 	assert.Equal(t, config.collectorEndpoint, defaultCollectorEndpoint)
 	assert.Equal(t, config.collectorPath, defaultCollectorPath)
+	assert.Equal(t, config.collectorMetricsPath, defaultCollectorMetricsPath)
 	assert.Equal(t, config.commitHash, "")
 	assert.Equal(t, config.environment, "")
 	assert.Equal(t, config.debug, false)
 	assert.Equal(t, config.metadataOnly, false)
+	assert.Equal(t, config.collectMetrics, false)
 	assert.Equal(t, config.sampler.Description(), "AlwaysOnSampler")
 }
 
@@ -30,7 +32,8 @@ func TestConfigWithOptions(t *testing.T) {
 	testCollectorEndpoint := "aaa.bbb.com:1234"
 	testCollectorPath := "/sababa"
 	testSamplingRatio := 0.1234
-	config := createHeliosConfig(serviceName, token, WithCollectorInsecure(), WithCollectorEndpoint(testCollectorEndpoint), WithCollectorPath(testCollectorPath), WithSamplingRatio(testSamplingRatio), WithDebugMode(), WithMetadataOnlyMode())
+	metricsPath := "/v2/metrics"
+	config := createHeliosConfig(serviceName, token, WithCollectorInsecure(), WithCollectorEndpoint(testCollectorEndpoint), WithCollectorPath(testCollectorPath), WithSamplingRatio(testSamplingRatio), WithDebugMode(), WithMetadataOnlyMode(), WithCollectMetrics(), WithCollectorMetricsPath(metricsPath))
 	assert.Equal(t, config.apiToken, token)
 	assert.Equal(t, config.collectorInsecure, true)
 	assert.Equal(t, config.collectorEndpoint, testCollectorEndpoint)
@@ -38,6 +41,7 @@ func TestConfigWithOptions(t *testing.T) {
 	assert.Equal(t, config.sampler.Description(), fmt.Sprintf("HeliosSampler(%.4f)", testSamplingRatio))
 	assert.Equal(t, config.debug, true)
 	assert.Equal(t, config.metadataOnly, true)
+	assert.Equal(t, config.collectorMetricsPath, metricsPath)
 }
 
 func TestConfigWithDisabledInstrumentationOption(t *testing.T) {
@@ -52,12 +56,15 @@ func TestConfigWithEnvVars(t *testing.T) {
 	testCollectorEndpoint := "aaa.bbb.com:1234"
 	testCollectorPath := "/sababa"
 	testSamplingRatio := 0.1234
+	metricsPath := "/v2/metrics"
 	os.Setenv(collectorInsecureEnvVar, "true")
 	os.Setenv(collectorEndpointEnvVar, testCollectorEndpoint)
 	os.Setenv(collectorPathEnvVar, testCollectorPath)
 	os.Setenv(samplingRatioEnvVar, fmt.Sprintf("%.4f", testSamplingRatio))
 	os.Setenv(debugEnvVar, "true")
 	os.Setenv(metadataOnlyEnvVar, "true")
+	os.Setenv(collectMetricsEnvVar, "true")
+	os.Setenv(collectorMetricsPathEnvVar, metricsPath)
 
 	config := createHeliosConfig(serviceName, token)
 	assert.Equal(t, config.apiToken, token)
@@ -67,6 +74,8 @@ func TestConfigWithEnvVars(t *testing.T) {
 	assert.Equal(t, config.sampler.Description(), fmt.Sprintf("HeliosSampler(%.4f)", testSamplingRatio))
 	assert.Equal(t, config.debug, true)
 	assert.Equal(t, config.metadataOnly, true)
+	assert.Equal(t, config.collectMetrics, true)
+	assert.Equal(t, config.collectorMetricsPath, metricsPath)
 }
 
 func TestConfigWithDisabledInstrumentationEnvVar(t *testing.T) {
