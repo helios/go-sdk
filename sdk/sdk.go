@@ -47,6 +47,13 @@ func WithCollectorInsecure() attribute.KeyValue {
 	}
 }
 
+func WithCollectMetrics() attribute.KeyValue {
+	return attribute.KeyValue{
+		Key:   collectMetricsKey,
+		Value: attribute.StringValue("true"),
+	}
+}
+
 func WithCollectorEndpoint(collectorEndpoint string) attribute.KeyValue {
 	return attribute.KeyValue{
 		Key:   collectorEndpointKey,
@@ -58,6 +65,13 @@ func WithCollectorPath(collectorPath string) attribute.KeyValue {
 	return attribute.KeyValue{
 		Key:   collectorPathKey,
 		Value: attribute.StringValue(collectorPath),
+	}
+}
+
+func WithCollectorMetricsPath(collectorMetricsPath string) attribute.KeyValue {
+	return attribute.KeyValue{
+		Key:   collectorMetricsPathKey,
+		Value: attribute.StringValue(collectorMetricsPath),
 	}
 }
 
@@ -149,7 +163,7 @@ func getResource(serviceName string, heliosConfig *HeliosConfig) *resource.Resou
 	return resource.NewWithAttributes(semconv.SchemaURL, serviceAttributes...)
 }
 
-func createMeterProvider(ctx context.Context, resource *resource.Resource, heliosConfig *HeliosConfig) {
+func collectMetrics(ctx context.Context, resource *resource.Resource, heliosConfig *HeliosConfig) {
 	options := []otlpmetrichttp.Option{
 		otlpmetrichttp.WithEndpoint(heliosConfig.collectorEndpoint),
 		otlpmetrichttp.WithURLPath(heliosConfig.collectorPath),
@@ -226,8 +240,8 @@ func Initialize(serviceName string, apiToken string, attrs ...attribute.KeyValue
 	tracerProvider := trace.NewTracerProvider(providerParams...)
 	heliosProcessor := HeliosProcessor{}
 
-	if os.Getenv("HS_USE_METRICS") == "true" {
-		createMeterProvider(ctx, serviceResource, heliosConfig)
+	if heliosConfig.collectMetrics {
+		collectMetrics(ctx, serviceResource, heliosConfig)
 	}
 
 	tracerProvider.RegisterSpanProcessor(heliosProcessor)

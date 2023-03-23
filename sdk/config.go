@@ -18,10 +18,12 @@ type HeliosConfig struct {
 	collectorInsecure       bool
 	collectorEndpoint       string
 	collectorPath           string
+	collectorMetricsPath    string
 	environment             string
 	commitHash              string
 	debug                   bool
 	metadataOnly            bool
+	collectMetrics          bool
 }
 
 // Keys and their matching env vars
@@ -37,12 +39,16 @@ const collectorEndpointKey = "collectorEndpoint"
 const collectorEndpointEnvVar = "HS_COLLECTOR_ENDPOINT"
 const collectorPathKey = "collectorPath"
 const collectorPathEnvVar = "HS_COLLECTOR_PATH"
+const collectorMetricsPathKey = "collectorMetricsPath"
+const collectorMetricsPathEnvVar = "HS_COLLECTOR_METRICS_PATH"
 const commitHashKey = "commitHash"
 const commitHashEnvVar = "HS_COMMIT_HASH"
 const debugKey = "debug"
 const debugEnvVar = "HS_DEBUG"
 const metadataOnlyKey = "metadataOnly"
 const metadataOnlyEnvVar = "HS_METADATA_ONLY"
+const collectMetricsKey = "collectMetrics"
+const collectMetricsEnvVar = "HS_COLLECT_METRICS"
 const hsDataObfuscationAllowlistKey = "dataObfuscationAllowlist"
 const hsDataObfuscationBlocklistEnvVar = "HS_DATA_OBFUSCATION_BLOCKLIST"
 const hsDataObfuscationBlocklistKey = "dataObfuscationBlocklist"
@@ -53,9 +59,11 @@ const hsDatahMacKey = "dataObfuscationhMacKey"
 const defaultInstrumentationDisabled = false
 const defaultCollectorInsecure = false
 const defaultCollectorEndpoint = "collector.heliosphere.io:443"
-const defaultCollectorPath = "traces"
+const defaultCollectorPath = "/v1/traces"
+const defaultCollectorMetricsPath = "/v1/metrics"
 const defaultDebug = false
 const defaultMetadataOnly = false
+const defaultCollectMetrics = false
 
 func getConfigByKey(key string, attrs []attribute.KeyValue) attribute.KeyValue {
 	for i := range attrs {
@@ -128,6 +136,11 @@ func isMetadataOnlyMode(attrs []attribute.KeyValue) bool {
 	return getBoolConfig(metadataOnlyEnvVar, defaultMetadataOnly, metadataOnlyConfig)
 }
 
+func isCollectMetrics(attrs []attribute.KeyValue) bool {
+	collectMetricsConfig := getConfigByKey(collectMetricsKey, attrs)
+	return getBoolConfig(collectMetricsEnvVar, defaultCollectMetrics, collectMetricsConfig)
+}
+
 func getCollectorEndpoint(attrs []attribute.KeyValue) string {
 	collectorEndpointConfig := getConfigByKey(collectorEndpointKey, attrs)
 	return getStringConfig(collectorEndpointEnvVar, defaultCollectorEndpoint, collectorEndpointConfig)
@@ -136,6 +149,11 @@ func getCollectorEndpoint(attrs []attribute.KeyValue) string {
 func getCollectorPath(attrs []attribute.KeyValue) string {
 	collectorPathConfig := getConfigByKey(collectorPathKey, attrs)
 	return getStringConfig(collectorPathEnvVar, defaultCollectorPath, collectorPathConfig)
+}
+
+func getCollectorMetricsPath(attrs []attribute.KeyValue) string {
+	collectorMetricsPathConfig := getConfigByKey(collectorMetricsPathKey, attrs)
+	return getStringConfig(collectorMetricsPathEnvVar, defaultCollectorMetricsPath, collectorMetricsPathConfig)
 }
 
 func getEnvironment(attrs []attribute.KeyValue) string {
@@ -157,11 +175,13 @@ func createHeliosConfig(serviceName string, apiToken string, attrs ...attribute.
 		collectorInsecure := isCollectorInsecure(attrs)
 		collectorEndpoint := getCollectorEndpoint(attrs)
 		collectorPath := getCollectorPath(attrs)
+		collectorMetricsPath := getCollectorMetricsPath(attrs)
 		environment := getEnvironment(attrs)
 		commitHash := getCommitHash(attrs)
 		debug := isDebugMode(attrs)
 		metadataOnly := isMetadataOnlyMode(attrs)
-		heliosConfigSingleton = &HeliosConfig{instrumentationDisabled, serviceName, apiToken, sampler, collectorInsecure, collectorEndpoint, collectorPath, environment, commitHash, debug, metadataOnly}
+		collectMetrics := isCollectMetrics(attrs)
+		heliosConfigSingleton = &HeliosConfig{instrumentationDisabled, serviceName, apiToken, sampler, collectorInsecure, collectorEndpoint, collectorPath, collectorMetricsPath, environment, commitHash, debug, metadataOnly, collectMetrics}
 		return heliosConfigSingleton
 	}
 }
