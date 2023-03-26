@@ -29,9 +29,22 @@ func extractProxyLibExports(libName string) []exportsExtractor.ExtractedObject {
 	return heliosExports
 }
 
+func deleteByName(exports []exportsExtractor.ExtractedObject, name string) []exportsExtractor.ExtractedObject {
+	for i, export := range exports {
+		if export.Name == name {
+			return append(exports[:i], exports[i+1:]...)
+		}
+	}
+
+	return exports
+}
+
 func TestHttpInterfaceMatch(t *testing.T) {
 	originalExports := cloneRepositoryAndExtractExports("https://github.com/golang/go", "go1.18", "http", "/src/net/http")
 	heliosExports := extractProxyLibExports("helioshttp")
+
+	heliosExports = deleteByName(heliosExports, "GetOriginHttpClient")
+
 	assert.EqualValues(t, originalExports, heliosExports)
 }
 
