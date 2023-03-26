@@ -19,7 +19,7 @@ type Client struct {
 	Timeout       time.Duration
 }
 
-func (c *Client) getOriginHttpClient() realHttp.Client {
+func (c *Client) GetOriginHttpClient() realHttp.Client {
 	copyClientProxyToReal(c, &c.realClient)
 	return c.realClient
 }
