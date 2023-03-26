@@ -43,6 +43,8 @@ func deleteByName(exports []exportsExtractor.ExtractedObject, name string) []exp
 func TestHttpInterfaceMatch(t *testing.T) {
 	originalExports := cloneRepositoryAndExtractExports("https://github.com/golang/go", "go1.19", "http", "/src/net/http")
 	heliosExports := extractProxyLibExports("helioshttp")
+
+	heliosExports = deleteByName(heliosExports, "GetOriginHttpClient")
 	assert.EqualValues(t, originalExports, heliosExports)
 }
 
