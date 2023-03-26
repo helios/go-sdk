@@ -227,7 +227,7 @@ func TestServerInstrumentation(t *testing.T) {
 func TestClientInstrumentation(t *testing.T) {
 	sr := setupSpanRecording()
 	client := &Client{}
-	realClient := client.getOriginHttpClient()
+	realClient := client.GetOriginHttpClient()
 	_,_ = realClient.Get("google.com")
 	sr.ForceFlush(context.Background())
 	spans := sr.Ended()
