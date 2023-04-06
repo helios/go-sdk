@@ -13,28 +13,30 @@ import (
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/sdk/trace/tracetest"
 )
 
 var (
-	traceId               = "83d8d6c5347593d092e9409f4978bd51"
-	parentSpanId          = "6f2a23d2d1e9159c"
-	tracingHeader         = "00" + "-" + traceId + "-" + parentSpanId + "-" + "01"
-	traceCarrier          = map[string]string{"traceparent": tracingHeader}
-	testApiGatewayEvent   = events.APIGatewayV2HTTPRequest{Headers: traceCarrier, Body: "sababa"}
-	testEventBridgeEvent1 = eventBridgeEvent{Detail: traceCarrier}
-	testEventBridgeEvent2 = eventBridgeEvent{TraceHeader: tracingHeader}
-	exporter              = tracetest.NewInMemoryExporter()
-	provider              = trace.NewTracerProvider(trace.WithBatcher(exporter))
-	testSqsMessage        = events.SQSMessage{MessageId: "1234", MessageAttributes: map[string]events.SQSMessageAttribute{"traceparent": {DataType: "String", StringValue: &tracingHeader}}}
-	testSqsRecord         = events.SQSEvent{Records: []events.SQSMessage{testSqsMessage}}
+	traceId                = "83d8d6c5347593d092e9409f4978bd51"
+	parentSpanId           = "6f2a23d2d1e9159c"
+	tracingHeader          = "00" + "-" + traceId + "-" + parentSpanId + "-" + "01"
+	traceCarrier           = map[string]string{"traceparent": tracingHeader}
+	testApiGatewayEvent    = events.APIGatewayV2HTTPRequest{Headers: traceCarrier, Body: "sababa"}
+	testApiGatewayResponse = events.APIGatewayV2HTTPResponse{StatusCode: 500}
+	testEventBridgeEvent1  = eventBridgeEvent{Detail: traceCarrier}
+	testEventBridgeEvent2  = eventBridgeEvent{TraceHeader: tracingHeader}
+	exporter               = tracetest.NewInMemoryExporter()
+	provider               = trace.NewTracerProvider(trace.WithBatcher(exporter))
+	testSqsMessage         = events.SQSMessage{MessageId: "1234", MessageAttributes: map[string]events.SQSMessageAttribute{"traceparent": {DataType: "String", StringValue: &tracingHeader}}}
+	testSqsRecord          = events.SQSEvent{Records: []events.SQSMessage{testSqsMessage}}
 )
 
 const response = "hello world"
-
 const obfuscatedExpectedPayload = "{\"body\":\"9e22b0a5\",\"headers\":{\"traceparent\":\"00-83d8d6c5347593d092e9409f4978bd51-6f2a23d2d1e9159c-01\"},\"isBase64Encoded\":false,\"rawPath\":\"\",\"rawQueryString\":\"\",\"requestContext\":{\"accountId\":\"\",\"apiId\":\"\",\"authentication\":{\"clientCert\":{\"clientCertPem\":\"\",\"issuerDN\":\"\",\"serialNumber\":\"\",\"subjectDN\":\"\",\"validity\":{\"notAfter\":\"\",\"notBefore\":\"\"}}},\"domainName\":\"\",\"domainPrefix\":\"\",\"http\":{\"method\":\"\",\"path\":\"\",\"protocol\":\"\",\"sourceIp\":\"\",\"userAgent\":\"\"},\"requestId\":\"\",\"routeKey\":\"\",\"stage\":\"\",\"time\":\"\",\"timeEpoch\":0},\"routeKey\":\"\",\"version\":\"\"}"
 const obfuscatedRes = "9dce2609"
+const obfuscatedExpectedHttpRes = "{\"body\":\"d70d88cd\",\"cookies\":null,\"headers\":null,\"multiValueHeaders\":null,\"statusCode\":500}"
 
 func init() {
 	blocklistRules, _ := json.Marshal([]string{"$.body"})
@@ -104,7 +106,7 @@ func TestPayloadCollection(t *testing.T) {
 	otel.SetTracerProvider(provider)
 
 	customerHandler := func(lambdaContext context.Context, event events.APIGatewayV2HTTPRequest) (any, error) {
-		return event, nil
+		return testApiGatewayResponse, nil
 	}
 
 	wrapped := instrumentHandler(customerHandler)
@@ -114,7 +116,12 @@ func TestPayloadCollection(t *testing.T) {
 	spans := exporter.GetSpans()
 	assert.Len(t, spans, 1)
 	lambdaSpan := spans[0]
-	assertPayloads(t, lambdaSpan, obfuscatedExpectedPayload, obfuscatedExpectedPayload)
+	assertPayloads(t, lambdaSpan, obfuscatedExpectedPayload, obfuscatedExpectedHttpRes)
+
+	// Response is HTTP with StatusCode 500, so we expect marking it as a failure
+	assert.Equal(t, lambdaSpan.Status.Code, codes.Error)
+	assert.Contains(t, lambdaSpan.Attributes, attribute.Int("faas.http_status_code", 500))
+
 }
 
 func TestApiGatewayContextPropagation(t *testing.T) {
