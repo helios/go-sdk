@@ -4,13 +4,13 @@ go 1.18
 
 require (
 	github.com/aws/aws-lambda-go v1.37.0
-	github.com/helios/opentelemetry-go-contrib/instrumentation/github.com/aws/aws-lambda-go/otellambda v0.1.4-0.20230407075656-14e932433bd8
+	github.com/helios/opentelemetry-go-contrib/instrumentation/github.com/aws/aws-lambda-go/otellambda v0.1.4
 	go.opentelemetry.io/otel/trace v1.11.2
 )
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/helios/go-sdk/data-obfuscator v1.0.1 // indirect
+	github.com/helios/go-sdk/data-utils v1.0.2 // indirect
 	github.com/ohler55/ojg v1.17.4 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	golang.org/x/exp v0.0.0-20230203172020-98cc5a0785f9 // indirect

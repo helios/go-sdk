@@ -24,7 +24,7 @@ var (
 	tracingHeader          = "00" + "-" + traceId + "-" + parentSpanId + "-" + "01"
 	traceCarrier           = map[string]string{"traceparent": tracingHeader}
 	testApiGatewayEvent    = events.APIGatewayV2HTTPRequest{Headers: traceCarrier, Body: "sababa"}
-	testApiGatewayResponse = events.APIGatewayV2HTTPResponse{StatusCode: 500}
+	testApiGatewayResponse = events.APIGatewayV2HTTPResponse{StatusCode: 502}
 	testEventBridgeEvent1  = eventBridgeEvent{Detail: traceCarrier}
 	testEventBridgeEvent2  = eventBridgeEvent{TraceHeader: tracingHeader}
 	exporter               = tracetest.NewInMemoryExporter()
@@ -36,7 +36,7 @@ var (
 const response = "hello world"
 const obfuscatedExpectedPayload = "{\"body\":\"9e22b0a5\",\"headers\":{\"traceparent\":\"00-83d8d6c5347593d092e9409f4978bd51-6f2a23d2d1e9159c-01\"},\"isBase64Encoded\":false,\"rawPath\":\"\",\"rawQueryString\":\"\",\"requestContext\":{\"accountId\":\"\",\"apiId\":\"\",\"authentication\":{\"clientCert\":{\"clientCertPem\":\"\",\"issuerDN\":\"\",\"serialNumber\":\"\",\"subjectDN\":\"\",\"validity\":{\"notAfter\":\"\",\"notBefore\":\"\"}}},\"domainName\":\"\",\"domainPrefix\":\"\",\"http\":{\"method\":\"\",\"path\":\"\",\"protocol\":\"\",\"sourceIp\":\"\",\"userAgent\":\"\"},\"requestId\":\"\",\"routeKey\":\"\",\"stage\":\"\",\"time\":\"\",\"timeEpoch\":0},\"routeKey\":\"\",\"version\":\"\"}"
 const obfuscatedRes = "9dce2609"
-const obfuscatedExpectedHttpRes = "{\"body\":\"d70d88cd\",\"cookies\":null,\"headers\":null,\"multiValueHeaders\":null,\"statusCode\":500}"
+const obfuscatedExpectedHttpRes = "{\"body\":\"d70d88cd\",\"cookies\":null,\"headers\":null,\"multiValueHeaders\":null,\"statusCode\":502}"
 
 func init() {
 	blocklistRules, _ := json.Marshal([]string{"$.body"})
@@ -120,8 +120,7 @@ func TestPayloadCollection(t *testing.T) {
 
 	// Response is HTTP with StatusCode 500, so we expect marking it as a failure
 	assert.Equal(t, lambdaSpan.Status.Code, codes.Error)
-	assert.Contains(t, lambdaSpan.Attributes, attribute.Int("faas.http_status_code", 500))
-
+	assert.Contains(t, lambdaSpan.Attributes, attribute.Int("http.status_code", testApiGatewayResponse.StatusCode))
 }
 
 func TestApiGatewayContextPropagation(t *testing.T) {
