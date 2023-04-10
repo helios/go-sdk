@@ -165,8 +165,8 @@ func getEnvironment(attrs []attribute.KeyValue) string {
 }
 
 func getServiceNamespace(attrs []attribute.KeyValue) string {
-	environmentConfig := getConfigByKey(serviceNamespaceKey, attrs)
-	return getStringConfig(serviceNamespaceEnvVar, "", environmentConfig)
+	serviceNamespaceConfig := getConfigByKey(serviceNamespaceKey, attrs)
+	return getStringConfig(serviceNamespaceEnvVar, "", serviceNamespaceConfig)
 }
 
 func getCommitHash(attrs []attribute.KeyValue) string {
