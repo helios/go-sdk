@@ -20,6 +20,7 @@ type HeliosConfig struct {
 	collectorPath           string
 	collectorMetricsPath    string
 	environment             string
+	serviceNamespace        string
 	commitHash              string
 	debug                   bool
 	metadataOnly            bool
@@ -33,6 +34,8 @@ const samplingRatioKey = "samplingRatio"
 const samplingRatioEnvVar = "HS_SAMPLING_RATIO"
 const environmentKey = "environment"
 const environmentEnvVar = "HS_ENVIRONMENT"
+const serviceNamespaceKey = "environment"
+const serviceNamespaceEnvVar = "HS_SERVICE_NAMESPACE"
 const collectorInsecureKey = "collectorInsecure"
 const collectorInsecureEnvVar = "HS_COLLECTOR_INSECURE"
 const collectorEndpointKey = "collectorEndpoint"
@@ -161,6 +164,11 @@ func getEnvironment(attrs []attribute.KeyValue) string {
 	return getStringConfig(environmentEnvVar, "", environmentConfig)
 }
 
+func getServiceNamespace(attrs []attribute.KeyValue) string {
+	environmentConfig := getConfigByKey(serviceNamespaceKey, attrs)
+	return getStringConfig(serviceNamespaceEnvVar, "", environmentConfig)
+}
+
 func getCommitHash(attrs []attribute.KeyValue) string {
 	commitHashConfig := getConfigByKey(commitHashKey, attrs)
 	return getStringConfig(commitHashEnvVar, "", commitHashConfig)
@@ -177,11 +185,12 @@ func createHeliosConfig(serviceName string, apiToken string, attrs ...attribute.
 		collectorPath := getCollectorPath(attrs)
 		collectorMetricsPath := getCollectorMetricsPath(attrs)
 		environment := getEnvironment(attrs)
+		serviceNamespace := getServiceNamespace(attrs)
 		commitHash := getCommitHash(attrs)
 		debug := isDebugMode(attrs)
 		metadataOnly := isMetadataOnlyMode(attrs)
 		collectMetrics := isCollectMetrics(attrs)
-		heliosConfigSingleton = &HeliosConfig{instrumentationDisabled, serviceName, apiToken, sampler, collectorInsecure, collectorEndpoint, collectorPath, collectorMetricsPath, environment, commitHash, debug, metadataOnly, collectMetrics}
+		heliosConfigSingleton = &HeliosConfig{instrumentationDisabled, serviceName, apiToken, sampler, collectorInsecure, collectorEndpoint, collectorPath, collectorMetricsPath, environment, serviceNamespace, commitHash, debug, metadataOnly, collectMetrics}
 		return heliosConfigSingleton
 	}
 }

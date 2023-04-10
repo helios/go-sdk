@@ -21,6 +21,7 @@ func TestBasicConfig(t *testing.T) {
 	assert.Equal(t, config.collectorMetricsPath, defaultCollectorMetricsPath)
 	assert.Equal(t, config.commitHash, "")
 	assert.Equal(t, config.environment, "")
+	assert.Equal(t, config.serviceNamespace, "")
 	assert.Equal(t, config.debug, false)
 	assert.Equal(t, config.metadataOnly, false)
 	assert.Equal(t, config.collectMetrics, false)
@@ -33,7 +34,8 @@ func TestConfigWithOptions(t *testing.T) {
 	testCollectorPath := "/sababa"
 	testSamplingRatio := 0.1234
 	metricsPath := "/v2/metrics"
-	config := createHeliosConfig(serviceName, token, WithCollectorInsecure(), WithCollectorEndpoint(testCollectorEndpoint), WithCollectorPath(testCollectorPath), WithSamplingRatio(testSamplingRatio), WithDebugMode(), WithMetadataOnlyMode(), WithCollectMetrics(), WithCollectorMetricsPath(metricsPath))
+	serviceNamespace := "ns1"
+	config := createHeliosConfig(serviceName, token, WithCollectorInsecure(), WithCollectorEndpoint(testCollectorEndpoint), WithCollectorPath(testCollectorPath), WithSamplingRatio(testSamplingRatio), WithDebugMode(), WithMetadataOnlyMode(), WithCollectMetrics(), WithCollectorMetricsPath(metricsPath), WithServiceNamespace(serviceNamespace))
 	assert.Equal(t, config.apiToken, token)
 	assert.Equal(t, config.collectorInsecure, true)
 	assert.Equal(t, config.collectorEndpoint, testCollectorEndpoint)
@@ -42,6 +44,7 @@ func TestConfigWithOptions(t *testing.T) {
 	assert.Equal(t, config.debug, true)
 	assert.Equal(t, config.metadataOnly, true)
 	assert.Equal(t, config.collectorMetricsPath, metricsPath)
+	assert.Equal(t, config.serviceNamespace, serviceNamespace)
 }
 
 func TestConfigWithDisabledInstrumentationOption(t *testing.T) {
@@ -57,6 +60,7 @@ func TestConfigWithEnvVars(t *testing.T) {
 	testCollectorPath := "/sababa"
 	testSamplingRatio := 0.1234
 	metricsPath := "/v2/metrics"
+	serviceNamespace := "ns1"
 	os.Setenv(collectorInsecureEnvVar, "true")
 	os.Setenv(collectorEndpointEnvVar, testCollectorEndpoint)
 	os.Setenv(collectorPathEnvVar, testCollectorPath)
@@ -65,6 +69,7 @@ func TestConfigWithEnvVars(t *testing.T) {
 	os.Setenv(metadataOnlyEnvVar, "true")
 	os.Setenv(collectMetricsEnvVar, "true")
 	os.Setenv(collectorMetricsPathEnvVar, metricsPath)
+	os.Setenv(serviceNamespaceEnvVar, serviceNamespace)
 
 	config := createHeliosConfig(serviceName, token)
 	assert.Equal(t, config.apiToken, token)
@@ -76,6 +81,7 @@ func TestConfigWithEnvVars(t *testing.T) {
 	assert.Equal(t, config.metadataOnly, true)
 	assert.Equal(t, config.collectMetrics, true)
 	assert.Equal(t, config.collectorMetricsPath, metricsPath)
+	assert.Equal(t, config.serviceNamespace, serviceNamespace)
 }
 
 func TestConfigWithDisabledInstrumentationEnvVar(t *testing.T) {
