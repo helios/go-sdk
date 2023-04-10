@@ -40,6 +40,13 @@ func WithEnvironment(environment string) attribute.KeyValue {
 	}
 }
 
+func WithServiceNamespace(serviceNamespace string) attribute.KeyValue {
+	return attribute.KeyValue{
+		Key:   serviceNamespaceKey,
+		Value: attribute.StringValue(serviceNamespace),
+	}
+}
+
 func WithCollectorInsecure() attribute.KeyValue {
 	return attribute.KeyValue{
 		Key:   collectorInsecureKey,
@@ -158,6 +165,9 @@ func getResource(serviceName string, heliosConfig *HeliosConfig) *resource.Resou
 	}
 	if heliosConfig.commitHash != "" {
 		serviceAttributes = append(serviceAttributes, semconv.ServiceVersionKey.String(heliosConfig.commitHash))
+	}
+	if heliosConfig.serviceNamespace != "" {
+		serviceAttributes = append(serviceAttributes, semconv.ServiceNamespaceKey.String(heliosConfig.serviceNamespace))
 	}
 
 	return resource.NewWithAttributes(semconv.SchemaURL, serviceAttributes...)
