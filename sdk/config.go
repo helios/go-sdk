@@ -11,20 +11,20 @@ import (
 var heliosConfigSingleton *HeliosConfig
 
 type HeliosConfig struct {
-	instrumentationDisabled bool
-	serviceName             string
-	apiToken                string
-	sampler                 trace.Sampler
-	collectorInsecure       bool
-	collectorEndpoint       string
-	collectorPath           string
-	collectorMetricsPath    string
-	environment             string
-	serviceNamespace        string
-	commitHash              string
-	debug                   bool
-	metadataOnly            bool
-	collectMetrics          bool
+	instrumentationDisabled  bool
+	serviceName              string
+	apiToken                 string
+	sampler                  trace.Sampler
+	collectorInsecure        bool
+	collectorEndpoint        string
+	collectorPath            string
+	collectorMetricsPath     string
+	environment              string
+	serviceNamespace         string
+	commitHash               string
+	debug                    bool
+	metadataOnly             bool
+	disableMetricsCollection bool
 }
 
 // Keys and their matching env vars
@@ -50,8 +50,8 @@ const debugKey = "debug"
 const debugEnvVar = "HS_DEBUG"
 const metadataOnlyKey = "metadataOnly"
 const metadataOnlyEnvVar = "HS_METADATA_ONLY"
-const collectMetricsKey = "collectMetrics"
-const collectMetricsEnvVar = "HS_COLLECT_METRICS"
+const disableMetricsCollectionKey = "disableMetricsCollection"
+const disableMetricsCollectionEnvVar = "HS_DISABLE_METRICS_COLLECTION"
 const hsDataObfuscationAllowlistKey = "dataObfuscationAllowlist"
 const hsDataObfuscationBlocklistEnvVar = "HS_DATA_OBFUSCATION_BLOCKLIST"
 const hsDataObfuscationBlocklistKey = "dataObfuscationBlocklist"
@@ -66,7 +66,7 @@ const defaultCollectorPath = "/v1/traces"
 const defaultCollectorMetricsPath = "/v1/metrics"
 const defaultDebug = false
 const defaultMetadataOnly = false
-const defaultCollectMetrics = false
+const defaultDisableMetricsCollection = false
 
 func getConfigByKey(key string, attrs []attribute.KeyValue) attribute.KeyValue {
 	for i := range attrs {
@@ -139,9 +139,9 @@ func isMetadataOnlyMode(attrs []attribute.KeyValue) bool {
 	return getBoolConfig(metadataOnlyEnvVar, defaultMetadataOnly, metadataOnlyConfig)
 }
 
-func isCollectMetrics(attrs []attribute.KeyValue) bool {
-	collectMetricsConfig := getConfigByKey(collectMetricsKey, attrs)
-	return getBoolConfig(collectMetricsEnvVar, defaultCollectMetrics, collectMetricsConfig)
+func isDisableMetricsCollection(attrs []attribute.KeyValue) bool {
+	disableMetricsCollectionConfig := getConfigByKey(disableMetricsCollectionKey, attrs)
+	return getBoolConfig(disableMetricsCollectionEnvVar, defaultDisableMetricsCollection, disableMetricsCollectionConfig)
 }
 
 func getCollectorEndpoint(attrs []attribute.KeyValue) string {
@@ -189,8 +189,8 @@ func createHeliosConfig(serviceName string, apiToken string, attrs ...attribute.
 		commitHash := getCommitHash(attrs)
 		debug := isDebugMode(attrs)
 		metadataOnly := isMetadataOnlyMode(attrs)
-		collectMetrics := isCollectMetrics(attrs)
-		heliosConfigSingleton = &HeliosConfig{instrumentationDisabled, serviceName, apiToken, sampler, collectorInsecure, collectorEndpoint, collectorPath, collectorMetricsPath, environment, serviceNamespace, commitHash, debug, metadataOnly, collectMetrics}
+		disableMetricsCollection := isDisableMetricsCollection(attrs)
+		heliosConfigSingleton = &HeliosConfig{instrumentationDisabled, serviceName, apiToken, sampler, collectorInsecure, collectorEndpoint, collectorPath, collectorMetricsPath, environment, serviceNamespace, commitHash, debug, metadataOnly, disableMetricsCollection}
 		return heliosConfigSingleton
 	}
 }
