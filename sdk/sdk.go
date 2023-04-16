@@ -54,9 +54,9 @@ func WithCollectorInsecure() attribute.KeyValue {
 	}
 }
 
-func WithCollectMetrics() attribute.KeyValue {
+func WithDisableMetricsCollection() attribute.KeyValue {
 	return attribute.KeyValue{
-		Key:   collectMetricsKey,
+		Key:   disableMetricsCollectionKey,
 		Value: attribute.StringValue("true"),
 	}
 }
@@ -250,7 +250,7 @@ func Initialize(serviceName string, apiToken string, attrs ...attribute.KeyValue
 	tracerProvider := trace.NewTracerProvider(providerParams...)
 	heliosProcessor := HeliosProcessor{}
 
-	if heliosConfig.collectMetrics {
+	if !heliosConfig.disableMetricsCollection {
 		collectMetrics(ctx, serviceResource, heliosConfig)
 	}
 
