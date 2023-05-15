@@ -24,6 +24,10 @@ import (
 const sdkName = "helios-opentelemetry-sdk"
 const customSpanAttr = "hs-custom-span"
 
+// AWS env vars
+const awsLambdaFunctionNameEnvVar = "AWS_LAMBDA_FUNCTION_NAME"
+const awsRegionEnvVar = "AWS_REGION"
+
 var providerSingleton *trace.TracerProvider
 
 func WithSamplingRatio(samplingRatio float64) attribute.KeyValue {
@@ -159,7 +163,12 @@ func CreateCustomSpan(context context.Context, spanName string, attributes []att
 }
 
 func getResource(serviceName string, heliosConfig *HeliosConfig) *resource.Resource {
-	serviceAttributes := []attribute.KeyValue{semconv.ServiceNameKey.String(serviceName), semconv.TelemetrySDKVersionKey.String(version), semconv.TelemetrySDKNameKey.String(sdkName), semconv.TelemetrySDKLanguageGo}
+	serviceAttributes := []attribute.KeyValue{
+		semconv.ServiceNameKey.String(serviceName),
+		semconv.TelemetrySDKVersionKey.String(version),
+		semconv.TelemetrySDKNameKey.String(sdkName),
+		semconv.TelemetrySDKLanguageGo,
+	}
 	if heliosConfig.environment != "" {
 		serviceAttributes = append(serviceAttributes, semconv.DeploymentEnvironmentKey.String(heliosConfig.environment))
 	}
@@ -169,7 +178,12 @@ func getResource(serviceName string, heliosConfig *HeliosConfig) *resource.Resou
 	if heliosConfig.serviceNamespace != "" {
 		serviceAttributes = append(serviceAttributes, semconv.ServiceNamespaceKey.String(heliosConfig.serviceNamespace))
 	}
-
+	if lambdaFunctionName := os.Getenv(awsLambdaFunctionNameEnvVar); lambdaFunctionName != "" {
+		serviceAttributes = append(serviceAttributes, semconv.FaaSNameKey.String(lambdaFunctionName))
+	}
+	if awsRegion := os.Getenv(awsRegionEnvVar); awsRegion != "" {
+		serviceAttributes = append(serviceAttributes, semconv.CloudRegionKey.String(awsRegion))
+	}
 	return resource.NewWithAttributes(semconv.SchemaURL, serviceAttributes...)
 }
 
