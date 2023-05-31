@@ -61,7 +61,7 @@ const hsDatahMacKey = "dataObfuscationhMacKey"
 // Default values
 const defaultInstrumentationDisabled = false
 const defaultCollectorInsecure = false
-const defaultCollectorEndpoint = "collector.heliosphere.io:443"
+const defaultCollectorEndpoint = "collector.gethelios.dev:443"
 const defaultCollectorPath = "/v1/traces"
 const defaultCollectorMetricsPath = "/v1/metrics"
 const defaultDebug = false
