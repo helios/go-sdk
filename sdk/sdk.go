@@ -24,6 +24,10 @@ import (
 const sdkName = "helios-opentelemetry-sdk"
 const customSpanAttr = "hs-custom-span"
 
+// AWS env vars
+const awsLambdaFunctionNameEnvVar = "AWS_LAMBDA_FUNCTION_NAME"
+const awsRegionEnvVar = "AWS_REGION"
+
 var providerSingleton *trace.TracerProvider
 
 func WithSamplingRatio(samplingRatio float64) attribute.KeyValue {
@@ -40,6 +44,13 @@ func WithEnvironment(environment string) attribute.KeyValue {
 	}
 }
 
+func WithServiceNamespace(serviceNamespace string) attribute.KeyValue {
+	return attribute.KeyValue{
+		Key:   serviceNamespaceKey,
+		Value: attribute.StringValue(serviceNamespace),
+	}
+}
+
 func WithCollectorInsecure() attribute.KeyValue {
 	return attribute.KeyValue{
 		Key:   collectorInsecureKey,
@@ -47,9 +58,9 @@ func WithCollectorInsecure() attribute.KeyValue {
 	}
 }
 
-func WithCollectMetrics() attribute.KeyValue {
+func WithDisableMetricsCollection() attribute.KeyValue {
 	return attribute.KeyValue{
-		Key:   collectMetricsKey,
+		Key:   disableMetricsCollectionKey,
 		Value: attribute.StringValue("true"),
 	}
 }
@@ -152,14 +163,27 @@ func CreateCustomSpan(context context.Context, spanName string, attributes []att
 }
 
 func getResource(serviceName string, heliosConfig *HeliosConfig) *resource.Resource {
-	serviceAttributes := []attribute.KeyValue{semconv.ServiceNameKey.String(serviceName), semconv.TelemetrySDKVersionKey.String(version), semconv.TelemetrySDKNameKey.String(sdkName), semconv.TelemetrySDKLanguageGo}
+	serviceAttributes := []attribute.KeyValue{
+		semconv.ServiceNameKey.String(serviceName),
+		semconv.TelemetrySDKVersionKey.String(version),
+		semconv.TelemetrySDKNameKey.String(sdkName),
+		semconv.TelemetrySDKLanguageGo,
+	}
 	if heliosConfig.environment != "" {
 		serviceAttributes = append(serviceAttributes, semconv.DeploymentEnvironmentKey.String(heliosConfig.environment))
 	}
 	if heliosConfig.commitHash != "" {
 		serviceAttributes = append(serviceAttributes, semconv.ServiceVersionKey.String(heliosConfig.commitHash))
 	}
-
+	if heliosConfig.serviceNamespace != "" {
+		serviceAttributes = append(serviceAttributes, semconv.ServiceNamespaceKey.String(heliosConfig.serviceNamespace))
+	}
+	if lambdaFunctionName := os.Getenv(awsLambdaFunctionNameEnvVar); lambdaFunctionName != "" {
+		serviceAttributes = append(serviceAttributes, semconv.FaaSNameKey.String(lambdaFunctionName))
+	}
+	if awsRegion := os.Getenv(awsRegionEnvVar); awsRegion != "" {
+		serviceAttributes = append(serviceAttributes, semconv.CloudRegionKey.String(awsRegion))
+	}
 	return resource.NewWithAttributes(semconv.SchemaURL, serviceAttributes...)
 }
 
@@ -240,7 +264,7 @@ func Initialize(serviceName string, apiToken string, attrs ...attribute.KeyValue
 	tracerProvider := trace.NewTracerProvider(providerParams...)
 	heliosProcessor := HeliosProcessor{}
 
-	if heliosConfig.collectMetrics {
+	if !heliosConfig.disableMetricsCollection {
 		collectMetrics(ctx, serviceResource, heliosConfig)
 	}
 
