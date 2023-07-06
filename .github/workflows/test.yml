@@ -102,7 +102,7 @@ jobs:
 
       - name: Run grpc proxy unit tests
         working-directory: proxy-libs/heliosgrpc
-        run: go mod tidy && go test .
+        run: go mod tidy -compat=1.17 && go test .
 
       - name: Run mongo proxy unit tests
         working-directory: proxy-libs/heliosmongo
